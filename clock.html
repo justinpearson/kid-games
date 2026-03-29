@@ -197,15 +197,25 @@ function togglePlay() {
 function startPlay() {
   playing = true;
   document.getElementById('playBtn').innerHTML = '&#9646;&#9646; Pause';
-  const tick = () => {
-    const speed = parseInt(document.getElementById('speedSelect').value);
-    let val = parseInt(slider.value) + speed;
+  schedulePlayInterval();
+}
+
+function schedulePlayInterval() {
+  if (playInterval) clearInterval(playInterval);
+  const speed = parseInt(document.getElementById('speedSelect').value);
+  const intervalMs = Math.max(1000 / speed, 16); // cap at ~60fps
+  const step = Math.round(speed / (1000 / intervalMs));
+  playInterval = setInterval(() => {
+    let val = parseInt(slider.value) + step;
     if (val >= 86400) val -= 86400;
     slider.value = val;
     update();
-  };
-  playInterval = setInterval(tick, 1000);
+  }, intervalMs);
 }
+
+document.getElementById('speedSelect').addEventListener('change', () => {
+  if (playing) schedulePlayInterval();
+});
 
 function stopPlay() {
   playing = false;
