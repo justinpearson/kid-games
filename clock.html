@@ -137,6 +137,16 @@
   <div class="options">
     <label><input type="checkbox" id="showMinuteNumbers"> Show minute numbers (0-59)</label>
     <label><input type="checkbox" id="show24Hour"> Show 24-hour time</label>
+    <button id="playBtn" onclick="togglePlay()" style="padding:0.3rem 1rem;border:none;border-radius:0.4rem;font-size:0.95rem;font-weight:700;cursor:pointer;background:#fff;color:#333;">&#9654; Play</button>
+    <label>
+      Speed:
+      <select id="speedSelect" style="font-size:0.95rem;padding:0.2rem 0.4rem;border-radius:0.4rem;border:1px solid rgba(255,255,255,0.5);">
+        <option value="1">1x</option>
+        <option value="10">10x</option>
+        <option value="100">100x</option>
+        <option value="1000">1000x</option>
+      </select>
+    </label>
   </div>
 
   <div class="clocks">
@@ -173,9 +183,35 @@ const slider = document.getElementById('timeSlider');
 const showMinNums = document.getElementById('showMinuteNumbers');
 const show24 = document.getElementById('show24Hour');
 
-slider.addEventListener('input', update);
+let playing = false;
+let playInterval = null;
+
+slider.addEventListener('input', () => { stopPlay(); update(); });
 showMinNums.addEventListener('change', update);
 show24.addEventListener('change', update);
+
+function togglePlay() {
+  if (playing) stopPlay(); else startPlay();
+}
+
+function startPlay() {
+  playing = true;
+  document.getElementById('playBtn').innerHTML = '&#9646;&#9646; Pause';
+  const tick = () => {
+    const speed = parseInt(document.getElementById('speedSelect').value);
+    let val = parseInt(slider.value) + speed;
+    if (val >= 86400) val -= 86400;
+    slider.value = val;
+    update();
+  };
+  playInterval = setInterval(tick, 1000);
+}
+
+function stopPlay() {
+  playing = false;
+  document.getElementById('playBtn').innerHTML = '&#9654; Play';
+  if (playInterval) { clearInterval(playInterval); playInterval = null; }
+}
 
 function getTime(totalSeconds) {
   const h = Math.floor(totalSeconds / 3600);
