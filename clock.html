@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Learn the Clock - Kid Games</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+  }
+  .back-link {
+    align-self: flex-start;
+    color: #fff;
+    text-decoration: none;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.9;
+  }
+  .back-link:hover { opacity: 1; text-decoration: underline; }
+  h1 { color: #fff; font-size: 2rem; margin-bottom: 0.3rem; text-shadow: 1px 1px 3px rgba(0,0,0,0.2); }
+
+  .time-display {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0.5rem 0 0.3rem;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+  }
+  .am-pm-label {
+    font-size: 1.1rem;
+    color: rgba(255,255,255,0.9);
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+  }
+
+  .slider-container {
+    width: min(90vw, 700px);
+    margin-bottom: 0.75rem;
+  }
+  .slider-container label { color: #fff; font-weight: 600; font-size: 0.95rem; }
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 12px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.5);
+    outline: none;
+    margin-top: 0.3rem;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  }
+
+  .options {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .options label {
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .options input[type=checkbox] {
+    width: 18px; height: 18px; cursor: pointer;
+  }
+
+  .clocks {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+    width: min(95vw, 800px);
+    margin-bottom: 0.75rem;
+  }
+  @media (max-width: 700px) {
+    .clocks { grid-template-columns: repeat(2, 1fr); }
+  }
+  .clock-box {
+    background: rgba(255,255,255,0.9);
+    border-radius: 1rem;
+    padding: 0.75rem;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  }
+  .clock-box h3 {
+    font-size: 0.95rem;
+    color: #444;
+    margin-bottom: 0.4rem;
+  }
+  canvas { display: block; margin: 0 auto; }
+
+  .info-box {
+    background: rgba(255,255,255,0.9);
+    border-radius: 1rem;
+    padding: 1rem 1.5rem;
+    max-width: 700px;
+    width: min(95vw, 700px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  }
+  .info-box h3 { color: #333; margin-bottom: 0.5rem; font-size: 1.1rem; }
+  .info-box p { color: #555; font-size: 0.95rem; line-height: 1.5; margin-bottom: 0.5rem; }
+  .info-box .highlight { color: #e05090; font-weight: 700; }
+  .info-box .am-block { color: #f5a623; font-weight: 700; }
+  .info-box .pm-block { color: #667eea; font-weight: 700; }
+</style>
+</head>
+<body>
+  <a href="index.html" class="back-link">&larr; Back to Games</a>
+  <h1>Learn the Clock</h1>
+
+  <div class="time-display" id="timeDisplay">12:00:00 AM</div>
+  <div class="am-pm-label" id="ampmInfo">Midnight &mdash; the start of a new day!</div>
+
+  <div class="slider-container">
+    <label for="timeSlider">Drag to change the time of day:</label>
+    <input type="range" id="timeSlider" min="0" max="86399" value="0">
+  </div>
+
+  <div class="options">
+    <label><input type="checkbox" id="showMinuteNumbers"> Show minute numbers (0-59)</label>
+    <label><input type="checkbox" id="show24Hour"> Show 24-hour time</label>
+  </div>
+
+  <div class="clocks">
+    <div class="clock-box">
+      <h3>Hours</h3>
+      <canvas id="clockHour" width="180" height="180"></canvas>
+    </div>
+    <div class="clock-box">
+      <h3>Minutes</h3>
+      <canvas id="clockMinute" width="180" height="180"></canvas>
+    </div>
+    <div class="clock-box">
+      <h3>Seconds</h3>
+      <canvas id="clockSecond" width="180" height="180"></canvas>
+    </div>
+    <div class="clock-box">
+      <h3>All Together</h3>
+      <canvas id="clockAll" width="180" height="180"></canvas>
+    </div>
+  </div>
+
+  <div class="info-box" id="infoBox">
+    <h3>How to read the time</h3>
+    <p id="infoText">Move the slider to explore different times!</p>
+    <h3 style="margin-top:0.75rem;">AM vs PM</h3>
+    <p>A day has <strong>24 hours</strong>, but a clock only shows <strong>12 numbers</strong>. So the clock goes around <strong>twice</strong> each day!</p>
+    <p><span class="am-block">AM (ante meridiem)</span> = Midnight (12:00) to just before Noon (11:59)</p>
+    <p><span class="pm-block">PM (post meridiem)</span> = Noon (12:00) to just before Midnight (11:59)</p>
+    <p id="ampmDetail"></p>
+  </div>
+
+<script>
+const slider = document.getElementById('timeSlider');
+const showMinNums = document.getElementById('showMinuteNumbers');
+const show24 = document.getElementById('show24Hour');
+
+slider.addEventListener('input', update);
+showMinNums.addEventListener('change', update);
+show24.addEventListener('change', update);
+
+function getTime(totalSeconds) {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  return { h24: h, h12: h % 12 || 12, m, s, ampm: h < 12 ? 'AM' : 'PM' };
+}
+
+function pad(n) { return n.toString().padStart(2, '0'); }
+
+function update() {
+  const t = getTime(parseInt(slider.value));
+  const showMin = showMinNums.checked;
+  const use24 = show24.checked;
+
+  // Time display
+  const timeStr = use24
+    ? `${pad(t.h24)}:${pad(t.m)}:${pad(t.s)}`
+    : `${t.h12}:${pad(t.m)}:${pad(t.s)} ${t.ampm}`;
+  document.getElementById('timeDisplay').textContent = timeStr;
+
+  // AM/PM info
+  updateAmPmInfo(t);
+
+  // Draw clocks
+  drawClock('clockHour', { h: t.h12, m: t.m, s: t.s, showHand: 'hour', showMin });
+  drawClock('clockMinute', { h: t.h12, m: t.m, s: t.s, showHand: 'minute', showMin });
+  drawClock('clockSecond', { h: t.h12, m: t.m, s: t.s, showHand: 'second', showMin });
+  drawClock('clockAll', { h: t.h12, m: t.m, s: t.s, showHand: 'all', showMin });
+
+  // Info text
+  updateInfoText(t, showMin);
+}
+
+function updateAmPmInfo(t) {
+  const el = document.getElementById('ampmInfo');
+  const detail = document.getElementById('ampmDetail');
+  if (t.h24 === 0 && t.m === 0) {
+    el.textContent = 'Midnight \u2014 the start of a new day!';
+  } else if (t.h24 === 12 && t.m === 0) {
+    el.textContent = 'Noon \u2014 the middle of the day!';
+  } else if (t.h24 < 12) {
+    el.textContent = `Morning (AM) \u2014 ${t.h24 === 0 ? '12' : t.h24} hours after midnight`;
+  } else {
+    el.textContent = `Afternoon/Evening (PM) \u2014 ${t.h24 === 12 ? '12' : t.h24 - 12} hours after noon`;
+  }
+
+  const h24 = t.h24;
+  if (h24 < 12) {
+    detail.innerHTML = `Right now it's <span class="am-block">${t.h12}:${pad(t.m)} AM</span>. ` +
+      `In 24-hour time that's <strong>${pad(h24)}:${pad(t.m)}</strong>.`;
+  } else {
+    detail.innerHTML = `Right now it's <span class="pm-block">${t.h12}:${pad(t.m)} PM</span>. ` +
+      `In 24-hour time that's <strong>${pad(h24)}:${pad(t.m)}</strong>.`;
+  }
+}
+
+function updateInfoText(t, showMin) {
+  const el = document.getElementById('infoText');
+  const minWord = t.m === 0 ? 'exactly on the hour' : t.m === 1 ? '1 minute' : `${t.m} minutes`;
+  let text = `The <strong>hour hand</strong> (short) points near <strong>${t.h12}</strong>. `;
+  if (t.m > 0) {
+    text += `The <strong>minute hand</strong> (long) points to the <strong>${t.m}</strong>-minute mark`;
+    if (!showMin) {
+      const nearestHour = Math.round(t.m / 5);
+      const hourNum = nearestHour === 0 ? 12 : nearestHour;
+      text += ` (near the <strong>${hourNum}</strong> on the clock face). `;
+      text += `<span class="highlight">Tip: multiply the number the minute hand points near by 5! ` +
+        `${hourNum} &times; 5 = ${hourNum * 5 === 60 ? 0 : hourNum * 5} minutes. ` +
+        `Turn on "Show minute numbers" to see all 60 marks!</span>`;
+    } else {
+      text += '. <span class="highlight">See the small numbers around the outside? Those show the exact minute!</span>';
+    }
+  } else {
+    text += 'The <strong>minute hand</strong> (long) points straight up to <strong>12</strong> &mdash; ' + minWord + '!';
+  }
+  el.innerHTML = text;
+}
+
+function drawClock(canvasId, opts) {
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width;
+  const cx = W / 2, cy = W / 2, r = W / 2 - 10;
+
+  ctx.clearRect(0, 0, W, W);
+
+  // Face
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = '#fffef5';
+  ctx.fill();
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  // Tick marks
+  for (let i = 0; i < 60; i++) {
+    const angle = (i / 60) * Math.PI * 2 - Math.PI / 2;
+    const isHour = i % 5 === 0;
+    const innerR = isHour ? r - 14 : r - 8;
+    ctx.beginPath();
+    ctx.moveTo(cx + innerR * Math.cos(angle), cy + innerR * Math.sin(angle));
+    ctx.lineTo(cx + (r - 3) * Math.cos(angle), cy + (r - 3) * Math.sin(angle));
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = isHour ? 2.5 : 1;
+    ctx.stroke();
+  }
+
+  // Hour numbers (1-12)
+  ctx.fillStyle = '#333';
+  ctx.font = `bold ${r * 0.22}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  for (let i = 1; i <= 12; i++) {
+    const angle = (i / 12) * Math.PI * 2 - Math.PI / 2;
+    const nr = r - 28;
+    ctx.fillText(i, cx + nr * Math.cos(angle), cy + nr * Math.sin(angle));
+  }
+
+  // Minute numbers (0-59) if enabled
+  if (opts.showMin) {
+    ctx.fillStyle = '#e05090';
+    ctx.font = `bold ${r * 0.12}px sans-serif`;
+    for (let i = 0; i < 60; i++) {
+      if (i % 5 === 0 && !opts.showMin) continue; // always show when enabled
+      const angle = (i / 60) * Math.PI * 2 - Math.PI / 2;
+      const nr = r + 0.5; // just outside the face edge
+      // Position just outside the tick marks
+      const px = cx + (r - 0.5) * Math.cos(angle);
+      const py = cy + (r - 0.5) * Math.sin(angle);
+      // Actually draw outside the circle
+      const ox = cx + (r + 11) * Math.cos(angle);
+      const oy = cy + (r + 11) * Math.sin(angle);
+      ctx.fillText(i, ox, oy);
+    }
+  }
+
+  // Center dot
+  ctx.beginPath();
+  ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+  ctx.fillStyle = '#333';
+  ctx.fill();
+
+  // Hands
+  const drawHand = (angle, length, width, color) => {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + length * Math.cos(angle), cy + length * Math.sin(angle));
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  };
+
+  const { h, m, s, showHand } = opts;
+
+  // Hour hand
+  if (showHand === 'hour' || showHand === 'all') {
+    const hAngle = ((h % 12) / 12 + m / 720) * Math.PI * 2 - Math.PI / 2;
+    drawHand(hAngle, r * 0.5, 5, '#333');
+  }
+
+  // Minute hand
+  if (showHand === 'minute' || showHand === 'all') {
+    const mAngle = (m / 60 + s / 3600) * Math.PI * 2 - Math.PI / 2;
+    drawHand(mAngle, r * 0.72, 3.5, '#667eea');
+  }
+
+  // Second hand
+  if (showHand === 'second' || showHand === 'all') {
+    const sAngle = (s / 60) * Math.PI * 2 - Math.PI / 2;
+    drawHand(sAngle, r * 0.78, 1.5, '#f5576c');
+  }
+}
+
+update();
+</script>
+</body>
+</html>

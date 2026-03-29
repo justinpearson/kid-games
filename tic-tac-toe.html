@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tic-Tac-Toe - Kid Games</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5rem;
+  }
+  .back-link {
+    align-self: flex-start;
+    color: #fff;
+    text-decoration: none;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    opacity: 0.9;
+  }
+  .back-link:hover { opacity: 1; text-decoration: underline; }
+  h1 { color: #fff; font-size: 2.2rem; margin-bottom: 1rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
+  .controls {
+    display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; justify-content: center;
+  }
+  button {
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: transform 0.1s;
+  }
+  button:hover { transform: scale(1.05); }
+  .mode-btn { background: #fff; color: #333; }
+  .mode-btn.active { background: #ffd700; color: #333; }
+  .reset-btn { background: rgba(255,255,255,0.3); color: #fff; }
+  .status {
+    color: #fff;
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+    min-height: 2rem;
+    font-weight: 600;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+  }
+  .board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    width: min(85vw, 360px);
+    aspect-ratio: 1;
+  }
+  .cell {
+    background: rgba(255,255,255,0.9);
+    border: none;
+    border-radius: 0.75rem;
+    font-size: 3.5rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+    line-height: 1;
+  }
+  .cell:hover:not(.taken) { background: #fff; }
+  .cell.taken { cursor: default; }
+  .cell.win { background: #ffd700; }
+  .cell .x { color: #f5576c; }
+  .cell .o { color: #667eea; }
+  .score-board {
+    margin-top: 1.5rem;
+    display: flex;
+    gap: 2rem;
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+  <a href="index.html" class="back-link">&larr; Back to Games</a>
+  <h1>Tic-Tac-Toe</h1>
+  <div class="controls">
+    <button class="mode-btn active" onclick="setMode('2p')">2 Players</button>
+    <button class="mode-btn" onclick="setMode('cpu')">vs Computer</button>
+    <button class="reset-btn" onclick="resetGame()">New Game</button>
+  </div>
+  <div class="status" id="status">X's turn</div>
+  <div class="board" id="board"></div>
+  <div class="score-board">
+    <span id="score-x">X: 0</span>
+    <span id="score-draw">Draws: 0</span>
+    <span id="score-o">O: 0</span>
+  </div>
+
+<script>
+const WINNING = [
+  [0,1,2],[3,4,5],[6,7,8],
+  [0,3,6],[1,4,7],[2,5,8],
+  [0,4,8],[2,4,6]
+];
+
+let board, turn, gameOver, mode, scores;
+
+function init() {
+  scores = { X: 0, O: 0, D: 0 };
+  mode = '2p';
+  resetGame();
+}
+
+function setMode(m) {
+  mode = m;
+  document.querySelectorAll('.mode-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', (i === 0 && m === '2p') || (i === 1 && m === 'cpu'));
+  });
+  resetGame();
+}
+
+function resetGame() {
+  board = Array(9).fill(null);
+  turn = 'X';
+  gameOver = false;
+  render();
+  updateStatus();
+}
+
+function render() {
+  const el = document.getElementById('board');
+  el.innerHTML = '';
+  board.forEach((v, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'cell' + (v ? ' taken' : '');
+    if (v) btn.innerHTML = `<span class="${v.toLowerCase()}">${v}</span>`;
+    btn.onclick = () => makeMove(i);
+    el.appendChild(btn);
+  });
+}
+
+function makeMove(i) {
+  if (gameOver || board[i]) return;
+  board[i] = turn;
+  const win = checkWin(turn);
+  if (win) {
+    gameOver = true;
+    scores[turn]++;
+    updateScores();
+    render();
+    highlightWin(win);
+    document.getElementById('status').textContent = `${turn} wins!`;
+    return;
+  }
+  if (board.every(c => c)) {
+    gameOver = true;
+    scores.D++;
+    updateScores();
+    render();
+    document.getElementById('status').textContent = "It's a draw!";
+    return;
+  }
+  turn = turn === 'X' ? 'O' : 'X';
+  render();
+  updateStatus();
+  if (mode === 'cpu' && turn === 'O' && !gameOver) {
+    setTimeout(cpuMove, 350);
+  }
+}
+
+function cpuMove() {
+  if (gameOver) return;
+  // Try to win
+  let move = findBestMove('O');
+  // Try to block
+  if (move === -1) move = findBestMove('X');
+  // Take center
+  if (move === -1 && !board[4]) move = 4;
+  // Take a corner
+  if (move === -1) move = [0,2,6,8].find(i => !board[i]) ?? -1;
+  // Take any
+  if (move === -1) move = board.findIndex(c => !c);
+  if (move !== -1) makeMove(move);
+}
+
+function findBestMove(player) {
+  for (const combo of WINNING) {
+    const vals = combo.map(i => board[i]);
+    if (vals.filter(v => v === player).length === 2 && vals.includes(null)) {
+      return combo[vals.indexOf(null)];
+    }
+  }
+  return -1;
+}
+
+function checkWin(player) {
+  for (const combo of WINNING) {
+    if (combo.every(i => board[i] === player)) return combo;
+  }
+  return null;
+}
+
+function highlightWin(combo) {
+  const cells = document.querySelectorAll('.cell');
+  combo.forEach(i => cells[i].classList.add('win'));
+}
+
+function updateStatus() {
+  const label = (mode === 'cpu' && turn === 'O') ? "Computer's turn..." : `${turn}'s turn`;
+  document.getElementById('status').textContent = label;
+}
+
+function updateScores() {
+  document.getElementById('score-x').textContent = `X: ${scores.X}`;
+  document.getElementById('score-o').textContent = `O: ${scores.O}`;
+  document.getElementById('score-draw').textContent = `Draws: ${scores.D}`;
+}
+
+init();
+</script>
+</body>
+</html>
