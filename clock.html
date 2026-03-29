@@ -87,16 +87,16 @@
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 0.75rem;
-    width: min(95vw, 800px);
+    width: min(95vw, 1100px);
     margin-bottom: 0.75rem;
   }
-  @media (max-width: 700px) {
+  @media (max-width: 900px) {
     .clocks { grid-template-columns: repeat(2, 1fr); }
   }
   .clock-box {
     background: rgba(255,255,255,0.9);
     border-radius: 1rem;
-    padding: 0.75rem;
+    padding: 1.25rem;
     text-align: center;
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
   }
@@ -152,19 +152,19 @@
   <div class="clocks">
     <div class="clock-box">
       <h3>Hours</h3>
-      <canvas id="clockHour" width="180" height="180"></canvas>
+      <canvas id="clockHour" width="260" height="260"></canvas>
     </div>
     <div class="clock-box">
       <h3>Minutes</h3>
-      <canvas id="clockMinute" width="180" height="180"></canvas>
+      <canvas id="clockMinute" width="260" height="260"></canvas>
     </div>
     <div class="clock-box">
       <h3>Seconds</h3>
-      <canvas id="clockSecond" width="180" height="180"></canvas>
+      <canvas id="clockSecond" width="260" height="260"></canvas>
     </div>
     <div class="clock-box">
       <h3>All Together</h3>
-      <canvas id="clockAll" width="180" height="180"></canvas>
+      <canvas id="clockAll" width="260" height="260"></canvas>
     </div>
   </div>
 
@@ -305,7 +305,7 @@ function drawClock(canvasId, opts) {
   const canvas = document.getElementById(canvasId);
   const ctx = canvas.getContext('2d');
   const W = canvas.width;
-  const cx = W / 2, cy = W / 2, r = W / 2 - 10;
+  const cx = W / 2, cy = W / 2, r = W / 2 - 30;
 
   ctx.clearRect(0, 0, W, W);
 
@@ -345,17 +345,11 @@ function drawClock(canvasId, opts) {
   // Minute numbers (0-59) if enabled
   if (opts.showMin) {
     ctx.fillStyle = '#e05090';
-    ctx.font = `bold ${r * 0.12}px sans-serif`;
+    ctx.font = `bold ${r * 0.14}px sans-serif`;
     for (let i = 0; i < 60; i++) {
-      if (i % 5 === 0 && !opts.showMin) continue; // always show when enabled
       const angle = (i / 60) * Math.PI * 2 - Math.PI / 2;
-      const nr = r + 0.5; // just outside the face edge
-      // Position just outside the tick marks
-      const px = cx + (r - 0.5) * Math.cos(angle);
-      const py = cy + (r - 0.5) * Math.sin(angle);
-      // Actually draw outside the circle
-      const ox = cx + (r + 11) * Math.cos(angle);
-      const oy = cy + (r + 11) * Math.sin(angle);
+      const ox = cx + (r + 18) * Math.cos(angle);
+      const oy = cy + (r + 18) * Math.sin(angle);
       ctx.fillText(i, ox, oy);
     }
   }
