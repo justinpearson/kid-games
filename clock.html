@@ -87,7 +87,7 @@
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 0.75rem;
-    width: min(95vw, 1100px);
+    width: min(95vw, 1500px);
     margin-bottom: 0.75rem;
   }
   @media (max-width: 900px) {
@@ -138,6 +138,7 @@
     <label><input type="checkbox" id="showMinuteNumbers"> Show minute numbers (0-59)</label>
     <label><input type="checkbox" id="show24Hour"> Show 24-hour time</label>
     <button id="playBtn" onclick="togglePlay()" style="padding:0.3rem 1rem;border:none;border-radius:0.4rem;font-size:0.95rem;font-weight:700;cursor:pointer;background:#fff;color:#333;">&#9654; Play</button>
+    <button onclick="setNow()" style="padding:0.3rem 1rem;border:none;border-radius:0.4rem;font-size:0.95rem;font-weight:700;cursor:pointer;background:#fff;color:#333;">&#128336; Now</button>
     <label>
       Speed:
       <select id="speedSelect" style="font-size:0.95rem;padding:0.2rem 0.4rem;border-radius:0.4rem;border:1px solid rgba(255,255,255,0.5);">
@@ -152,19 +153,19 @@
   <div class="clocks">
     <div class="clock-box">
       <h3>Hours</h3>
-      <canvas id="clockHour" width="260" height="260"></canvas>
+      <canvas id="clockHour" width="340" height="340"></canvas>
     </div>
     <div class="clock-box">
       <h3>Minutes</h3>
-      <canvas id="clockMinute" width="260" height="260"></canvas>
+      <canvas id="clockMinute" width="340" height="340"></canvas>
     </div>
     <div class="clock-box">
       <h3>Seconds</h3>
-      <canvas id="clockSecond" width="260" height="260"></canvas>
+      <canvas id="clockSecond" width="340" height="340"></canvas>
     </div>
     <div class="clock-box">
       <h3>All Together</h3>
-      <canvas id="clockAll" width="260" height="260"></canvas>
+      <canvas id="clockAll" width="340" height="340"></canvas>
     </div>
   </div>
 
@@ -192,6 +193,14 @@ show24.addEventListener('change', update);
 
 function togglePlay() {
   if (playing) stopPlay(); else startPlay();
+}
+
+function setNow() {
+  stopPlay();
+  const now = new Date();
+  const totalSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+  slider.value = totalSeconds;
+  update();
 }
 
 function startPlay() {
@@ -305,7 +314,7 @@ function drawClock(canvasId, opts) {
   const canvas = document.getElementById(canvasId);
   const ctx = canvas.getContext('2d');
   const W = canvas.width;
-  const cx = W / 2, cy = W / 2, r = W / 2 - 30;
+  const cx = W / 2, cy = W / 2, r = W / 2 - 50;
 
   ctx.clearRect(0, 0, W, W);
 
@@ -345,11 +354,11 @@ function drawClock(canvasId, opts) {
   // Minute numbers (0-59) if enabled
   if (opts.showMin) {
     ctx.fillStyle = '#e05090';
-    ctx.font = `bold ${r * 0.14}px sans-serif`;
+    ctx.font = `bold ${r * 0.12}px sans-serif`;
     for (let i = 0; i < 60; i++) {
       const angle = (i / 60) * Math.PI * 2 - Math.PI / 2;
-      const ox = cx + (r + 18) * Math.cos(angle);
-      const oy = cy + (r + 18) * Math.sin(angle);
+      const ox = cx + (r + 35) * Math.cos(angle);
+      const oy = cy + (r + 35) * Math.sin(angle);
       ctx.fillText(i, ox, oy);
     }
   }
