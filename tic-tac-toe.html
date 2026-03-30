@@ -174,15 +174,17 @@ function makeMove(i) {
 
 function cpuMove() {
   if (gameOver) return;
-  // Try to win
-  let move = findBestMove('O');
-  // Try to block
+  const empty = board.map((v, i) => v === null ? i : -1).filter(i => i !== -1);
+  let move = -1;
+  // Always take a win if available
+  move = findBestMove('O');
+  // 50% chance to play smart, otherwise pick randomly
+  if (move === -1 && Math.random() < 0.5) {
+    move = empty[Math.floor(Math.random() * empty.length)];
+  }
   if (move === -1) move = findBestMove('X');
-  // Take center
   if (move === -1 && !board[4]) move = 4;
-  // Take a corner
   if (move === -1) move = [0,2,6,8].find(i => !board[i]) ?? -1;
-  // Take any
   if (move === -1) move = board.findIndex(c => !c);
   if (move !== -1) makeMove(move);
 }
