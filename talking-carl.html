@@ -229,14 +229,7 @@
     pointer-events: none;
   }
 
-  /* Grass blades */
-  .grass {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-    height: 15%;
-    pointer-events: none;
-  }
+
 </style>
 </head>
 <body>
@@ -285,11 +278,12 @@ let recordedChunks = [];
 let silenceTimer = null;
 let analyser = null;
 let animFrame = null;
+let analyserData = null;
 
 const PLAYBACK_RATE = 1.6;
 const SILENCE_THRESHOLD = 0.015;
-const SILENCE_DURATION = 1200; // ms of silence before stopping
-const MAX_RECORD_TIME = 8000; // max recording length
+const SILENCE_DURATION = 1200;
+const MAX_RECORD_TIME = 8000;
 
 function initAudio() {
   if (audioCtx) return Promise.resolve();
@@ -299,6 +293,7 @@ function initAudio() {
       mediaStream = stream;
       analyser = audioCtx.createAnalyser();
       analyser.fftSize = 256;
+      analyserData = new Uint8Array(analyser.frequencyBinCount);
       const source = audioCtx.createMediaStreamSource(stream);
       source.connect(analyser);
     });
@@ -346,21 +341,17 @@ function getSupportedMimeType() {
 
 function monitorAudio() {
   if (!isListening) return;
-  const data = new Uint8Array(analyser.frequencyBinCount);
-  analyser.getByteTimeDomainData(data);
+  analyser.getByteTimeDomainData(analyserData);
 
   let sum = 0;
-  for (let i = 0; i < data.length; i++) {
-    const v = (data[i] - 128) / 128;
+  for (let i = 0; i < analyserData.length; i++) {
+    const v = (analyserData[i] - 128) / 128;
     sum += v * v;
   }
-  const rms = Math.sqrt(sum / data.length);
+  const rms = Math.sqrt(sum / analyserData.length);
 
-  // Animate mouth based on volume
   if (rms > SILENCE_THRESHOLD) {
-    const openness = Math.min(60, 30 + rms * 300);
-    mouth.style.height = openness + 'px';
-    mouth.className = 'mouth listening';
+    mouth.style.height = Math.min(60, 30 + rms * 300) + 'px';
     clearTimeout(silenceTimer);
     silenceTimer = setTimeout(() => {
       if (isListening) stopListening();
@@ -384,13 +375,18 @@ function stopListening() {
   mouth.style.height = '';
 }
 
+function bouncCarl() {
+  carl.classList.add('bounce');
+  setTimeout(() => carl.classList.remove('bounce'), 300);
+}
+
 function playBack(blob) {
   isPlaying = true;
   status.textContent = '';
   mouth.className = 'mouth talking';
   carl.classList.add('excited');
-  carl.classList.add('bounce');
-  setTimeout(() => carl.classList.remove('bounce'), 300);
+  bouncCarl();
+  recordedChunks = [];
 
   const reader = new FileReader();
   reader.onload = () => {
@@ -438,37 +434,32 @@ function resetState() {
   hint.textContent = 'Tap Carl, then speak!';
 }
 
-// Eye tracking
-document.addEventListener('mousemove', e => {
-  moveEyes(e.clientX, e.clientY);
-});
-document.addEventListener('touchmove', e => {
-  if (e.touches.length > 0) {
-    moveEyes(e.touches[0].clientX, e.touches[0].clientY);
-  }
-});
+const pupils = [
+  { pupil: document.getElementById('pupil-left'), eye: document.getElementById('pupil-left').parentElement },
+  { pupil: document.getElementById('pupil-right'), eye: document.getElementById('pupil-right').parentElement },
+];
 
 function moveEyes(mx, my) {
-  ['pupil-left', 'pupil-right'].forEach(id => {
-    const pupil = document.getElementById(id);
-    const eye = pupil.parentElement;
+  for (const { pupil, eye } of pupils) {
     const rect = eye.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    const dx = mx - cx;
-    const dy = my - cy;
+    const dx = mx - (rect.left + rect.width / 2);
+    const dy = my - (rect.top + rect.height / 2);
     const angle = Math.atan2(dy, dx);
     const dist = Math.min(10, Math.sqrt(dx * dx + dy * dy) / 8);
     pupil.style.left = (50 + Math.cos(angle) * dist) + '%';
     pupil.style.top = (50 + Math.sin(angle) * dist) + '%';
-  });
+  }
 }
+
+document.addEventListener('mousemove', e => moveEyes(e.clientX, e.clientY));
+document.addEventListener('touchmove', e => {
+  if (e.touches.length > 0) moveEyes(e.touches[0].clientX, e.touches[0].clientY);
+});
 
 // Tap to start (pointerup works on both touch and mouse)
 carl.addEventListener('pointerup', e => {
   e.preventDefault();
-  carl.classList.add('bounce');
-  setTimeout(() => carl.classList.remove('bounce'), 300);
+  bouncCarl();
 
   if (isPlaying) return;
   if (isListening) {
