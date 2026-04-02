@@ -464,8 +464,9 @@ function moveEyes(mx, my) {
   });
 }
 
-// Tap to start
-carl.addEventListener('click', () => {
+// Tap to start (pointerup works on both touch and mouse)
+carl.addEventListener('pointerup', e => {
+  e.preventDefault();
   carl.classList.add('bounce');
   setTimeout(() => carl.classList.remove('bounce'), 300);
 
@@ -481,11 +482,6 @@ carl.addEventListener('click', () => {
     status.textContent = 'Microphone access needed!';
     console.error(err);
   });
-});
-
-// Touch support
-carl.addEventListener('touchend', e => {
-  e.preventDefault();
 });
 </script>
 
