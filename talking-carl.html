@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Talking Carl</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    overflow: hidden;
+    touch-action: none;
+    user-select: none;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  .scene {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(180deg, #87CEEB 0%, #B0E0FF 40%, #90EE90 60%, #228B22 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  /* Clouds */
+  .cloud {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    opacity: 0.9;
+  }
+  .cloud-1 { width: 120px; height: 60px; top: 8%; left: 10%; }
+  .cloud-1::before { content: ''; position: absolute; background: white; border-radius: 50%; width: 70px; height: 50px; top: -20px; left: 15px; }
+  .cloud-1::after { content: ''; position: absolute; background: white; border-radius: 50%; width: 50px; height: 40px; top: -15px; left: 55px; }
+  .cloud-2 { width: 100px; height: 50px; top: 12%; right: 15%; }
+  .cloud-2::before { content: ''; position: absolute; background: white; border-radius: 50%; width: 60px; height: 45px; top: -18px; left: 12px; }
+  .cloud-2::after { content: ''; position: absolute; background: white; border-radius: 50%; width: 45px; height: 35px; top: -12px; left: 48px; }
+
+  /* Tree */
+  .tree {
+    position: absolute;
+    right: 10%;
+    top: 15%;
+  }
+  .tree-trunk { width: 20px; height: 60px; background: #8B4513; margin: 0 auto; border-radius: 4px; }
+  .tree-top { width: 100px; height: 100px; background: #32CD32; border-radius: 50%; position: relative; top: -10px; }
+  .tree-top::before { content: ''; position: absolute; background: #2DB82D; border-radius: 50%; width: 70px; height: 70px; top: -25px; left: 15px; }
+
+  /* Carl container */
+  .carl-container {
+    position: relative;
+    width: 280px;
+    height: 320px;
+    margin-bottom: 10%;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+
+  .carl-container.bounce {
+    animation: bounce 0.3s ease;
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+
+  /* Carl body */
+  .carl-body {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 220px;
+    height: 250px;
+    background: #E03030;
+    border-radius: 30px 30px 40px 40px;
+    box-shadow: inset -15px -10px 30px rgba(0,0,0,0.15), inset 10px 10px 20px rgba(255,255,255,0.1);
+  }
+
+  /* Arms */
+  .arm {
+    position: absolute;
+    width: 35px;
+    height: 80px;
+    background: #E03030;
+    border-radius: 20px;
+    bottom: 80px;
+    box-shadow: inset -5px -5px 10px rgba(0,0,0,0.15);
+    transition: transform 0.3s ease;
+  }
+  .arm-left {
+    left: 5px;
+    transform: rotate(15deg);
+    transform-origin: top center;
+  }
+  .arm-right {
+    right: 5px;
+    transform: rotate(-15deg);
+    transform-origin: top center;
+  }
+  .carl-container.excited .arm-left {
+    animation: wave-left 0.4s ease infinite alternate;
+  }
+  .carl-container.excited .arm-right {
+    animation: wave-right 0.4s ease infinite alternate;
+  }
+  @keyframes wave-left {
+    from { transform: rotate(15deg); }
+    to { transform: rotate(-30deg); }
+  }
+  @keyframes wave-right {
+    from { transform: rotate(-15deg); }
+    to { transform: rotate(30deg); }
+  }
+
+  /* Eyes */
+  .eyes {
+    position: absolute;
+    top: 35px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 30px;
+  }
+  .eye {
+    width: 55px;
+    height: 55px;
+    background: white;
+    border-radius: 50%;
+    position: relative;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.1);
+  }
+  .pupil {
+    width: 22px;
+    height: 22px;
+    background: #111;
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transition: top 0.2s, left 0.2s;
+  }
+  .pupil::after {
+    content: '';
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    background: white;
+    border-radius: 50%;
+    top: 3px;
+    left: 3px;
+  }
+
+  /* Mouth */
+  .mouth {
+    position: absolute;
+    top: 120px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 130px;
+    height: 30px;
+    background: #4A0000;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: height 0.15s ease, border-radius 0.15s ease;
+  }
+  .mouth.listening {
+    height: 50px;
+    border-radius: 12px;
+  }
+  .mouth.talking {
+    height: 70px;
+    border-radius: 15px;
+    animation: talk-mouth 0.15s ease infinite alternate;
+  }
+  @keyframes talk-mouth {
+    from { height: 45px; }
+    to { height: 70px; }
+  }
+
+  /* Feet */
+  .feet {
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 50px;
+  }
+  .foot {
+    width: 50px;
+    height: 20px;
+    background: #C02020;
+    border-radius: 0 0 25px 25px;
+  }
+
+  /* Status */
+  .status {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    font-size: 1.3rem;
+    font-weight: 600;
+    text-shadow: 1px 1px 4px rgba(0,0,0,0.4);
+    text-align: center;
+    pointer-events: none;
+    opacity: 0.9;
+  }
+
+  /* Tap hint */
+  .hint {
+    position: absolute;
+    bottom: 3%;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255,255,255,0.8);
+    font-size: 0.95rem;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+    text-align: center;
+    pointer-events: none;
+  }
+
+  /* Grass blades */
+  .grass {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 15%;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="scene">
+  <div class="cloud cloud-1"></div>
+  <div class="cloud cloud-2"></div>
+  <div class="tree">
+    <div class="tree-top"></div>
+    <div class="tree-trunk"></div>
+  </div>
+
+  <div class="status" id="status">Tap Carl to start!</div>
+
+  <div class="carl-container" id="carl">
+    <div class="carl-body">
+      <div class="eyes">
+        <div class="eye"><div class="pupil" id="pupil-left"></div></div>
+        <div class="eye"><div class="pupil" id="pupil-right"></div></div>
+      </div>
+      <div class="mouth" id="mouth"></div>
+    </div>
+    <div class="arm arm-left"></div>
+    <div class="arm arm-right"></div>
+    <div class="feet">
+      <div class="foot"></div>
+      <div class="foot"></div>
+    </div>
+  </div>
+
+  <div class="hint" id="hint">Tap Carl, then speak!</div>
+</div>
+
+<script>
+const carl = document.getElementById('carl');
+const mouth = document.getElementById('mouth');
+const status = document.getElementById('status');
+const hint = document.getElementById('hint');
+
+let audioCtx = null;
+let mediaStream = null;
+let isListening = false;
+let isPlaying = false;
+let recorder = null;
+let recordedChunks = [];
+let silenceTimer = null;
+let analyser = null;
+let animFrame = null;
+
+const PLAYBACK_RATE = 1.6;
+const SILENCE_THRESHOLD = 0.015;
+const SILENCE_DURATION = 1200; // ms of silence before stopping
+const MAX_RECORD_TIME = 8000; // max recording length
+
+function initAudio() {
+  if (audioCtx) return Promise.resolve();
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(stream => {
+      mediaStream = stream;
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+      const source = audioCtx.createMediaStreamSource(stream);
+      source.connect(analyser);
+    });
+}
+
+function startListening() {
+  if (isListening || isPlaying) return;
+  isListening = true;
+  recordedChunks = [];
+
+  status.textContent = 'Listening...';
+  mouth.className = 'mouth listening';
+  carl.classList.remove('excited');
+  hint.style.display = 'none';
+
+  recorder = new MediaRecorder(mediaStream, { mimeType: getSupportedMimeType() });
+  recorder.ondataavailable = e => {
+    if (e.data.size > 0) recordedChunks.push(e.data);
+  };
+  recorder.onstop = () => {
+    if (recordedChunks.length > 0) {
+      const blob = new Blob(recordedChunks, { type: recorder.mimeType });
+      playBack(blob);
+    } else {
+      resetState();
+    }
+  };
+  recorder.start(100);
+
+  monitorAudio();
+
+  // Safety: max recording time
+  setTimeout(() => {
+    if (isListening) stopListening();
+  }, MAX_RECORD_TIME);
+}
+
+function getSupportedMimeType() {
+  const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'];
+  for (const t of types) {
+    if (MediaRecorder.isTypeSupported(t)) return t;
+  }
+  return '';
+}
+
+function monitorAudio() {
+  if (!isListening) return;
+  const data = new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteTimeDomainData(data);
+
+  let sum = 0;
+  for (let i = 0; i < data.length; i++) {
+    const v = (data[i] - 128) / 128;
+    sum += v * v;
+  }
+  const rms = Math.sqrt(sum / data.length);
+
+  // Animate mouth based on volume
+  if (rms > SILENCE_THRESHOLD) {
+    const openness = Math.min(60, 30 + rms * 300);
+    mouth.style.height = openness + 'px';
+    mouth.className = 'mouth listening';
+    clearTimeout(silenceTimer);
+    silenceTimer = setTimeout(() => {
+      if (isListening) stopListening();
+    }, SILENCE_DURATION);
+  }
+
+  animFrame = requestAnimationFrame(monitorAudio);
+}
+
+function stopListening() {
+  if (!isListening) return;
+  isListening = false;
+  clearTimeout(silenceTimer);
+  cancelAnimationFrame(animFrame);
+
+  if (recorder && recorder.state === 'recording') {
+    recorder.stop();
+  }
+  status.textContent = '';
+  mouth.className = 'mouth';
+  mouth.style.height = '';
+}
+
+function playBack(blob) {
+  isPlaying = true;
+  status.textContent = '';
+  mouth.className = 'mouth talking';
+  carl.classList.add('excited');
+  carl.classList.add('bounce');
+  setTimeout(() => carl.classList.remove('bounce'), 300);
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    audioCtx.decodeAudioData(reader.result, buffer => {
+      const source = audioCtx.createBufferSource();
+      source.buffer = buffer;
+      source.playbackRate.value = PLAYBACK_RATE;
+      source.connect(audioCtx.destination);
+      source.onended = () => {
+        resetState();
+      };
+      source.start();
+
+      // Animate mouth during playback
+      const duration = (buffer.duration / PLAYBACK_RATE) * 1000;
+      animateTalkingMouth(duration);
+    }, () => {
+      resetState();
+    });
+  };
+  reader.readAsArrayBuffer(blob);
+}
+
+function animateTalkingMouth(duration) {
+  const start = performance.now();
+  function frame() {
+    if (!isPlaying) return;
+    const elapsed = performance.now() - start;
+    if (elapsed > duration) return;
+    const h = 40 + Math.sin(elapsed / 60) * 20 + Math.sin(elapsed / 37) * 10;
+    mouth.style.height = h + 'px';
+    requestAnimationFrame(frame);
+  }
+  frame();
+}
+
+function resetState() {
+  isPlaying = false;
+  isListening = false;
+  mouth.className = 'mouth';
+  mouth.style.height = '';
+  carl.classList.remove('excited');
+  status.textContent = 'Tap Carl to talk!';
+  hint.style.display = '';
+  hint.textContent = 'Tap Carl, then speak!';
+}
+
+// Eye tracking
+document.addEventListener('mousemove', e => {
+  moveEyes(e.clientX, e.clientY);
+});
+document.addEventListener('touchmove', e => {
+  if (e.touches.length > 0) {
+    moveEyes(e.touches[0].clientX, e.touches[0].clientY);
+  }
+});
+
+function moveEyes(mx, my) {
+  ['pupil-left', 'pupil-right'].forEach(id => {
+    const pupil = document.getElementById(id);
+    const eye = pupil.parentElement;
+    const rect = eye.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = mx - cx;
+    const dy = my - cy;
+    const angle = Math.atan2(dy, dx);
+    const dist = Math.min(10, Math.sqrt(dx * dx + dy * dy) / 8);
+    pupil.style.left = (50 + Math.cos(angle) * dist) + '%';
+    pupil.style.top = (50 + Math.sin(angle) * dist) + '%';
+  });
+}
+
+// Tap to start
+carl.addEventListener('click', () => {
+  carl.classList.add('bounce');
+  setTimeout(() => carl.classList.remove('bounce'), 300);
+
+  if (isPlaying) return;
+  if (isListening) {
+    stopListening();
+    return;
+  }
+
+  initAudio().then(() => {
+    startListening();
+  }).catch(err => {
+    status.textContent = 'Microphone access needed!';
+    console.error(err);
+  });
+});
+
+// Touch support
+carl.addEventListener('touchend', e => {
+  e.preventDefault();
+});
+</script>
+
+</body>
+</html>
