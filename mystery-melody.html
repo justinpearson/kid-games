@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mystery Melody - Kid Games</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: linear-gradient(135deg, #43cea2 0%, #185a9d 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5rem;
+    color: #fff;
+  }
+  .back-link {
+    align-self: flex-start;
+    color: #fff;
+    text-decoration: none;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.9;
+  }
+  .back-link:hover { opacity: 1; text-decoration: underline; }
+  h1 { font-size: 2.2rem; margin-bottom: 0.25rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.25); text-align: center; }
+  .tagline { opacity: 0.85; margin-bottom: 1.5rem; text-align: center; font-size: 1rem; }
+  button {
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 0.6rem;
+    font-size: 1rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: transform 0.1s, background 0.15s;
+    font-family: inherit;
+  }
+  button:hover:not(:disabled) { transform: scale(1.04); }
+  button:disabled { opacity: 0.5; cursor: default; }
+
+  .panel {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    width: min(92vw, 520px);
+    backdrop-filter: blur(4px);
+  }
+  .hidden { display: none !important; }
+
+  /* Setup */
+  .setup-group { margin-bottom: 1.5rem; }
+  .setup-group > label { display: block; font-size: 1.1rem; font-weight: 700; margin-bottom: 0.6rem; }
+  .option-row { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+  .opt-btn { background: rgba(255,255,255,0.85); color: #185a9d; flex: 1; min-width: 70px; }
+  .opt-btn.active { background: #ffd54a; color: #5a3d00; box-shadow: 0 0 0 3px rgba(255,213,74,0.4); }
+  .mode-desc { font-size: 0.88rem; opacity: 0.85; margin-top: 0.6rem; min-height: 1.2rem; }
+  .start-btn { background: #ffd54a; color: #5a3d00; width: 100%; font-size: 1.25rem; padding: 0.9rem; margin-top: 0.5rem; }
+
+  /* Game */
+  .turn-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+  .turn-name { font-size: 1.3rem; font-weight: 700; }
+  .turn-meta { text-align: right; font-size: 0.9rem; opacity: 0.9; }
+  .timer-wrap { height: 10px; background: rgba(0,0,0,0.25); border-radius: 6px; overflow: hidden; margin-bottom: 1.25rem; }
+  .timer-bar { height: 100%; width: 100%; background: #ffd54a; transition: width 0.1s linear; }
+  .timer-bar.low { background: #ff6b6b; }
+  .play-btn {
+    background: #ffd54a; color: #5a3d00; width: 100%; font-size: 1.4rem; padding: 1.1rem;
+    margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+  }
+  .play-btn.playing { background: #fff3c4; }
+  .choices { display: grid; gap: 0.6rem; }
+  .choice-btn {
+    background: rgba(255,255,255,0.92); color: #185a9d; text-align: left;
+    display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; font-size: 1.05rem;
+  }
+  .choice-btn .key {
+    background: #185a9d; color: #fff; border-radius: 0.4rem; width: 1.7rem; height: 1.7rem;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 0.95rem; flex-shrink: 0;
+  }
+  .choice-btn.correct { background: #7be0a0; color: #08431f; }
+  .choice-btn.wrong { background: #ff9d9d; color: #5a0000; }
+  .feedback { text-align: center; font-size: 1.2rem; font-weight: 700; min-height: 1.6rem; margin-top: 1rem; }
+  .next-btn { background: #ffd54a; color: #5a3d00; width: 100%; font-size: 1.15rem; padding: 0.85rem; margin-top: 1rem; }
+
+  /* Scoreboard strip */
+  .scores { display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center; margin-top: 1.25rem; }
+  .score-chip {
+    background: rgba(255,255,255,0.15); border-radius: 0.6rem; padding: 0.4rem 0.8rem; font-size: 0.95rem; font-weight: 600;
+  }
+  .score-chip.active { background: #ffd54a; color: #5a3d00; }
+
+  /* Manual mode */
+  .song-select { display: grid; gap: 0.5rem; margin-bottom: 1.25rem; }
+  .song-opt { background: rgba(255,255,255,0.85); color: #185a9d; text-align: left; }
+  .song-opt.active { background: #ffd54a; color: #5a3d00; }
+  .hold-btn {
+    background: #ffd54a; color: #5a3d00; width: 100%; font-size: 1.4rem; padding: 2rem 1rem;
+    user-select: none; -webkit-user-select: none; touch-action: none;
+  }
+  .hold-btn.active { background: #fff3c4; transform: scale(0.98); }
+  .note-progress { text-align: center; margin-top: 1rem; font-size: 1rem; opacity: 0.9; }
+
+  /* Results */
+  .results-list { list-style: none; margin: 1rem 0; }
+  .results-list li {
+    display: flex; justify-content: space-between; padding: 0.6rem 0.9rem; border-radius: 0.6rem; margin-bottom: 0.5rem;
+    background: rgba(255,255,255,0.15); font-size: 1.1rem;
+  }
+  .results-list li.winner { background: #ffd54a; color: #5a3d00; font-weight: 700; }
+  .center { text-align: center; }
+  .small-link { margin-top: 1.5rem; color: rgba(255,255,255,0.7); font-size: 0.85rem; }
+  .small-link a { color: rgba(255,255,255,0.9); }
+</style>
+</head>
+<body>
+  <a href="index.html" class="back-link">&larr; Back to Games</a>
+  <h1>&#127925; Mystery Melody</h1>
+  <p class="tagline">Every note plays for the same length &mdash; can you still name the tune?</p>
+
+  <!-- ============ SETUP ============ -->
+  <div class="panel" id="setup-screen">
+    <div class="setup-group">
+      <label>Players</label>
+      <div class="option-row" id="players-row"></div>
+    </div>
+    <div class="setup-group">
+      <label>Rounds <span style="font-weight:400;opacity:0.8;font-size:0.9rem">(turns each)</span></label>
+      <div class="option-row" id="rounds-row"></div>
+    </div>
+    <div class="setup-group">
+      <label>Mode</label>
+      <div class="option-row" id="mode-row"></div>
+      <div class="mode-desc" id="mode-desc"></div>
+    </div>
+    <button class="start-btn" id="start-btn">Start &#9654;</button>
+  </div>
+
+  <!-- ============ GUESS GAME ============ -->
+  <div class="panel hidden" id="game-screen">
+    <div class="turn-bar">
+      <div class="turn-name" id="turn-name">Player 1</div>
+      <div class="turn-meta" id="turn-meta">Round 1 of 5</div>
+    </div>
+    <div class="timer-wrap"><div class="timer-bar" id="timer-bar"></div></div>
+    <button class="play-btn" id="play-btn">&#128266; Play melody <span style="font-size:0.85rem;opacity:0.7">(Space)</span></button>
+    <div class="choices" id="choices"></div>
+    <div class="feedback" id="feedback"></div>
+    <button class="next-btn hidden" id="reveal-btn" style="background:rgba(255,255,255,0.92);color:#185a9d;">&#127925; Hear how it really sounds</button>
+    <button class="next-btn hidden" id="next-btn">Next &#8594;</button>
+    <div class="scores" id="scores"></div>
+  </div>
+
+  <!-- ============ MANUAL MODE ============ -->
+  <div class="panel hidden" id="manual-screen">
+    <label style="display:block;font-weight:700;margin-bottom:0.6rem;">Pick a song</label>
+    <div class="song-select" id="song-select"></div>
+    <button class="hold-btn" id="hold-btn">&#9209;&#65039; Hold to play notes</button>
+    <div class="note-progress" id="note-progress">Press and hold &mdash; each press plays the next note.</div>
+    <button class="next-btn" id="manual-real" style="margin-top:1rem;background:rgba(255,255,255,0.92);color:#185a9d;">&#127925; Hear how it really sounds</button>
+    <button class="next-btn" id="manual-restart" style="margin-top:0.6rem;">&#8635; Restart song</button>
+    <div class="center" style="margin-top:1rem;">
+      <button class="opt-btn" id="manual-exit" style="max-width:200px;margin:0 auto;">Back to setup</button>
+    </div>
+  </div>
+
+  <!-- ============ RESULTS ============ -->
+  <div class="panel hidden center" id="results-screen">
+    <h2 style="margin-bottom:0.5rem;">&#127942; Final Scores</h2>
+    <ul class="results-list" id="results-list"></ul>
+    <button class="start-btn" id="play-again-btn">Play again</button>
+  </div>
+
+  <p class="small-link"><a href="https://github.com/justinpearson/kid-games">View source on GitHub</a></p>
+
+<script>
+/* ------------------------------------------------------------------
+   Song library.
+   Each note is written as "PITCH/BEATS" where BEATS is the note's real
+   length (1 = quarter note, 0.5 = eighth, 2 = half, etc.), and `tempo`
+   is the song's speed in quarter-notes per minute. So every song stores
+   the RIGHT ANSWER: the correct pitches AND the correct rhythm.
+
+   During guessing the rhythm is deliberately thrown away -- Normal mode
+   plays every note for the same length, Hard mode randomizes the lengths,
+   and Manual mode lets the player control timing by hand. Only the
+   pitches survive, which is what makes the tune hard to recognize. The
+   stored beats/tempo are used by the "Hear the real song" button so the
+   true melody can be played back the way it's supposed to sound.
+------------------------------------------------------------------- */
+const SONGS = [
+  { name: "Twinkle, Twinkle, Little Star", tempo: 130,
+    notes: "C4/1 C4/1 G4/1 G4/1 A4/1 A4/1 G4/2 F4/1 F4/1 E4/1 E4/1 D4/1 D4/1 C4/2" },
+  { name: "Mary Had a Little Lamb", tempo: 130,
+    notes: "E4/1 D4/1 C4/1 D4/1 E4/1 E4/1 E4/2 D4/1 D4/1 D4/2 E4/1 G4/1 G4/2 " +
+           "E4/1 D4/1 C4/1 D4/1 E4/1 E4/1 E4/1 E4/1 D4/1 D4/1 E4/1 D4/1 C4/4" },
+  { name: "Happy Birthday", tempo: 110,
+    notes: "C4/0.75 C4/0.25 D4/1 C4/1 F4/1 E4/2 C4/0.75 C4/0.25 D4/1 C4/1 G4/1 F4/2 " +
+           "C4/0.75 C4/0.25 C5/1 A4/1 F4/1 E4/1 D4/2 A#4/0.75 A#4/0.25 A4/1 F4/1 G4/1 F4/2" },
+  { name: "Jingle Bells", tempo: 160,
+    notes: "E4/1 E4/1 E4/2 E4/1 E4/1 E4/2 E4/1 G4/1 C4/1.5 D4/0.5 E4/4 " +
+           "F4/1 F4/1 F4/1 F4/1 F4/1 E4/1 E4/1 E4/1 E4/1 D4/1 D4/1 E4/1 D4/1 G4/2" },
+  { name: "Old MacDonald", tempo: 120,
+    notes: "G4/1 G4/1 G4/1 D4/1 E4/1 E4/1 D4/2 B4/1 B4/1 A4/1 A4/1 G4/2 " +
+           "D4/1 G4/1 G4/1 G4/1 D4/1 E4/1 E4/1 D4/2 B4/1 B4/1 A4/1 A4/1 G4/2" },
+  { name: "Row, Row, Row Your Boat", tempo: 112,
+    notes: "C4/1 C4/1 C4/0.5 D4/0.5 E4/1 E4/0.5 D4/0.5 E4/0.5 F4/0.5 G4/2 " +
+           "C5/0.5 C5/0.5 C5/0.5 G4/0.5 G4/0.5 G4/0.5 E4/0.5 E4/0.5 E4/0.5 C4/0.5 C4/0.5 C4/0.5 " +
+           "G4/1 F4/1 E4/0.5 D4/0.5 C4/2" },
+  { name: "London Bridge", tempo: 120,
+    notes: "G4/0.5 A4/0.5 G4/1 F4/1 E4/0.5 F4/0.5 G4/2 D4/1 E4/1 F4/2 E4/1 F4/1 G4/2 " +
+           "G4/0.5 A4/0.5 G4/1 F4/1 E4/0.5 F4/0.5 G4/2 D4/1 G4/1 E4/1 C4/1" },
+  { name: "Frère Jacques", tempo: 120,
+    notes: "C4/1 D4/1 E4/1 C4/1 C4/1 D4/1 E4/1 C4/1 E4/1 F4/1 G4/2 E4/1 F4/1 G4/2 " +
+           "G4/0.5 A4/0.5 G4/0.5 F4/0.5 E4/1 C4/1 G4/0.5 A4/0.5 G4/0.5 F4/0.5 E4/1 C4/1 " +
+           "C4/1 G3/1 C4/2 C4/1 G3/1 C4/2" },
+  { name: "Hot Cross Buns", tempo: 120,
+    notes: "E4/1 D4/1 C4/2 E4/1 D4/1 C4/2 C4/0.5 C4/0.5 C4/0.5 C4/0.5 D4/0.5 D4/0.5 D4/0.5 D4/0.5 " +
+           "E4/1 D4/1 C4/2" },
+  { name: "Itsy Bitsy Spider", tempo: 120,
+    notes: "G4/0.5 C5/1 C5/0.5 C5/1 D5/0.5 E5/1 E5/0.5 E5/0.5 D5/0.5 C5/1 D5/0.5 E5/0.5 C5/2 " +
+           "E5/1 E5/0.5 F5/1 G5/0.5 G5/1 F5/0.5 E5/1 F5/0.5 G5/0.5 E5/2 " +
+           "C5/1 C5/0.5 D5/1 E5/0.5 E5/1 D5/0.5 C5/1 D5/0.5 E5/0.5 C5/2" },
+];
+
+const MODES = {
+  normal: { label: "Normal", desc: "Every note plays for the same length (about a quarter second)." },
+  hard:   { label: "Hard",   desc: "Note lengths are randomized — even trickier to recognize!" },
+  manual: { label: "Manual", desc: "You play the notes yourself: hold the button to sound each note." },
+};
+
+/* ---------------- Audio ---------------- */
+const NOTE_INDEX = { C:0, "C#":1, D:2, "D#":3, E:4, F:5, "F#":6, G:7, "G#":8, A:9, "A#":10, B:11 };
+let audioCtx = null;
+
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  return audioCtx;
+}
+
+function noteToFreq(note) {
+  const m = note.match(/^([A-G]#?)(\d)$/);
+  if (!m) return 440;
+  const midi = (parseInt(m[2], 10) + 1) * 12 + NOTE_INDEX[m[1]];
+  return 440 * Math.pow(2, (midi - 69) / 12);
+}
+
+// Pitches only (durations stripped) -- used by the guessing/manual modes
+// where the real rhythm is intentionally discarded.
+function parseNotes(str) {
+  return str.trim().split(/\s+/).map(tok => tok.split("/")[0]);
+}
+
+// Pitch + real beat length -- used to play a song the way it should sound.
+function parseTimed(str) {
+  return str.trim().split(/\s+/).map(tok => {
+    const [pitch, beats] = tok.split("/");
+    return { pitch, beats: parseFloat(beats) };
+  });
+}
+
+let activeNodes = [];   // oscillators currently scheduled (so we can stop on replay)
+
+function stopAll() {
+  const ctx = audioCtx;
+  activeNodes.forEach(n => { try { n.stop(); } catch (e) {} });
+  activeNodes = [];
+}
+
+// Play one note at a given time with a soft envelope.
+function scheduleNote(freq, start, dur) {
+  const ctx = ensureAudio();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = "triangle";
+  osc.frequency.value = freq;
+  const a = 0.012, r = 0.06;
+  gain.gain.setValueAtTime(0, start);
+  gain.gain.linearRampToValueAtTime(0.25, start + a);
+  gain.gain.setValueAtTime(0.25, start + Math.max(a, dur - r));
+  gain.gain.linearRampToValueAtTime(0, start + dur);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(start);
+  osc.stop(start + dur + 0.02);
+  activeNodes.push(osc);
+}
+
+// Play a whole song with mangled durations. Returns total duration (s).
+function playSong(notesStr, mode) {
+  stopAll();
+  const ctx = ensureAudio();
+  const notes = parseNotes(notesStr);
+  let t = ctx.currentTime + 0.05;
+  for (const n of notes) {
+    const dur = mode === "hard"
+      ? 0.13 + Math.random() * 0.55   // randomized lengths
+      : 0.32;                         // fixed length
+    scheduleNote(noteToFreq(n), t, dur * 0.85);
+    t += dur;
+  }
+  return t - ctx.currentTime;
+}
+
+// Play a song the RIGHT way: correct pitches AND correct durations/tempo.
+// Returns total duration (s).
+function playReal(song) {
+  stopAll();
+  const ctx = ensureAudio();
+  const seq = parseTimed(song.notes);
+  const spb = 60 / song.tempo;        // seconds per beat (quarter note)
+  let t = ctx.currentTime + 0.05;
+  for (const { pitch, beats } of seq) {
+    const dur = beats * spb;
+    scheduleNote(noteToFreq(pitch), t, Math.max(0.08, dur * 0.92));
+    t += dur;
+  }
+  return t - ctx.currentTime;
+}
+
+/* ---------------- Setup state ---------------- */
+const settings = { players: 2, rounds: 5, mode: "normal" };
+
+function buildOptionButtons(rowId, values, current, render, onPick) {
+  const row = document.getElementById(rowId);
+  row.innerHTML = "";
+  values.forEach(v => {
+    const b = document.createElement("button");
+    b.className = "opt-btn" + (v === current() ? " active" : "");
+    b.textContent = render(v);
+    b.onclick = () => { onPick(v); refreshSetup(); };
+    row.appendChild(b);
+  });
+}
+
+function refreshSetup() {
+  buildOptionButtons("players-row", [1,2,3,4], () => settings.players,
+    v => v === 1 ? "1 player" : v + " players", v => settings.players = v);
+  buildOptionButtons("rounds-row", [3,5,7], () => settings.rounds,
+    v => v + "", v => settings.rounds = v);
+  buildOptionButtons("mode-row", Object.keys(MODES), () => settings.mode,
+    v => MODES[v].label, v => settings.mode = v);
+  document.getElementById("mode-desc").textContent = MODES[settings.mode].desc;
+  // Rounds are irrelevant in manual mode.
+  document.getElementById("rounds-row").parentElement.style.opacity =
+    settings.mode === "manual" ? 0.4 : 1;
+  document.getElementById("players-row").parentElement.style.opacity =
+    settings.mode === "manual" ? 0.4 : 1;
+}
+
+/* ---------------- Guess game state ---------------- */
+const TURN_SECONDS = 20;
+let game = null;
+let timerInt = null;
+
+function showScreen(id) {
+  ["setup-screen","game-screen","manual-screen","results-screen"]
+    .forEach(s => document.getElementById(s).classList.toggle("hidden", s !== id));
+}
+
+function startGame() {
+  ensureAudio(); // unlock audio on the user gesture
+  if (settings.mode === "manual") { startManual(); return; }
+  game = {
+    scores: Array(settings.players).fill(0),
+    totalTurns: settings.players * settings.rounds,
+    turn: 0,
+    answered: false,
+  };
+  showScreen("game-screen");
+  startTurn();
+}
+
+function pickChoices() {
+  const answerIdx = Math.floor(Math.random() * SONGS.length);
+  const others = SONGS.map((_, i) => i).filter(i => i !== answerIdx);
+  // shuffle others, take 4
+  for (let i = others.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [others[i], others[j]] = [others[j], others[i]];
+  }
+  const choiceIdx = [answerIdx, ...others.slice(0, 4)];
+  for (let i = choiceIdx.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [choiceIdx[i], choiceIdx[j]] = [choiceIdx[j], choiceIdx[i]];
+  }
+  return { answerIdx, choiceIdx };
+}
+
+function startTurn() {
+  game.answered = false;
+  const player = game.turn % settings.players;
+  const round = Math.floor(game.turn / settings.players) + 1;
+  Object.assign(game, pickChoices());
+
+  document.getElementById("turn-name").textContent = "Player " + (player + 1);
+  document.getElementById("turn-meta").textContent =
+    "Round " + round + " of " + settings.rounds;
+  document.getElementById("feedback").textContent = "";
+  document.getElementById("next-btn").classList.add("hidden");
+  document.getElementById("reveal-btn").classList.add("hidden");
+
+  const playBtn = document.getElementById("play-btn");
+  playBtn.disabled = false;
+  playBtn.classList.remove("playing");
+
+  renderChoices();
+  renderScores(player);
+  startTimer();
+  // Auto-play once at the start of the turn.
+  doPlay();
+}
+
+function renderChoices() {
+  const box = document.getElementById("choices");
+  box.innerHTML = "";
+  game.choiceIdx.forEach((songIdx, pos) => {
+    const b = document.createElement("button");
+    b.className = "choice-btn";
+    b.innerHTML = '<span class="key">' + (pos + 1) + '</span>' + SONGS[songIdx].name;
+    b.onclick = () => submitGuess(pos);
+    box.appendChild(b);
+  });
+}
+
+function renderScores(activePlayer) {
+  const box = document.getElementById("scores");
+  box.innerHTML = "";
+  game.scores.forEach((s, i) => {
+    const c = document.createElement("div");
+    c.className = "score-chip" + (i === activePlayer ? " active" : "");
+    c.textContent = "P" + (i + 1) + ": " + s;
+    box.appendChild(c);
+  });
+}
+
+function doPlay() {
+  if (game.answered) return;
+  const playBtn = document.getElementById("play-btn");
+  const dur = playSong(SONGS[game.answerIdx].notes, settings.mode);
+  playBtn.classList.add("playing");
+  clearTimeout(doPlay._t);
+  doPlay._t = setTimeout(() => playBtn.classList.remove("playing"), dur * 1000);
+}
+
+function startTimer() {
+  const bar = document.getElementById("timer-bar");
+  bar.classList.remove("low");
+  const start = performance.now();
+  clearInterval(timerInt);
+  timerInt = setInterval(() => {
+    const elapsed = (performance.now() - start) / 1000;
+    const left = Math.max(0, TURN_SECONDS - elapsed);
+    const pct = (left / TURN_SECONDS) * 100;
+    bar.style.width = pct + "%";
+    bar.classList.toggle("low", left <= 5);
+    game.timeLeft = left;
+    if (left <= 0) { clearInterval(timerInt); timeUp(); }
+  }, 100);
+}
+
+function submitGuess(pos) {
+  if (game.answered) return;
+  game.answered = true;
+  clearInterval(timerInt);
+  stopAll();
+  const correct = game.choiceIdx[pos] === game.answerIdx;
+  const player = game.turn % settings.players;
+
+  const buttons = document.querySelectorAll("#choices .choice-btn");
+  const answerPos = game.choiceIdx.indexOf(game.answerIdx);
+  buttons.forEach(b => b.disabled = true);
+  buttons[answerPos].classList.add("correct");
+
+  const fb = document.getElementById("feedback");
+  if (correct) {
+    const bonus = Math.round(game.timeLeft * 5);
+    const pts = 50 + bonus;
+    game.scores[player] += pts;
+    fb.innerHTML = "&#9989; Correct! +" + pts +
+      ' <span style="opacity:0.8;font-size:0.9rem">(50 + ' + bonus + " time bonus)</span>";
+  } else {
+    buttons[pos].classList.add("wrong");
+    fb.innerHTML = "&#10060; Nope! It was <b>" + SONGS[game.answerIdx].name + "</b>";
+  }
+  document.getElementById("play-btn").disabled = true;
+  renderScores(player);
+  showNext();
+}
+
+function timeUp() {
+  if (game.answered) return;
+  game.answered = true;
+  stopAll();
+  const buttons = document.querySelectorAll("#choices .choice-btn");
+  const answerPos = game.choiceIdx.indexOf(game.answerIdx);
+  buttons.forEach(b => b.disabled = true);
+  buttons[answerPos].classList.add("correct");
+  document.getElementById("feedback").innerHTML =
+    "&#9203; Time's up! It was <b>" + SONGS[game.answerIdx].name + "</b>";
+  document.getElementById("play-btn").disabled = true;
+  showNext();
+}
+
+function showNext() {
+  const btn = document.getElementById("next-btn");
+  btn.classList.remove("hidden");
+  btn.textContent = (game.turn + 1 >= game.totalTurns) ? "See results 🏆" : "Next →";
+  // Now that the answer is revealed, offer to play it the real way.
+  document.getElementById("reveal-btn").classList.remove("hidden");
+}
+
+function nextTurn() {
+  game.turn++;
+  if (game.turn >= game.totalTurns) { showResults(); return; }
+  startTurn();
+}
+
+function showResults() {
+  clearInterval(timerInt);
+  stopAll();
+  showScreen("results-screen");
+  const max = Math.max(...game.scores);
+  const list = document.getElementById("results-list");
+  list.innerHTML = "";
+  game.scores
+    .map((s, i) => ({ s, i }))
+    .sort((a, b) => b.s - a.s)
+    .forEach(({ s, i }) => {
+      const li = document.createElement("li");
+      if (s === max) li.className = "winner";
+      li.innerHTML = "<span>" + (s === max ? "&#127942; " : "") +
+        "Player " + (i + 1) + "</span><span>" + s + " pts</span>";
+      list.appendChild(li);
+    });
+}
+
+/* ---------------- Manual mode ---------------- */
+let manual = { songIdx: 0, noteIdx: 0, osc: null, gain: null };
+
+function startManual() {
+  manual.songIdx = 0;
+  manual.noteIdx = 0;
+  showScreen("manual-screen");
+  renderSongSelect();
+  updateNoteProgress();
+}
+
+function renderSongSelect() {
+  const box = document.getElementById("song-select");
+  box.innerHTML = "";
+  SONGS.forEach((song, i) => {
+    const b = document.createElement("button");
+    b.className = "song-opt" + (i === manual.songIdx ? " active" : "");
+    b.textContent = song.name;
+    b.onclick = () => { stopAll(); manual.songIdx = i; manual.noteIdx = 0; renderSongSelect(); updateNoteProgress(); };
+    box.appendChild(b);
+  });
+}
+
+function updateNoteProgress() {
+  const notes = parseNotes(SONGS[manual.songIdx].notes);
+  const el = document.getElementById("note-progress");
+  if (manual.noteIdx >= notes.length) {
+    el.innerHTML = "&#127881; End of song! Press <b>Restart</b> to play it again.";
+  } else {
+    el.textContent = "Note " + (manual.noteIdx + 1) + " of " + notes.length;
+  }
+}
+
+function manualHoldStart() {
+  const notes = parseNotes(SONGS[manual.songIdx].notes);
+  if (manual.noteIdx >= notes.length) return;
+  const ctx = ensureAudio();
+  manualHoldEnd(); // safety: stop any lingering note
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = "triangle";
+  osc.frequency.value = noteToFreq(notes[manual.noteIdx]);
+  gain.gain.setValueAtTime(0, ctx.currentTime);
+  gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + 0.015);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start();
+  manual.osc = osc;
+  manual.gain = gain;
+  document.getElementById("hold-btn").classList.add("active");
+}
+
+function manualHoldEnd() {
+  if (manual.osc) {
+    const ctx = audioCtx;
+    try {
+      manual.gain.gain.cancelScheduledValues(ctx.currentTime);
+      manual.gain.gain.setValueAtTime(manual.gain.gain.value, ctx.currentTime);
+      manual.gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.05);
+      manual.osc.stop(ctx.currentTime + 0.06);
+    } catch (e) {}
+    manual.osc = null;
+    manual.gain = null;
+    manual.noteIdx++;
+    updateNoteProgress();
+  }
+  document.getElementById("hold-btn").classList.remove("active");
+}
+
+/* ---------------- Wiring ---------------- */
+document.getElementById("start-btn").onclick = startGame;
+document.getElementById("play-btn").onclick = doPlay;
+document.getElementById("next-btn").onclick = nextTurn;
+document.getElementById("play-again-btn").onclick = () => { showScreen("setup-screen"); refreshSetup(); };
+document.getElementById("reveal-btn").onclick = () => playReal(SONGS[game.answerIdx]);
+document.getElementById("manual-real").onclick = () => playReal(SONGS[manual.songIdx]);
+document.getElementById("manual-restart").onclick = () => { manual.noteIdx = 0; manualHoldEnd(); manual.noteIdx = 0; updateNoteProgress(); };
+document.getElementById("manual-exit").onclick = () => { stopAll(); manualHoldEnd(); showScreen("setup-screen"); };
+
+const holdBtn = document.getElementById("hold-btn");
+holdBtn.addEventListener("pointerdown", e => { e.preventDefault(); manualHoldStart(); });
+holdBtn.addEventListener("pointerup", e => { e.preventDefault(); manualHoldEnd(); });
+holdBtn.addEventListener("pointerleave", () => manualHoldEnd());
+holdBtn.addEventListener("pointercancel", () => manualHoldEnd());
+
+// Keyboard shortcuts
+let spaceHeld = false;
+document.addEventListener("keydown", e => {
+  if (!document.getElementById("game-screen").classList.contains("hidden")) {
+    if (e.key >= "1" && e.key <= "5") {
+      const pos = parseInt(e.key, 10) - 1;
+      if (pos < game.choiceIdx.length) submitGuess(pos);
+    } else if (e.code === "Space") {
+      e.preventDefault();
+      if (game.answered) { if (!document.getElementById("next-btn").classList.contains("hidden")) nextTurn(); }
+      else doPlay();
+    }
+  } else if (!document.getElementById("manual-screen").classList.contains("hidden")) {
+    if (e.code === "Space" && !spaceHeld) { e.preventDefault(); spaceHeld = true; manualHoldStart(); }
+  }
+});
+document.addEventListener("keyup", e => {
+  if (e.code === "Space" && spaceHeld) {
+    spaceHeld = false;
+    if (!document.getElementById("manual-screen").classList.contains("hidden")) manualHoldEnd();
+  }
+});
+
+refreshSetup();
+</script>
+</body>
+</html>
