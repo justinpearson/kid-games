@@ -149,6 +149,7 @@
     <button class="play-btn" id="play-btn">&#128266; Play melody <span style="font-size:0.85rem;opacity:0.7">(Space)</span></button>
     <div class="choices" id="choices"></div>
     <div class="feedback" id="feedback"></div>
+    <button class="next-btn hidden" id="reveal-btn" style="background:rgba(255,255,255,0.92);color:#185a9d;">&#127925; Hear how it really sounds</button>
     <button class="next-btn hidden" id="next-btn">Next &#8594;</button>
     <div class="scores" id="scores"></div>
   </div>
@@ -159,7 +160,8 @@
     <div class="song-select" id="song-select"></div>
     <button class="hold-btn" id="hold-btn">&#9209;&#65039; Hold to play notes</button>
     <div class="note-progress" id="note-progress">Press and hold &mdash; each press plays the next note.</div>
-    <button class="next-btn" id="manual-restart" style="margin-top:1rem;">&#8635; Restart song</button>
+    <button class="next-btn" id="manual-real" style="margin-top:1rem;background:rgba(255,255,255,0.92);color:#185a9d;">&#127925; Hear how it really sounds</button>
+    <button class="next-btn" id="manual-restart" style="margin-top:0.6rem;">&#8635; Restart song</button>
     <div class="center" style="margin-top:1rem;">
       <button class="opt-btn" id="manual-exit" style="max-width:200px;margin:0 auto;">Back to setup</button>
     </div>
@@ -177,33 +179,51 @@
 <script>
 /* ------------------------------------------------------------------
    Song library.
-   Each song is a list of pitches (note name + octave). The ORIGINAL
-   rhythm is intentionally discarded: in Normal mode every note is
-   played for a fixed length, in Hard mode the lengths are randomized,
-   and in Manual mode the player controls timing by hand. Only the
-   pitches survive -- that's what makes the tune hard to recognize.
+   Each note is written as "PITCH/BEATS" where BEATS is the note's real
+   length (1 = quarter note, 0.5 = eighth, 2 = half, etc.), and `tempo`
+   is the song's speed in quarter-notes per minute. So every song stores
+   the RIGHT ANSWER: the correct pitches AND the correct rhythm.
+
+   During guessing the rhythm is deliberately thrown away -- Normal mode
+   plays every note for the same length, Hard mode randomizes the lengths,
+   and Manual mode lets the player control timing by hand. Only the
+   pitches survive, which is what makes the tune hard to recognize. The
+   stored beats/tempo are used by the "Hear the real song" button so the
+   true melody can be played back the way it's supposed to sound.
 ------------------------------------------------------------------- */
 const SONGS = [
-  { name: "Twinkle, Twinkle, Little Star",
-    notes: "C4 C4 G4 G4 A4 A4 G4 F4 F4 E4 E4 D4 D4 C4" },
-  { name: "Mary Had a Little Lamb",
-    notes: "E4 D4 C4 D4 E4 E4 E4 D4 D4 D4 E4 G4 G4 E4 D4 C4 D4 E4 E4 E4 E4 D4 D4 E4 D4 C4" },
-  { name: "Happy Birthday",
-    notes: "C4 C4 D4 C4 F4 E4 C4 C4 D4 C4 G4 F4 C4 C4 C5 A4 F4 E4 D4 A#4 A#4 A4 F4 G4 F4" },
-  { name: "Jingle Bells",
-    notes: "E4 E4 E4 E4 E4 E4 E4 G4 C4 D4 E4 F4 F4 F4 F4 F4 E4 E4 E4 E4 D4 D4 E4 D4 G4" },
-  { name: "Old MacDonald",
-    notes: "G4 G4 G4 D4 E4 E4 D4 B4 B4 A4 A4 G4 D4 G4 G4 G4 D4 E4 E4 D4 B4 B4 A4 A4 G4" },
-  { name: "Row, Row, Row Your Boat",
-    notes: "C4 C4 C4 D4 E4 E4 D4 E4 F4 G4 C5 C5 C5 G4 G4 G4 E4 E4 E4 C4 C4 C4 G4 F4 E4 D4 C4" },
-  { name: "London Bridge",
-    notes: "G4 A4 G4 F4 E4 F4 G4 D4 E4 F4 E4 F4 G4 G4 A4 G4 F4 E4 F4 G4 D4 G4 E4 C4" },
-  { name: "Frère Jacques",
-    notes: "C4 D4 E4 C4 C4 D4 E4 C4 E4 F4 G4 E4 F4 G4 G4 A4 G4 F4 E4 C4 G4 A4 G4 F4 E4 C4 C4 G3 C4 C4 G3 C4" },
-  { name: "Hot Cross Buns",
-    notes: "E4 D4 C4 E4 D4 C4 C4 C4 C4 C4 D4 D4 D4 D4 E4 D4 C4" },
-  { name: "Itsy Bitsy Spider",
-    notes: "G4 C5 C5 C5 D5 E5 E5 E5 D5 C5 D5 E5 C5 E5 E5 F5 G5 G5 F5 E5 F5 G5 E5 C5 C5 D5 E5 E5 D5 C5 D5 E5 C5" },
+  { name: "Twinkle, Twinkle, Little Star", tempo: 130,
+    notes: "C4/1 C4/1 G4/1 G4/1 A4/1 A4/1 G4/2 F4/1 F4/1 E4/1 E4/1 D4/1 D4/1 C4/2" },
+  { name: "Mary Had a Little Lamb", tempo: 130,
+    notes: "E4/1 D4/1 C4/1 D4/1 E4/1 E4/1 E4/2 D4/1 D4/1 D4/2 E4/1 G4/1 G4/2 " +
+           "E4/1 D4/1 C4/1 D4/1 E4/1 E4/1 E4/1 E4/1 D4/1 D4/1 E4/1 D4/1 C4/4" },
+  { name: "Happy Birthday", tempo: 110,
+    notes: "C4/0.75 C4/0.25 D4/1 C4/1 F4/1 E4/2 C4/0.75 C4/0.25 D4/1 C4/1 G4/1 F4/2 " +
+           "C4/0.75 C4/0.25 C5/1 A4/1 F4/1 E4/1 D4/2 A#4/0.75 A#4/0.25 A4/1 F4/1 G4/1 F4/2" },
+  { name: "Jingle Bells", tempo: 160,
+    notes: "E4/1 E4/1 E4/2 E4/1 E4/1 E4/2 E4/1 G4/1 C4/1.5 D4/0.5 E4/4 " +
+           "F4/1 F4/1 F4/1 F4/1 F4/1 E4/1 E4/1 E4/1 E4/1 D4/1 D4/1 E4/1 D4/1 G4/2" },
+  { name: "Old MacDonald", tempo: 120,
+    notes: "G4/1 G4/1 G4/1 D4/1 E4/1 E4/1 D4/2 B4/1 B4/1 A4/1 A4/1 G4/2 " +
+           "D4/1 G4/1 G4/1 G4/1 D4/1 E4/1 E4/1 D4/2 B4/1 B4/1 A4/1 A4/1 G4/2" },
+  { name: "Row, Row, Row Your Boat", tempo: 112,
+    notes: "C4/1 C4/1 C4/0.5 D4/0.5 E4/1 E4/0.5 D4/0.5 E4/0.5 F4/0.5 G4/2 " +
+           "C5/0.5 C5/0.5 C5/0.5 G4/0.5 G4/0.5 G4/0.5 E4/0.5 E4/0.5 E4/0.5 C4/0.5 C4/0.5 C4/0.5 " +
+           "G4/1 F4/1 E4/0.5 D4/0.5 C4/2" },
+  { name: "London Bridge", tempo: 120,
+    notes: "G4/0.5 A4/0.5 G4/1 F4/1 E4/0.5 F4/0.5 G4/2 D4/1 E4/1 F4/2 E4/1 F4/1 G4/2 " +
+           "G4/0.5 A4/0.5 G4/1 F4/1 E4/0.5 F4/0.5 G4/2 D4/1 G4/1 E4/1 C4/1" },
+  { name: "Frère Jacques", tempo: 120,
+    notes: "C4/1 D4/1 E4/1 C4/1 C4/1 D4/1 E4/1 C4/1 E4/1 F4/1 G4/2 E4/1 F4/1 G4/2 " +
+           "G4/0.5 A4/0.5 G4/0.5 F4/0.5 E4/1 C4/1 G4/0.5 A4/0.5 G4/0.5 F4/0.5 E4/1 C4/1 " +
+           "C4/1 G3/1 C4/2 C4/1 G3/1 C4/2" },
+  { name: "Hot Cross Buns", tempo: 120,
+    notes: "E4/1 D4/1 C4/2 E4/1 D4/1 C4/2 C4/0.5 C4/0.5 C4/0.5 C4/0.5 D4/0.5 D4/0.5 D4/0.5 D4/0.5 " +
+           "E4/1 D4/1 C4/2" },
+  { name: "Itsy Bitsy Spider", tempo: 120,
+    notes: "G4/0.5 C5/1 C5/0.5 C5/1 D5/0.5 E5/1 E5/0.5 E5/0.5 D5/0.5 C5/1 D5/0.5 E5/0.5 C5/2 " +
+           "E5/1 E5/0.5 F5/1 G5/0.5 G5/1 F5/0.5 E5/1 F5/0.5 G5/0.5 E5/2 " +
+           "C5/1 C5/0.5 D5/1 E5/0.5 E5/1 D5/0.5 C5/1 D5/0.5 E5/0.5 C5/2" },
 ];
 
 const MODES = {
@@ -229,7 +249,19 @@ function noteToFreq(note) {
   return 440 * Math.pow(2, (midi - 69) / 12);
 }
 
-function parseNotes(str) { return str.trim().split(/\s+/); }
+// Pitches only (durations stripped) -- used by the guessing/manual modes
+// where the real rhythm is intentionally discarded.
+function parseNotes(str) {
+  return str.trim().split(/\s+/).map(tok => tok.split("/")[0]);
+}
+
+// Pitch + real beat length -- used to play a song the way it should sound.
+function parseTimed(str) {
+  return str.trim().split(/\s+/).map(tok => {
+    const [pitch, beats] = tok.split("/");
+    return { pitch, beats: parseFloat(beats) };
+  });
+}
 
 let activeNodes = [];   // oscillators currently scheduled (so we can stop on replay)
 
@@ -268,6 +300,22 @@ function playSong(notesStr, mode) {
       ? 0.13 + Math.random() * 0.55   // randomized lengths
       : 0.32;                         // fixed length
     scheduleNote(noteToFreq(n), t, dur * 0.85);
+    t += dur;
+  }
+  return t - ctx.currentTime;
+}
+
+// Play a song the RIGHT way: correct pitches AND correct durations/tempo.
+// Returns total duration (s).
+function playReal(song) {
+  stopAll();
+  const ctx = ensureAudio();
+  const seq = parseTimed(song.notes);
+  const spb = 60 / song.tempo;        // seconds per beat (quarter note)
+  let t = ctx.currentTime + 0.05;
+  for (const { pitch, beats } of seq) {
+    const dur = beats * spb;
+    scheduleNote(noteToFreq(pitch), t, Math.max(0.08, dur * 0.92));
     t += dur;
   }
   return t - ctx.currentTime;
@@ -353,6 +401,7 @@ function startTurn() {
     "Round " + round + " of " + settings.rounds;
   document.getElementById("feedback").textContent = "";
   document.getElementById("next-btn").classList.add("hidden");
+  document.getElementById("reveal-btn").classList.add("hidden");
 
   const playBtn = document.getElementById("play-btn");
   playBtn.disabled = false;
@@ -460,6 +509,8 @@ function showNext() {
   const btn = document.getElementById("next-btn");
   btn.classList.remove("hidden");
   btn.textContent = (game.turn + 1 >= game.totalTurns) ? "See results 🏆" : "Next →";
+  // Now that the answer is revealed, offer to play it the real way.
+  document.getElementById("reveal-btn").classList.remove("hidden");
 }
 
 function nextTurn() {
@@ -505,7 +556,7 @@ function renderSongSelect() {
     const b = document.createElement("button");
     b.className = "song-opt" + (i === manual.songIdx ? " active" : "");
     b.textContent = song.name;
-    b.onclick = () => { manual.songIdx = i; manual.noteIdx = 0; renderSongSelect(); updateNoteProgress(); };
+    b.onclick = () => { stopAll(); manual.songIdx = i; manual.noteIdx = 0; renderSongSelect(); updateNoteProgress(); };
     box.appendChild(b);
   });
 }
@@ -560,8 +611,10 @@ document.getElementById("start-btn").onclick = startGame;
 document.getElementById("play-btn").onclick = doPlay;
 document.getElementById("next-btn").onclick = nextTurn;
 document.getElementById("play-again-btn").onclick = () => { showScreen("setup-screen"); refreshSetup(); };
+document.getElementById("reveal-btn").onclick = () => playReal(SONGS[game.answerIdx]);
+document.getElementById("manual-real").onclick = () => playReal(SONGS[manual.songIdx]);
 document.getElementById("manual-restart").onclick = () => { manual.noteIdx = 0; manualHoldEnd(); manual.noteIdx = 0; updateNoteProgress(); };
-document.getElementById("manual-exit").onclick = () => { manualHoldEnd(); showScreen("setup-screen"); };
+document.getElementById("manual-exit").onclick = () => { stopAll(); manualHoldEnd(); showScreen("setup-screen"); };
 
 const holdBtn = document.getElementById("hold-btn");
 holdBtn.addEventListener("pointerdown", e => { e.preventDefault(); manualHoldStart(); });
