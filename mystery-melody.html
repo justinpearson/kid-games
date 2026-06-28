@@ -114,6 +114,57 @@
   .center { text-align: center; }
   .small-link { margin-top: 1.5rem; color: rgba(255,255,255,0.7); font-size: 0.85rem; }
   .small-link a { color: rgba(255,255,255,0.9); }
+
+  /* ============ Admin / song editor ============ */
+  .admin-link { background: rgba(255,255,255,0.15); color: #fff; width: 100%; margin-top: 0.75rem; font-weight: 600; opacity: 0.9; }
+  .admin-link:hover { opacity: 1; }
+  .admin-panel { width: min(96vw, 1000px); }
+  .admin-bar { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+  .admin-back { flex: 0 0 auto; max-width: 160px; background: rgba(255,255,255,0.85); color: #185a9d; }
+  .admin-title { font-size: 1.3rem; font-weight: 700; }
+  .admin-controls { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: flex-end; margin-bottom: 0.75rem; }
+  .admin-controls label { font-size: 0.8rem; display: flex; flex-direction: column; gap: 0.2rem; font-weight: 600; }
+  .admin-controls input, .admin-controls select {
+    font-family: inherit; font-size: 0.95rem; padding: 0.35rem 0.5rem; border-radius: 0.4rem; border: none; color: #185a9d;
+  }
+  .admin-controls input[type=text] { min-width: 12rem; }
+  .admin-controls input[type=number] { width: 5rem; }
+  .admin-btn { flex: 0 0 auto; background: rgba(255,255,255,0.85); color: #185a9d; }
+  .admin-danger { background: #ff9d9d; color: #5a0000; }
+  .admin-saved { color: #7be0a0; font-weight: 700; opacity: 0; transition: opacity 0.3s; align-self: center; }
+  .pr-hint { font-size: 0.85rem; opacity: 0.88; margin-bottom: 0.6rem; line-height: 1.5; }
+
+  .pianoroll-wrap {
+    position: relative; display: flex; overflow: auto; max-height: 60vh;
+    border: 1px solid rgba(255,255,255,0.25); border-radius: 0.5rem; background: #1d3a52; touch-action: none;
+  }
+  .pianoroll-keys { position: sticky; left: 0; z-index: 3; flex: 0 0 46px; background: #13283a; }
+  .pr-key {
+    display: flex; align-items: center; justify-content: flex-end; padding-right: 5px;
+    font-size: 0.6rem; color: #cfe0ee; border-bottom: 1px solid rgba(0,0,0,0.25); box-sizing: border-box;
+  }
+  .pr-key.black { background: #0c1a26; color: #8095a8; }
+  .pianoroll-grid { position: relative; flex: 0 0 auto; }
+  .pr-rows { position: absolute; top: 0; left: 0; }
+  .pr-row { box-sizing: border-box; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .pr-row.black { background: rgba(0,0,0,0.18); }
+  .pr-lines { position: absolute; top: 0; left: 0; pointer-events: none; }
+  .pr-notes { position: absolute; top: 0; left: 0; }
+  .pr-note {
+    position: absolute; box-sizing: border-box; background: #ffd54a; color: #5a3d00;
+    border: 1px solid #c79b16; border-radius: 3px; font-size: 0.6rem; line-height: 1; padding: 2px 3px;
+    overflow: hidden; white-space: nowrap; cursor: grab; user-select: none; box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+  .pr-note.selected { background: #fff3c4; border-color: #fff; box-shadow: 0 0 0 2px rgba(255,255,255,0.75); z-index: 2; }
+  .pr-note::after { content: ""; position: absolute; top: 0; right: 0; width: 8px; height: 100%; cursor: ew-resize; }
+  .pr-playhead { position: absolute; top: 0; width: 2px; background: #ff6b6b; pointer-events: none; z-index: 4; }
+
+  .admin-storage { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1rem; }
+  #admin-storage-view {
+    width: 100%; min-height: 130px; margin-top: 0.75rem; resize: vertical;
+    font-family: ui-monospace, Menlo, monospace; font-size: 0.8rem; border-radius: 0.5rem; border: none;
+    padding: 0.6rem; background: #0c1a26; color: #cfe0ee;
+  }
 </style>
 </head>
 <body>
@@ -137,6 +188,7 @@
       <div class="mode-desc" id="mode-desc"></div>
     </div>
     <button class="start-btn" id="start-btn">Start &#9654;</button>
+    <button class="admin-link" id="admin-link">&#9881;&#65039; Admin &mdash; edit songs</button>
   </div>
 
   <!-- ============ GUESS GAME ============ -->
@@ -174,6 +226,52 @@
     <button class="start-btn" id="play-again-btn">Play again</button>
   </div>
 
+  <!-- ============ ADMIN / SONG EDITOR ============ -->
+  <div class="panel hidden admin-panel" id="admin-screen">
+    <div class="admin-bar">
+      <button class="opt-btn admin-back" id="admin-exit">&larr; Back to game</button>
+      <div class="admin-title">&#127899;&#65039; Song Editor</div>
+    </div>
+
+    <div class="admin-controls">
+      <label>Song
+        <select id="admin-song-select"></select>
+      </label>
+      <label>Title
+        <input type="text" id="admin-name" autocomplete="off" />
+      </label>
+      <label>BPM
+        <input type="number" id="admin-tempo" min="30" max="300" step="1" />
+      </label>
+      <button class="opt-btn admin-btn" id="admin-play">&#9654; Play</button>
+      <button class="opt-btn admin-btn" id="admin-stop">&#9209;&#65039; Stop</button>
+      <button class="opt-btn admin-btn" id="admin-reset">&#8635; Reset this song</button>
+      <span class="admin-saved" id="admin-saved"></span>
+    </div>
+
+    <div class="pr-hint">
+      <b>Click</b> an empty cell to add a note &middot;
+      <b>drag</b> a note to move it &middot;
+      <b>drag its right edge</b> to change duration &middot;
+      <b>double-click</b> a note (or select it and press Delete) to remove it.
+      Gaps between notes become rests.
+    </div>
+
+    <div class="pianoroll-wrap" id="pr-wrap">
+      <div class="pianoroll-keys" id="pr-keys"></div>
+      <div class="pianoroll-grid" id="pr-grid"></div>
+    </div>
+
+    <div class="admin-storage">
+      <button class="opt-btn admin-btn" id="admin-export">&#11015;&#65039; Export library (JSON)</button>
+      <button class="opt-btn admin-btn" id="admin-import">&#11014;&#65039; Import library (JSON)</button>
+      <button class="opt-btn admin-btn" id="admin-view">&#128065;&#65039; View saved data</button>
+      <button class="opt-btn admin-btn admin-danger" id="admin-clear">&#128465;&#65039; Clear all saved edits</button>
+      <input type="file" id="admin-import-file" accept="application/json,.json" class="hidden" />
+    </div>
+    <textarea id="admin-storage-view" class="hidden" readonly></textarea>
+  </div>
+
   <p class="small-link"><a href="https://github.com/justinpearson/kid-games">View source on GitHub</a></p>
 
 <script>
@@ -186,45 +284,93 @@
 
    During guessing the rhythm is deliberately thrown away -- Normal mode
    plays every note for the same length, Hard mode randomizes the lengths,
-   and Manual mode lets the player control timing by hand. Only the
-   pitches survive, which is what makes the tune hard to recognize. The
-   stored beats/tempo are used by the "Hear the real song" button so the
-   true melody can be played back the way it's supposed to sound.
+   and Manual mode lets the player control timing by hand. On top of that,
+   each guessing turn shifts the whole tune into a random key (a random
+   number of half-steps), so a song never sounds identical even when it
+   happens to be the answer two turns in a row. The melodic shape is the
+   only thing that survives, which is what makes the tune hard to
+   recognize. The stored beats/tempo are used by the "Hear the real song"
+   button so the true melody can be played back the way it's supposed to
+   sound (in its original key).
 ------------------------------------------------------------------- */
-const SONGS = [
-  { name: "Twinkle, Twinkle, Little Star", tempo: 130,
+const DEFAULT_SONGS = [
+  { id: "twinkle", name: "Twinkle, Twinkle, Little Star", tempo: 130,
     notes: "C4/1 C4/1 G4/1 G4/1 A4/1 A4/1 G4/2 F4/1 F4/1 E4/1 E4/1 D4/1 D4/1 C4/2" },
-  { name: "Mary Had a Little Lamb", tempo: 130,
+  { id: "mary", name: "Mary Had a Little Lamb", tempo: 130,
     notes: "E4/1 D4/1 C4/1 D4/1 E4/1 E4/1 E4/2 D4/1 D4/1 D4/2 E4/1 G4/1 G4/2 " +
            "E4/1 D4/1 C4/1 D4/1 E4/1 E4/1 E4/1 E4/1 D4/1 D4/1 E4/1 D4/1 C4/4" },
-  { name: "Happy Birthday", tempo: 110,
+  { id: "happy-birthday", name: "Happy Birthday", tempo: 110,
     notes: "C4/0.75 C4/0.25 D4/1 C4/1 F4/1 E4/2 C4/0.75 C4/0.25 D4/1 C4/1 G4/1 F4/2 " +
            "C4/0.75 C4/0.25 C5/1 A4/1 F4/1 E4/1 D4/2 A#4/0.75 A#4/0.25 A4/1 F4/1 G4/1 F4/2" },
-  { name: "Jingle Bells", tempo: 160,
+  { id: "jingle-bells", name: "Jingle Bells", tempo: 160,
     notes: "E4/1 E4/1 E4/2 E4/1 E4/1 E4/2 E4/1 G4/1 C4/1.5 D4/0.5 E4/4 " +
            "F4/1 F4/1 F4/1 F4/1 F4/1 E4/1 E4/1 E4/1 E4/1 D4/1 D4/1 E4/1 D4/1 G4/2" },
-  { name: "Old MacDonald", tempo: 120,
+  { id: "old-macdonald", name: "Old MacDonald", tempo: 120,
     notes: "G4/1 G4/1 G4/1 D4/1 E4/1 E4/1 D4/2 B4/1 B4/1 A4/1 A4/1 G4/2 " +
            "D4/1 G4/1 G4/1 G4/1 D4/1 E4/1 E4/1 D4/2 B4/1 B4/1 A4/1 A4/1 G4/2" },
-  { name: "Row, Row, Row Your Boat", tempo: 112,
+  { id: "row-your-boat", name: "Row, Row, Row Your Boat", tempo: 112,
     notes: "C4/1 C4/1 C4/0.5 D4/0.5 E4/1 E4/0.5 D4/0.5 E4/0.5 F4/0.5 G4/2 " +
            "C5/0.5 C5/0.5 C5/0.5 G4/0.5 G4/0.5 G4/0.5 E4/0.5 E4/0.5 E4/0.5 C4/0.5 C4/0.5 C4/0.5 " +
            "G4/1 F4/1 E4/0.5 D4/0.5 C4/2" },
-  { name: "London Bridge", tempo: 120,
+  { id: "london-bridge", name: "London Bridge", tempo: 120,
     notes: "G4/0.5 A4/0.5 G4/1 F4/1 E4/0.5 F4/0.5 G4/2 D4/1 E4/1 F4/2 E4/1 F4/1 G4/2 " +
            "G4/0.5 A4/0.5 G4/1 F4/1 E4/0.5 F4/0.5 G4/2 D4/1 G4/1 E4/1 C4/1" },
-  { name: "Frère Jacques", tempo: 120,
+  { id: "frere-jacques", name: "Frère Jacques", tempo: 120,
     notes: "C4/1 D4/1 E4/1 C4/1 C4/1 D4/1 E4/1 C4/1 E4/1 F4/1 G4/2 E4/1 F4/1 G4/2 " +
            "G4/0.5 A4/0.5 G4/0.5 F4/0.5 E4/1 C4/1 G4/0.5 A4/0.5 G4/0.5 F4/0.5 E4/1 C4/1 " +
            "C4/1 G3/1 C4/2 C4/1 G3/1 C4/2" },
-  { name: "Hot Cross Buns", tempo: 120,
+  { id: "hot-cross-buns", name: "Hot Cross Buns", tempo: 120,
     notes: "E4/1 D4/1 C4/2 E4/1 D4/1 C4/2 C4/0.5 C4/0.5 C4/0.5 C4/0.5 D4/0.5 D4/0.5 D4/0.5 D4/0.5 " +
            "E4/1 D4/1 C4/2" },
-  { name: "Itsy Bitsy Spider", tempo: 120,
+  { id: "itsy-bitsy", name: "Itsy Bitsy Spider", tempo: 120,
     notes: "G4/0.5 C5/1 C5/0.5 C5/1 D5/0.5 E5/1 E5/0.5 E5/0.5 D5/0.5 C5/1 D5/0.5 E5/0.5 C5/2 " +
            "E5/1 E5/0.5 F5/1 G5/0.5 G5/1 F5/0.5 E5/1 F5/0.5 G5/0.5 E5/2 " +
            "C5/1 C5/0.5 D5/1 E5/0.5 E5/1 D5/0.5 C5/1 D5/0.5 E5/0.5 C5/2" },
 ];
+
+/* ------------------------------------------------------------------
+   Song storage. DEFAULT_SONGS above are the built-in originals. The
+   Admin editor (reachable from the setup screen) lets you tweak
+   pitches, durations, tempo and title; those edits are saved to the
+   browser's localStorage as per-song "overrides" keyed by song id, and
+   merged over the defaults at load. So the game always plays the user's
+   edited versions, and clearing storage restores the originals.
+------------------------------------------------------------------- */
+const STORAGE_KEY = "mysteryMelody.overrides.v1";
+
+function loadOverrides() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch (e) { return {}; }
+}
+function saveOverrides(obj) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(obj)); return true; }
+  catch (e) { return false; }
+}
+
+// Effective library = defaults with any saved per-song overrides applied.
+function buildLibrary() {
+  const ov = loadOverrides();
+  return DEFAULT_SONGS.map(def => {
+    const o = ov[def.id] || {};
+    return {
+      id: def.id,
+      name:  o.name  != null ? o.name  : def.name,
+      tempo: o.tempo != null ? o.tempo : def.tempo,
+      notes: o.notes != null ? o.notes : def.notes,
+    };
+  });
+}
+
+// SONGS is the live array the whole game reads from. We mutate its
+// entries in place (never reassign the array) so existing references in
+// the game state stay valid after an edit.
+const SONGS = buildLibrary();
+
+// Re-read overrides and refresh SONGS in place -- used after the admin
+// edits a song or clears storage.
+function refreshLibrary() {
+  buildLibrary().forEach((s, i) => Object.assign(SONGS[i], s));
+}
 
 const MODES = {
   normal: { label: "Normal", desc: "Every note plays for the same length (about a quarter second)." },
@@ -242,24 +388,31 @@ function ensureAudio() {
   return audioCtx;
 }
 
-function noteToFreq(note) {
+function noteToFreq(note, semitones = 0) {
   const m = note.match(/^([A-G]#?)(\d)$/);
   if (!m) return 440;
-  const midi = (parseInt(m[2], 10) + 1) * 12 + NOTE_INDEX[m[1]];
+  // Transposing is just shifting the MIDI number: +12 = up an octave,
+  // +1 = up one half-step. This is why we never have to touch the note
+  // names themselves to transpose -- the frequency math does it for us.
+  const midi = (parseInt(m[2], 10) + 1) * 12 + NOTE_INDEX[m[1]] + semitones;
   return 440 * Math.pow(2, (midi - 69) / 12);
 }
 
 // Pitches only (durations stripped) -- used by the guessing/manual modes
-// where the real rhythm is intentionally discarded.
+// where the real rhythm is intentionally discarded. Rests ("R/..") carry
+// no pitch, so they're dropped here.
 function parseNotes(str) {
-  return str.trim().split(/\s+/).map(tok => tok.split("/")[0]);
+  return str.trim().split(/\s+/)
+    .map(tok => tok.split("/")[0])
+    .filter(p => p && p[0] !== "R");
 }
 
-// Pitch + real beat length -- used to play a song the way it should sound.
+// Pitch + real beat length -- used to play a song the way it should
+// sound. A token whose pitch starts with "R" is a rest (silence).
 function parseTimed(str) {
   return str.trim().split(/\s+/).map(tok => {
     const [pitch, beats] = tok.split("/");
-    return { pitch, beats: parseFloat(beats) };
+    return { pitch, beats: parseFloat(beats), rest: pitch[0] === "R" };
   });
 }
 
@@ -289,8 +442,9 @@ function scheduleNote(freq, start, dur) {
   activeNodes.push(osc);
 }
 
-// Play a whole song with mangled durations. Returns total duration (s).
-function playSong(notesStr, mode) {
+// Play a whole song with mangled durations, optionally shifted by
+// `transpose` half-steps. Returns total duration (s).
+function playSong(notesStr, mode, transpose = 0) {
   stopAll();
   const ctx = ensureAudio();
   const notes = parseNotes(notesStr);
@@ -299,10 +453,20 @@ function playSong(notesStr, mode) {
     const dur = mode === "hard"
       ? 0.13 + Math.random() * 0.55   // randomized lengths
       : 0.32;                         // fixed length
-    scheduleNote(noteToFreq(n), t, dur * 0.85);
+    scheduleNote(noteToFreq(n, transpose), t, dur * 0.85);
     t += dur;
   }
   return t - ctx.currentTime;
+}
+
+// Pick a random number of half-steps to shift a melody by. We exclude 0
+// (so the tune is ALWAYS in a different key than its written form) and
+// keep the range modest so even the highest/lowest songs stay in a
+// comfortable, audible register. This is what stops a song from sounding
+// identical when it happens to be the answer two turns in a row.
+function randomTranspose() {
+  const choices = [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 6];
+  return choices[Math.floor(Math.random() * choices.length)];
 }
 
 // Play a song the RIGHT way: correct pitches AND correct durations/tempo.
@@ -313,10 +477,10 @@ function playReal(song) {
   const seq = parseTimed(song.notes);
   const spb = 60 / song.tempo;        // seconds per beat (quarter note)
   let t = ctx.currentTime + 0.05;
-  for (const { pitch, beats } of seq) {
+  for (const { pitch, beats, rest } of seq) {
     const dur = beats * spb;
-    scheduleNote(noteToFreq(pitch), t, Math.max(0.08, dur * 0.92));
-    t += dur;
+    if (!rest) scheduleNote(noteToFreq(pitch), t, Math.max(0.08, dur * 0.92));
+    t += dur;   // rests advance the clock but make no sound
   }
   return t - ctx.currentTime;
 }
@@ -357,7 +521,7 @@ let game = null;
 let timerInt = null;
 
 function showScreen(id) {
-  ["setup-screen","game-screen","manual-screen","results-screen"]
+  ["setup-screen","game-screen","manual-screen","results-screen","admin-screen"]
     .forEach(s => document.getElementById(s).classList.toggle("hidden", s !== id));
 }
 
@@ -395,6 +559,9 @@ function startTurn() {
   const player = game.turn % settings.players;
   const round = Math.floor(game.turn / settings.players) + 1;
   Object.assign(game, pickChoices());
+  // One random key per turn, fixed so replaying the melody (Space / the
+  // Play button) sounds the same instead of jumping pitch each time.
+  game.transpose = randomTranspose();
 
   document.getElementById("turn-name").textContent = "Player " + (player + 1);
   document.getElementById("turn-meta").textContent =
@@ -440,7 +607,7 @@ function renderScores(activePlayer) {
 function doPlay() {
   if (game.answered) return;
   const playBtn = document.getElementById("play-btn");
-  const dur = playSong(SONGS[game.answerIdx].notes, settings.mode);
+  const dur = playSong(SONGS[game.answerIdx].notes, settings.mode, game.transpose);
   playBtn.classList.add("playing");
   clearTimeout(doPlay._t);
   doPlay._t = setTimeout(() => playBtn.classList.remove("playing"), dur * 1000);
@@ -606,6 +773,393 @@ function manualHoldEnd() {
   document.getElementById("hold-btn").classList.remove("active");
 }
 
+/* ---------------- Admin: piano-roll song editor ---------------- */
+const PITCH_NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+
+const PR = {
+  rowH: 20,        // px per semitone row
+  pxPerBeat: 60,   // px per quarter-note beat
+  snap: 0.25,      // smallest grid step (a sixteenth note)
+  padBeats: 8,     // empty beats drawn past the song's end (room to add notes)
+  minMidi: 55, maxMidi: 79,   // pitch range of the grid (computed from library)
+};
+
+function midiToName(midi) { return PITCH_NAMES[((midi % 12) + 12) % 12] + (Math.floor(midi / 12) - 1); }
+function isBlackKey(midi) { return PITCH_NAMES[((midi % 12) + 12) % 12].indexOf("#") >= 0; }
+function nameToMidi(note) {
+  const m = note.match(/^([A-G]#?)(-?\d)$/);
+  if (!m) return 60;
+  return (parseInt(m[2], 10) + 1) * 12 + NOTE_INDEX[m[1]];
+}
+function fmtBeats(n) { return (+n.toFixed(2)).toString(); }   // 1.00 -> "1", 0.50 -> "0.5"
+function snapBeat(b) { return Math.round(b / PR.snap) * PR.snap; }
+
+// Set the grid's vertical pitch range from the full default library, padded.
+function computePitchRange() {
+  let lo = Infinity, hi = -Infinity;
+  DEFAULT_SONGS.forEach(s => parseTimed(s.notes).forEach(ev => {
+    if (ev.rest) return;
+    const m = nameToMidi(ev.pitch);
+    lo = Math.min(lo, m); hi = Math.max(hi, m);
+  }));
+  if (!isFinite(lo)) { lo = 55; hi = 79; }
+  PR.minMidi = lo - 4;
+  PR.maxMidi = hi + 4;
+}
+
+// notes string  ->  editor note objects with absolute start times.
+// Rest tokens advance the cursor but produce no note object (gaps are implicit).
+function notesFromString(str) {
+  const out = [];
+  let cursor = 0;
+  parseTimed(str).forEach(ev => {
+    if (!ev.rest) out.push({ midi: nameToMidi(ev.pitch), start: cursor, dur: ev.beats });
+    cursor += ev.beats;
+  });
+  return out;
+}
+
+// editor note objects  ->  notes string, inserting "R/beats" tokens for gaps.
+// This is a monophonic format, so notes are emitted in start-time order.
+function notesToString(notes) {
+  const sorted = notes.slice().sort((a, b) => a.start - b.start || b.midi - a.midi);
+  const toks = [];
+  let cursor = 0;
+  for (const n of sorted) {
+    const gap = snapBeat(n.start - cursor);
+    if (gap >= PR.snap) { toks.push("R/" + fmtBeats(gap)); cursor += gap; }
+    toks.push(midiToName(n.midi) + "/" + fmtBeats(n.dur));
+    cursor += n.dur;
+  }
+  return toks.join(" ");
+}
+
+let editor = null;   // { songIdx, name, tempo, notes:[{midi,start,dur}], selected }
+
+function numRows()      { return PR.maxMidi - PR.minMidi + 1; }
+function midiToY(midi)  { return (PR.maxMidi - midi) * PR.rowH; }
+function yToMidi(y)     { return PR.maxMidi - Math.floor(y / PR.rowH); }
+function beatToX(b)     { return b * PR.pxPerBeat; }
+function xToBeat(x)     { return x / PR.pxPerBeat; }
+function editorEndBeat() { return editor.notes.reduce((e, n) => Math.max(e, n.start + n.dur), 0); }
+function gridBeats()    { return Math.max(16, Math.ceil(editorEndBeat()) + PR.padBeats); }
+
+// Build the static grid chrome (key gutter, row shading, beat lines, note
+// + playhead layers). Called on song load and whenever the grid must grow.
+function buildGridChrome() {
+  const rows = numRows();
+  const totalH = rows * PR.rowH;
+  const totalW = gridBeats() * PR.pxPerBeat;
+
+  const keys = document.getElementById("pr-keys");
+  const grid = document.getElementById("pr-grid");
+  keys.style.height = totalH + "px";
+  grid.style.height = totalH + "px";
+  grid.style.width = totalW + "px";
+
+  keys.innerHTML = "";
+  for (let midi = PR.maxMidi; midi >= PR.minMidi; midi--) {
+    const k = document.createElement("div");
+    k.className = "pr-key" + (isBlackKey(midi) ? " black" : "");
+    k.style.height = PR.rowH + "px";
+    k.textContent = midiToName(midi);
+    keys.appendChild(k);
+  }
+
+  grid.innerHTML = "";
+
+  const rowsLayer = document.createElement("div");
+  rowsLayer.className = "pr-rows";
+  rowsLayer.style.width = totalW + "px";
+  for (let midi = PR.maxMidi; midi >= PR.minMidi; midi--) {
+    const r = document.createElement("div");
+    r.className = "pr-row" + (isBlackKey(midi) ? " black" : "");
+    r.style.height = PR.rowH + "px";
+    r.style.width = totalW + "px";
+    rowsLayer.appendChild(r);
+  }
+  grid.appendChild(rowsLayer);
+
+  const lines = document.createElement("div");
+  lines.className = "pr-lines";
+  lines.style.width = totalW + "px";
+  lines.style.height = totalH + "px";
+  lines.style.backgroundImage =
+    "repeating-linear-gradient(90deg, rgba(255,255,255,0.22) 0 1px, transparent 1px " + PR.pxPerBeat + "px)," +
+    "repeating-linear-gradient(90deg, rgba(255,255,255,0.07) 0 1px, transparent 1px " + (PR.pxPerBeat * PR.snap) + "px)";
+  grid.appendChild(lines);
+
+  const notesLayer = document.createElement("div");
+  notesLayer.className = "pr-notes";
+  notesLayer.id = "pr-notes";
+  notesLayer.style.width = totalW + "px";
+  notesLayer.style.height = totalH + "px";
+  notesLayer.addEventListener("pointerdown", onNotePointerDown);
+  notesLayer.addEventListener("dblclick", onNoteDblClick);
+  grid.appendChild(notesLayer);
+
+  const playhead = document.createElement("div");
+  playhead.className = "pr-playhead hidden";
+  playhead.id = "pr-playhead";
+  playhead.style.height = totalH + "px";
+  grid.appendChild(playhead);
+}
+
+function renderNotes() {
+  const layer = document.getElementById("pr-notes");
+  if (!layer) return;
+  layer.innerHTML = "";
+  editor.notes.forEach((n, i) => {
+    const el = document.createElement("div");
+    el.className = "pr-note" + (n === editor.selected ? " selected" : "");
+    el.style.left = beatToX(n.start) + "px";
+    el.style.top = midiToY(n.midi) + "px";
+    el.style.width = Math.max(6, beatToX(n.dur) - 1) + "px";
+    el.style.height = (PR.rowH - 1) + "px";
+    el.dataset.idx = i;
+    el.textContent = midiToName(n.midi);
+    layer.appendChild(el);
+  });
+}
+
+// Local (content) coordinates inside the grid, accounting for scroll.
+function prLocal(e) {
+  const rect = document.getElementById("pr-grid").getBoundingClientRect();
+  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+
+let prDrag = null;
+
+function onNotePointerDown(e) {
+  e.preventDefault();
+  const p = prLocal(e);
+  const noteEl = e.target.closest(".pr-note");
+  if (noteEl) {
+    const note = editor.notes[+noteEl.dataset.idx];
+    editor.selected = note;
+    const onEdge = p.x >= beatToX(note.start + note.dur) - 8;
+    prDrag = { mode: onEdge ? "resize" : "move", note, startX: p.x, startY: p.y,
+               origStart: note.start, origMidi: note.midi, origDur: note.dur, moved: false };
+  } else {
+    editor.selected = null;
+    prDrag = { mode: "create", startX: p.x, startY: p.y, moved: false };
+  }
+  renderNotes();
+  window.addEventListener("pointermove", onPrPointerMove);
+  window.addEventListener("pointerup", onPrPointerUp);
+}
+
+function onPrPointerMove(e) {
+  if (!prDrag) return;
+  const p = prLocal(e);
+  const dx = p.x - prDrag.startX, dy = p.y - prDrag.startY;
+  if (Math.abs(dx) > 3 || Math.abs(dy) > 3) prDrag.moved = true;
+  if (prDrag.mode === "move") {
+    prDrag.note.start = Math.max(0, snapBeat(prDrag.origStart + xToBeat(dx)));
+    prDrag.note.midi = Math.max(PR.minMidi, Math.min(PR.maxMidi, prDrag.origMidi - Math.round(dy / PR.rowH)));
+    renderNotes();
+  } else if (prDrag.mode === "resize") {
+    prDrag.note.dur = Math.max(PR.snap, snapBeat(prDrag.origDur + xToBeat(dx)));
+    renderNotes();
+  }
+}
+
+function onPrPointerUp(e) {
+  window.removeEventListener("pointermove", onPrPointerMove);
+  window.removeEventListener("pointerup", onPrPointerUp);
+  if (!prDrag) return;
+  if (prDrag.mode === "create" && !prDrag.moved) {
+    const p = prLocal(e);
+    const midi = Math.max(PR.minMidi, Math.min(PR.maxMidi, yToMidi(p.y)));
+    const start = Math.max(0, snapBeat(xToBeat(p.x)));
+    const dup = editor.notes.find(n => n.midi === midi && Math.abs(n.start - start) < PR.snap / 2);
+    if (dup) { editor.selected = dup; renderNotes(); }     // 2nd click of a dbl-click: just select
+    else { const note = { midi, start, dur: 1 }; editor.notes.push(note); editor.selected = note; commitEdit(); }
+  } else if (prDrag.moved && (prDrag.mode === "move" || prDrag.mode === "resize")) {
+    commitEdit();
+  }
+  prDrag = null;
+}
+
+function onNoteDblClick(e) {
+  const noteEl = e.target.closest(".pr-note");
+  if (!noteEl) return;
+  editor.notes.splice(+noteEl.dataset.idx, 1);
+  editor.selected = null;
+  commitEdit();
+}
+
+// Persist current editor state and grow the grid if a note now extends past it.
+function commitEdit() {
+  const grid = document.getElementById("pr-grid");
+  if (parseInt(grid.style.width, 10) !== gridBeats() * PR.pxPerBeat) buildGridChrome();
+  renderNotes();
+  saveEditor();
+}
+
+let savedTimer = null;
+function flashSaved(msg, color) {
+  const el = document.getElementById("admin-saved");
+  el.textContent = msg || "Saved ✓";
+  el.style.color = color || "#7be0a0";
+  el.style.opacity = "1";
+  clearTimeout(savedTimer);
+  savedTimer = setTimeout(() => { el.style.opacity = "0"; }, msg ? 2600 : 1200);
+}
+
+// Write the live SONGS entry + a localStorage override from editor state.
+function saveEditor() {
+  const data = { name: editor.name, tempo: editor.tempo, notes: notesToString(editor.notes) };
+  Object.assign(SONGS[editor.songIdx], data);
+  const ov = loadOverrides();
+  ov[SONGS[editor.songIdx].id] = data;
+  saveOverrides(ov);
+  flashSaved();
+}
+
+function buildSongSelect() {
+  const sel = document.getElementById("admin-song-select");
+  sel.innerHTML = "";
+  SONGS.forEach((s, i) => {
+    const o = document.createElement("option");
+    o.value = i; o.textContent = s.name;
+    sel.appendChild(o);
+  });
+}
+
+function loadSongIntoEditor(idx) {
+  const s = SONGS[idx];
+  editor = { songIdx: idx, name: s.name, tempo: s.tempo, notes: notesFromString(s.notes), selected: null };
+  document.getElementById("admin-song-select").value = idx;
+  document.getElementById("admin-name").value = s.name;
+  document.getElementById("admin-tempo").value = s.tempo;
+  buildGridChrome();
+  renderNotes();
+  scrollToSongPitches();
+}
+
+function scrollToSongPitches() {
+  const wrap = document.getElementById("pr-wrap");
+  if (!editor.notes.length) { wrap.scrollTop = 0; return; }
+  let lo = Infinity, hi = -Infinity;
+  editor.notes.forEach(n => { lo = Math.min(lo, n.midi); hi = Math.max(hi, n.midi); });
+  wrap.scrollTop = Math.max(0, midiToY((lo + hi) / 2) - wrap.clientHeight / 2);
+  wrap.scrollLeft = 0;
+}
+
+function openAdmin() {
+  ensureAudio();
+  computePitchRange();
+  buildSongSelect();
+  loadSongIntoEditor(0);
+  document.getElementById("admin-storage-view").classList.add("hidden");
+  showScreen("admin-screen");
+}
+
+/* ---- editor playback with a moving playhead ---- */
+let playheadRAF = null;
+function stopPlayhead() {
+  if (playheadRAF) { cancelAnimationFrame(playheadRAF); playheadRAF = null; }
+  const ph = document.getElementById("pr-playhead");
+  if (ph) ph.classList.add("hidden");
+}
+function startPlayhead() {
+  const ph = document.getElementById("pr-playhead");
+  const spb = 60 / editor.tempo;
+  const totalSec = editorEndBeat() * spb;
+  ph.classList.remove("hidden");
+  const t0 = performance.now();
+  if (playheadRAF) cancelAnimationFrame(playheadRAF);
+  (function tick(now) {
+    const el = (now - t0) / 1000;
+    ph.style.left = beatToX(el / spb) + "px";
+    if (el >= totalSec) { stopPlayhead(); return; }
+    playheadRAF = requestAnimationFrame(tick);
+  })(t0);
+}
+function adminPlay() {
+  playReal({ tempo: editor.tempo, notes: notesToString(editor.notes) });
+  startPlayhead();
+}
+
+function exportLibrary() {
+  const lib = SONGS.map(s => ({ id: s.id, name: s.name, tempo: s.tempo, notes: s.notes }));
+  const blob = new Blob([JSON.stringify(lib, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "mystery-melody-songs.json";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function refreshStorageViewIfOpen() {
+  const ta = document.getElementById("admin-storage-view");
+  if (!ta || ta.classList.contains("hidden")) return;
+  const raw = localStorage.getItem(STORAGE_KEY);
+  ta.value = raw ? JSON.stringify(JSON.parse(raw), null, 2) : "(no saved edits yet)";
+}
+
+function toggleStorageView() {
+  const ta = document.getElementById("admin-storage-view");
+  ta.classList.toggle("hidden");
+  refreshStorageViewIfOpen();
+}
+
+// A notes string is valid if every token is "PITCH/beats" or "R/beats".
+function notesLookValid(str) {
+  const toks = String(str).trim().split(/\s+/);
+  return toks.length > 0 && toks.every(t => /^([A-G]#?\d|R)\/(\d*\.?\d+)$/.test(t));
+}
+
+// Merge an imported library (array of {id,name,tempo,notes}) into storage.
+// Songs are matched to defaults by id; a song equal to its default is left
+// clean (no override) so "Reset" still means something. Returns counts.
+function applyImportedLibrary(arr) {
+  if (!Array.isArray(arr)) throw new Error("Expected a JSON array of songs.");
+  const byId = {};
+  DEFAULT_SONGS.forEach(d => { byId[d.id] = d; });
+  const ov = loadOverrides();
+  let applied = 0, skipped = 0;
+  for (const s of arr) {
+    const def = s && typeof s === "object" ? byId[s.id] : null;
+    if (!def) { skipped++; continue; }
+    const name  = s.name  != null ? String(s.name)            : def.name;
+    let   tempo = s.tempo != null ? parseInt(s.tempo, 10)     : def.tempo;
+    const notes = s.notes != null ? String(s.notes).trim()   : def.notes;
+    if (!isFinite(tempo)) tempo = def.tempo;
+    tempo = Math.max(30, Math.min(300, tempo));
+    if (!notesLookValid(notes)) { skipped++; continue; }
+    if (name === def.name && tempo === def.tempo && notes === def.notes.trim()) {
+      delete ov[s.id];                 // identical to default -> keep clean
+    } else {
+      ov[s.id] = { name, tempo, notes };
+    }
+    applied++;
+  }
+  saveOverrides(ov);
+  refreshLibrary();
+  return { applied, skipped };
+}
+
+function importLibraryFile(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    let data;
+    try { data = JSON.parse(reader.result); }
+    catch (e) { flashSaved("⚠️ Not valid JSON", "#ff9d9d"); return; }
+    let res;
+    try { res = applyImportedLibrary(data); }
+    catch (e) { flashSaved("⚠️ " + e.message, "#ff9d9d"); return; }
+    buildSongSelect();
+    loadSongIntoEditor(editor ? editor.songIdx : 0);
+    refreshStorageViewIfOpen();
+    if (res.applied === 0) flashSaved("⚠️ No matching songs found", "#ff9d9d");
+    else flashSaved("Imported " + res.applied + (res.skipped ? " (skipped " + res.skipped + ")" : ""));
+  };
+  reader.onerror = () => flashSaved("⚠️ Could not read file", "#ff9d9d");
+  reader.readAsText(file);
+}
+
 /* ---------------- Wiring ---------------- */
 document.getElementById("start-btn").onclick = startGame;
 document.getElementById("play-btn").onclick = doPlay;
@@ -615,6 +1169,77 @@ document.getElementById("reveal-btn").onclick = () => playReal(SONGS[game.answer
 document.getElementById("manual-real").onclick = () => playReal(SONGS[manual.songIdx]);
 document.getElementById("manual-restart").onclick = () => { manual.noteIdx = 0; manualHoldEnd(); manual.noteIdx = 0; updateNoteProgress(); };
 document.getElementById("manual-exit").onclick = () => { stopAll(); manualHoldEnd(); showScreen("setup-screen"); };
+
+// Admin / song editor
+document.getElementById("admin-link").onclick = openAdmin;
+document.getElementById("admin-exit").onclick = () => { stopAll(); stopPlayhead(); showScreen("setup-screen"); refreshSetup(); };
+document.getElementById("admin-song-select").onchange = e => { stopAll(); stopPlayhead(); loadSongIntoEditor(parseInt(e.target.value, 10)); };
+document.getElementById("admin-play").onclick = adminPlay;
+document.getElementById("admin-stop").onclick = () => { stopAll(); stopPlayhead(); };
+document.getElementById("admin-tempo").onchange = e => {
+  let v = parseInt(e.target.value, 10);
+  if (!isFinite(v)) v = 120;
+  v = Math.max(30, Math.min(300, v));
+  e.target.value = v; editor.tempo = v; saveEditor();
+};
+document.getElementById("admin-name").onchange = e => {
+  editor.name = (e.target.value || "").trim() || SONGS[editor.songIdx].name;
+  e.target.value = editor.name;
+  saveEditor();
+  buildSongSelect();
+  document.getElementById("admin-song-select").value = editor.songIdx;
+};
+document.getElementById("admin-reset").onclick = () => {
+  const ov = loadOverrides();
+  delete ov[SONGS[editor.songIdx].id];
+  saveOverrides(ov);
+  refreshLibrary();
+  buildSongSelect();
+  loadSongIntoEditor(editor.songIdx);
+  flashSaved();
+};
+document.getElementById("admin-export").onclick = exportLibrary;
+document.getElementById("admin-import").onclick = () => document.getElementById("admin-import-file").click();
+document.getElementById("admin-import-file").onchange = e => {
+  const f = e.target.files && e.target.files[0];
+  if (f) importLibraryFile(f);
+  e.target.value = "";   // reset so the same file can be re-imported
+};
+document.getElementById("admin-view").onclick = toggleStorageView;
+(() => {
+  // Clear-all needs a confirm, but a native confirm() dialog would block
+  // automation, so we use a two-click "click again to confirm" instead.
+  const btn = document.getElementById("admin-clear");
+  const label = btn.innerHTML;
+  let armed = false, armTimer = null;
+  btn.onclick = () => {
+    if (!armed) {
+      armed = true;
+      btn.innerHTML = "⚠️ Click again to confirm";
+      armTimer = setTimeout(() => { armed = false; btn.innerHTML = label; }, 3000);
+      return;
+    }
+    clearTimeout(armTimer); armed = false; btn.innerHTML = label;
+    localStorage.removeItem(STORAGE_KEY);
+    refreshLibrary();
+    buildSongSelect();
+    loadSongIntoEditor(0);
+    refreshStorageViewIfOpen();
+    flashSaved();
+  };
+})();
+
+// Delete the selected note with Delete/Backspace (when not typing in a field).
+document.addEventListener("keydown", e => {
+  if (document.getElementById("admin-screen").classList.contains("hidden")) return;
+  const tag = (document.activeElement && document.activeElement.tagName || "").toLowerCase();
+  if (tag === "input" || tag === "textarea" || tag === "select") return;
+  if ((e.key === "Delete" || e.key === "Backspace") && editor && editor.selected) {
+    e.preventDefault();
+    const i = editor.notes.indexOf(editor.selected);
+    if (i >= 0) { editor.notes.splice(i, 1); editor.selected = null; commitEdit(); }
+  }
+});
 
 const holdBtn = document.getElementById("hold-btn");
 holdBtn.addEventListener("pointerdown", e => { e.preventDefault(); manualHoldStart(); });
