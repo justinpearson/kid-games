@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Talking Number Grid - Kid Games</title>
+<link rel="apple-touch-icon" href="apple-touch-icon-talking-number-grid.png" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .back-link {
+    align-self: flex-start;
+    color: #fff;
+    text-decoration: none;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.9;
+  }
+  .back-link:hover { opacity: 1; text-decoration: underline; }
+
+  .container {
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    width: 80vw;
+    max-width: 1400px;
+    resize: horizontal;
+    overflow: hidden;
+  }
+
+  h1 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 30px;
+    font-size: 2rem;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(55px, 1fr));
+    gap: 8px;
+    margin: 0 auto;
+  }
+
+  .number-button {
+    aspect-ratio: 1;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .number-button:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  .number-button:active {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .number-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.2);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .number-button:hover::before {
+    opacity: 1;
+  }
+
+  /* Class-based color variations (assigned by Math.abs(number) % 10) */
+  .color-1 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+  .color-2 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+  .color-3 { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+  .color-4 { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+  .color-5 { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+  .color-6 { background: linear-gradient(135deg, #30cfd0 0%, #5b86e5 100%); }
+  .color-7 { background: linear-gradient(135deg, #e040fb 0%, #aa00ff 100%); }
+  .color-8 { background: linear-gradient(135deg, #ff9a56 0%, #ff6a88 100%); }
+  .color-9 { background: linear-gradient(135deg, #ffc371 0%, #ff5f6d 100%); }
+  .color-0 { background: linear-gradient(135deg, #2af598 0%, #009efd 100%); }
+
+  /* Plus buttons for extending the grid — styled like number buttons */
+  .extend-btn {
+    aspect-ratio: 1;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(135deg, #bbb 0%, #999 100%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .extend-btn:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  .extend-btn:active {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Responsive design */
+  @media (max-width: 768px) {
+    h1 {
+      font-size: 1.5rem;
+    }
+
+    .number-button {
+      font-size: 1rem;
+    }
+
+    .grid {
+      gap: 6px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .container {
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 1.2rem;
+      margin-bottom: 20px;
+    }
+
+    .number-button {
+      font-size: 0.9rem;
+    }
+
+    .grid {
+      gap: 4px;
+    }
+  }
+</style>
+</head>
+<body>
+  <a href="index.html" class="back-link">&larr; Back to Games</a>
+  <div class="container">
+    <h1>Click a Number to Hear It!</h1>
+    <div class="grid" id="numberGrid"></div>
+  </div>
+  <p style="margin-top:1rem;color:rgba(255,255,255,0.7);font-size:0.85rem;"><a href="https://github.com/justinpearson/kid-games" style="color:rgba(255,255,255,0.9);">View source on GitHub</a></p>
+<script>
+// The grid starts showing 0–10. Each click of the + button on either end
+// extends the range to the next boundary, following the pattern:
+// 10, 20, 100, 200, 1000, 2000, 10000, 20000, 100000, ...
+// (alternating ×2 and ×5, forever).
+var low = 0;
+var high = 10;
+
+// Given the current boundary (always positive), return the next one.
+function nextBoundary(current) {
+    // The sequence starting from 10: 10, 20, 100, 200, 1000, 2000, ...
+    // If current has the form 1×10^k (like 10, 100, 1000), next is 2×10^k.
+    // If current has the form 2×10^k (like 20, 200, 2000), next is 1×10^(k+1).
+    var digits = current.toString();
+    if (digits[0] === '1') {
+        return current * 2;
+    }
+    return current * 5;
+}
+
+function renderGrid() {
+    var grid = document.getElementById('numberGrid');
+    grid.innerHTML = '';
+
+    // Left + button (to extend into negatives)
+    var leftBtn = document.createElement('button');
+    leftBtn.className = 'extend-btn';
+    leftBtn.textContent = '+';
+    leftBtn.setAttribute('aria-label', 'Extend into more negative numbers');
+    leftBtn.addEventListener('click', extendNegative);
+    grid.appendChild(leftBtn);
+
+    // All number buttons from low to high
+    for (var n = low; n <= high; n++) {
+        grid.appendChild(createNumberButton(n));
+    }
+
+    // Right + button (to extend into larger positives)
+    var rightBtn = document.createElement('button');
+    rightBtn.className = 'extend-btn';
+    rightBtn.textContent = '+';
+    rightBtn.setAttribute('aria-label', 'Add more numbers');
+    rightBtn.addEventListener('click', extendPositive);
+    grid.appendChild(rightBtn);
+}
+
+function createNumberButton(n) {
+    var button = document.createElement('button');
+    button.className = 'number-button color-' + (Math.abs(n) % 10);
+    button.textContent = n;
+    button.setAttribute('aria-label', 'Number ' + n);
+    button.addEventListener('click', function () {
+        speakNumber(n);
+    });
+    return button;
+}
+
+function extendNegative() {
+    // First click goes to -10, then follows the same ×2/×5 pattern.
+    var currentMag = Math.abs(low) || 10;
+    low = -(low === 0 ? 10 : nextBoundary(currentMag));
+    renderGrid();
+}
+
+function extendPositive() {
+    high = nextBoundary(high);
+    renderGrid();
+}
+
+function speakNumber(number) {
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        var utterance = new SpeechSynthesisUtterance(number.toString());
+        utterance.rate = 0.9;
+        utterance.pitch = 1.1;
+        utterance.volume = 1.0;
+        window.speechSynthesis.speak(utterance);
+    } else {
+        alert('Number ' + number);
+        console.warn('Speech synthesis not supported in this browser');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    renderGrid();
+});
+</script>
+</body>
+</html>
