@@ -38,10 +38,28 @@
     font-weight: 600;
     transition: transform 0.1s;
   }
-  button:hover { transform: scale(1.05); }
+  .mode-btn:hover, .reset-btn:hover, .size-select:hover { transform: scale(1.05); }
   .mode-btn { background: #fff; color: #333; }
   .mode-btn.active { background: #ffd700; color: #333; }
   .reset-btn { background: rgba(255,255,255,0.3); color: #fff; }
+  .size-select {
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    background: #fff;
+    color: #333;
+    font-family: inherit;
+    transition: transform 0.1s;
+  }
+  .win-hint {
+    color: rgba(255,255,255,0.85);
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+  }
   .status {
     color: #fff;
     font-size: 1.3rem;
@@ -51,17 +69,22 @@
     text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
   }
   .board {
+    --n: 3;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    width: min(85vw, 360px);
+    grid-template-columns: repeat(var(--n), 1fr);
+    grid-template-rows: repeat(var(--n), 1fr);
+    gap: calc(24px / var(--n));
+    width: min(88vw, calc(240px + var(--n) * 40px));
     aspect-ratio: 1;
   }
   .cell {
     background: rgba(255,255,255,0.9);
     border: none;
-    border-radius: 0.75rem;
-    font-size: 3.5rem;
+    padding: 0;
+    min-width: 0;
+    min-height: 0;
+    border-radius: calc(2.25rem / var(--n));
+    font-size: calc(min(88vw, 240px + var(--n) * 40px) / var(--n) * 0.5);
     font-weight: bold;
     cursor: pointer;
     display: flex;
@@ -91,9 +114,20 @@
   <div class="controls">
     <button class="mode-btn active" onclick="setMode('2p')">2 Players</button>
     <button class="mode-btn" onclick="setMode('cpu')">vs Computer</button>
+    <select class="size-select" id="size-select" onchange="setSize(this.value)" aria-label="Grid size">
+      <option value="3" selected>3 &times; 3</option>
+      <option value="4">4 &times; 4</option>
+      <option value="5">5 &times; 5</option>
+      <option value="6">6 &times; 6</option>
+      <option value="7">7 &times; 7</option>
+      <option value="8">8 &times; 8</option>
+      <option value="9">9 &times; 9</option>
+      <option value="10">10 &times; 10</option>
+    </select>
     <button class="reset-btn" onclick="resetGame()">New Game</button>
   </div>
   <div class="status" id="status">X's turn</div>
+  <div class="win-hint" id="win-hint">Get 3 in a row to win!</div>
   <div class="board" id="board"></div>
   <div class="score-board">
     <span id="score-x">X: 0</span>
@@ -102,18 +136,29 @@
   </div>
 
 <script>
-const WINNING = [
-  [0,1,2],[3,4,5],[6,7,8],
-  [0,3,6],[1,4,7],[2,5,8],
-  [0,4,8],[2,4,6]
-];
-
+let SIZE = 3, WIN_LEN = 3, WINNING = [];
 let board, turn, gameOver, mode, scores;
+
+// All runs of WIN_LEN cells: horizontal, vertical, and both diagonal directions.
+function buildWinning(n, k) {
+  const combos = [];
+  const idx = (r, c) => r * n + c;
+  const run = (r, c, dr, dc) => Array.from({ length: k }, (_, j) => idx(r + j * dr, c + j * dc));
+  for (let r = 0; r < n; r++)
+    for (let c = 0; c + k <= n; c++) combos.push(run(r, c, 0, 1));
+  for (let c = 0; c < n; c++)
+    for (let r = 0; r + k <= n; r++) combos.push(run(r, c, 1, 0));
+  for (let r = 0; r + k <= n; r++) {
+    for (let c = 0; c + k <= n; c++) combos.push(run(r, c, 1, 1));
+    for (let c = k - 1; c < n; c++) combos.push(run(r, c, 1, -1));
+  }
+  return combos;
+}
 
 function init() {
   scores = { X: 0, O: 0, D: 0 };
   mode = '2p';
-  resetGame();
+  setSize(3);
 }
 
 function setMode(m) {
@@ -124,8 +169,16 @@ function setMode(m) {
   resetGame();
 }
 
+function setSize(n) {
+  SIZE = parseInt(n, 10);
+  WIN_LEN = Math.min(SIZE, 5);
+  WINNING = buildWinning(SIZE, WIN_LEN);
+  document.getElementById('win-hint').textContent = `Get ${WIN_LEN} in a row to win!`;
+  resetGame();
+}
+
 function resetGame() {
-  board = Array(9).fill(null);
+  board = Array(SIZE * SIZE).fill(null);
   turn = 'X';
   gameOver = false;
   render();
@@ -134,6 +187,7 @@ function resetGame() {
 
 function render() {
   const el = document.getElementById('board');
+  el.style.setProperty('--n', SIZE);
   el.innerHTML = '';
   board.forEach((v, i) => {
     const btn = document.createElement('button');
@@ -184,20 +238,39 @@ function cpuMove() {
     move = empty[Math.floor(Math.random() * empty.length)];
   }
   if (move === -1) move = findBestMove('X');
-  if (move === -1 && !board[4]) move = 4;
-  if (move === -1) move = [0,2,6,8].find(i => !board[i]) ?? -1;
+  if (move === -1) move = bestLineMove('O');
+  const center = Math.floor((SIZE * SIZE) / 2);
+  if (move === -1 && SIZE % 2 === 1 && !board[center]) move = center;
+  const corners = [0, SIZE - 1, SIZE * (SIZE - 1), SIZE * SIZE - 1];
+  if (move === -1) move = corners.find(i => !board[i]) ?? -1;
   if (move === -1) move = board.findIndex(c => !c);
   if (move !== -1) makeMove(move);
 }
 
+// A move that completes a winning line for `player`, if one exists.
 function findBestMove(player) {
   for (const combo of WINNING) {
     const vals = combo.map(i => board[i]);
-    if (vals.filter(v => v === player).length === 2 && vals.includes(null)) {
+    if (vals.filter(v => v === player).length === WIN_LEN - 1 && vals.includes(null)) {
       return combo[vals.indexOf(null)];
     }
   }
   return -1;
+}
+
+// Extend the player's longest line that isn't blocked by the opponent.
+function bestLineMove(player) {
+  let best = -1, bestCount = 0;
+  for (const combo of WINNING) {
+    const vals = combo.map(i => board[i]);
+    if (vals.some(v => v && v !== player)) continue;
+    const count = vals.filter(v => v === player).length;
+    if (count > bestCount) {
+      bestCount = count;
+      best = combo[vals.indexOf(null)];
+    }
+  }
+  return best;
 }
 
 function checkWin(player) {
