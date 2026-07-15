@@ -39,6 +39,19 @@
   .mode-btn { background: #fff; color: #333; }
   .mode-btn.active { background: #ffd700; color: #333; }
   .new-btn { background: rgba(255,255,255,0.3); color: #fff; }
+  .hint-toggle {
+    display: flex; align-items: center; gap: 0.4rem;
+    background: rgba(255,255,255,0.3); color: #fff;
+    border-radius: 2rem; padding: 0.6rem 1.2rem;
+    font-size: 1.05rem; font-weight: 600; cursor: pointer;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+    user-select: none;
+  }
+  .hint-toggle input {
+    width: 1.2rem; height: 1.2rem;
+    accent-color: #ffd700;
+    cursor: pointer;
+  }
 
   .stage {
     display: flex;
@@ -60,11 +73,12 @@
     font-size: 7rem;
     line-height: 1;
     filter: brightness(0);
-    transition: filter 0.8s ease;
     user-select: none;
   }
   .picture.revealed {
     filter: brightness(1) drop-shadow(0 0 18px rgba(255, 215, 0, 0.9));
+    /* transition only on reveal, so a new game snaps back to black instantly */
+    transition: filter 0.8s ease;
     animation: pop 0.6s ease;
   }
   @keyframes pop {
@@ -142,6 +156,7 @@
     <button class="mode-btn active" id="easyBtn">Easy</button>
     <button class="mode-btn" id="hardBtn">Hard</button>
     <button class="new-btn" id="newBtn">New Word</button>
+    <label class="hint-toggle"><input type="checkbox" id="hintToggle" checked> Picture hint</label>
   </div>
 
   <div class="stage">
@@ -233,6 +248,7 @@ const wordEl = document.getElementById('word');
 const messageEl = document.getElementById('message');
 const lettersEl = document.getElementById('letters');
 const playAgainBtn = document.getElementById('playAgainBtn');
+const hintToggle = document.getElementById('hintToggle');
 const easyBtn = document.getElementById('easyBtn');
 const hardBtn = document.getElementById('hardBtn');
 const newBtn = document.getElementById('newBtn');
@@ -260,7 +276,7 @@ function newGame() {
   wrongCount = 0;
   gameOver = false;
 
-  pictureEl.textContent = current.emoji;
+  updatePicture();
   pictureEl.classList.remove('revealed');
   playAgainBtn.classList.remove('show');
   messageEl.textContent = 'Guess the word!';
@@ -312,15 +328,20 @@ function guess(ch, btn) {
   }
 }
 
+function updatePicture() {
+  pictureEl.textContent = hintToggle.checked ? current.emoji : '❓';
+}
+
 function endGame() {
   gameOver = true;
   for (const btn of lettersEl.children) btn.disabled = true;
   playAgainBtn.classList.add('show');
+  pictureEl.textContent = current.emoji;
+  pictureEl.classList.add('revealed');
 }
 
 function win() {
   endGame();
-  pictureEl.classList.add('revealed');
   const article = 'AEIOU'.includes(current.word[0]) ? 'an' : 'a';
   messageEl.textContent = 'You got it! It’s ' + article + ' ' + current.word + '! \u{1F389}';
   speak('Yay! ' + current.word + '!');
@@ -336,7 +357,6 @@ function lose() {
       slot.style.color = '#ef5350';
     }
   }
-  pictureEl.classList.add('revealed');
   messageEl.textContent = 'Oh no! The word was ' + current.word + '. Try again!';
   speak('The word was ' + current.word + '. Try again!');
 }
@@ -357,6 +377,9 @@ function setMode(m) {
   newGame();
 }
 
+hintToggle.addEventListener('change', () => {
+  if (!gameOver) updatePicture();
+});
 easyBtn.addEventListener('click', () => setMode('easy'));
 hardBtn.addEventListener('click', () => setMode('hard'));
 newBtn.addEventListener('click', newGame);
