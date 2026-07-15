@@ -141,6 +141,34 @@
   }
   .play-again.show { display: block; }
 
+  .trophies {
+    display: none;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    max-width: 480px;
+    background: rgba(255,255,255,0.25);
+    border-radius: 1rem;
+    padding: 0.6rem 0.9rem;
+    margin-top: 1.25rem;
+  }
+  .trophies.show { display: flex; }
+  .trophies .label {
+    color: #fff; font-weight: 700; font-size: 1rem;
+    margin-right: 0.3rem;
+  }
+  .trophies .trophy {
+    font-size: 1.7rem; line-height: 1;
+    user-select: none;
+  }
+  .trophies .trophy.new { animation: pop 0.6s ease; }
+  .trophies .clear-btn {
+    border: none; background: rgba(255,255,255,0.4); color: #185a9d;
+    border-radius: 50%; width: 1.6rem; height: 1.6rem;
+    font-size: 0.9rem; font-weight: 700; cursor: pointer;
+    margin-left: auto;
+  }
+
   #confetti-canvas {
     position: fixed; inset: 0;
     pointer-events: none;
@@ -183,63 +211,188 @@
   <div class="message" id="message"></div>
   <div class="letters" id="letters"></div>
   <button class="play-again" id="playAgainBtn">Play Again!</button>
+  <div class="trophies" id="trophies"></div>
 
   <canvas id="confetti-canvas"></canvas>
 
 <script>
 const EASY_WORDS = [
-  { word: 'CAT',  emoji: '\u{1F431}' },
-  { word: 'DOG',  emoji: '\u{1F436}' },
+  // animals
+  { word: 'CAT',  emoji: '🐱' },
+  { word: 'DOG',  emoji: '🐶' },
+  { word: 'BEE',  emoji: '🐝' },
+  { word: 'PIG',  emoji: '🐷' },
+  { word: 'COW',  emoji: '🐮' },
+  { word: 'FOX',  emoji: '🦊' },
+  { word: 'OWL',  emoji: '🦉' },
+  { word: 'BUG',  emoji: '🐞' },
+  { word: 'HEN',  emoji: '🐔' },
+  { word: 'BAT',  emoji: '🦇' },
+  { word: 'RAT',  emoji: '🐀' },
+  { word: 'ANT',  emoji: '🐜' },
+  { word: 'FISH', emoji: '🐟' },
+  { word: 'FROG', emoji: '🐸' },
+  { word: 'DUCK', emoji: '🦆' },
+  { word: 'LION', emoji: '🦁' },
+  { word: 'BEAR', emoji: '🐻' },
+  { word: 'BIRD', emoji: '🐦' },
+  { word: 'CRAB', emoji: '🦀' },
+  { word: 'GOAT', emoji: '🐐' },
+  { word: 'WOLF', emoji: '🐺' },
+  { word: 'DEER', emoji: '🦌' },
+  { word: 'SWAN', emoji: '🦢' },
+  { word: 'SEAL', emoji: '🦭' },
+  { word: 'WORM', emoji: '🪱' },
+  // nature
   { word: 'SUN',  emoji: '☀️' },
-  { word: 'BUS',  emoji: '\u{1F68C}' },
-  { word: 'BEE',  emoji: '\u{1F41D}' },
-  { word: 'PIG',  emoji: '\u{1F437}' },
-  { word: 'COW',  emoji: '\u{1F42E}' },
-  { word: 'CAR',  emoji: '\u{1F697}' },
-  { word: 'FOX',  emoji: '\u{1F98A}' },
-  { word: 'OWL',  emoji: '\u{1F989}' },
-  { word: 'EGG',  emoji: '\u{1F95A}' },
-  { word: 'KEY',  emoji: '\u{1F511}' },
   { word: 'STAR', emoji: '⭐' },
-  { word: 'FISH', emoji: '\u{1F41F}' },
-  { word: 'FROG', emoji: '\u{1F438}' },
-  { word: 'CAKE', emoji: '\u{1F382}' },
-  { word: 'MOON', emoji: '\u{1F319}' },
+  { word: 'MOON', emoji: '🌙' },
+  { word: 'TREE', emoji: '🌳' },
+  { word: 'LEAF', emoji: '🍁' },
+  { word: 'ROSE', emoji: '🌹' },
+  { word: 'SNOW', emoji: '❄️' },
+  { word: 'FIRE', emoji: '🔥' },
+  { word: 'WAVE', emoji: '🌊' },
+  // food
+  { word: 'EGG',  emoji: '🥚' },
+  { word: 'PIE',  emoji: '🥧' },
+  { word: 'ICE',  emoji: '🧊' },
+  { word: 'CAKE', emoji: '🎂' },
+  { word: 'CORN', emoji: '🌽' },
+  { word: 'MILK', emoji: '🥛' },
+  { word: 'TACO', emoji: '🌮' },
+  { word: 'PEAR', emoji: '🍐' },
+  // around the house
+  { word: 'KEY',  emoji: '🔑' },
+  { word: 'HAT',  emoji: '🎩' },
+  { word: 'BED',  emoji: '🛏️' },
+  { word: 'BOOK', emoji: '📖' },
+  { word: 'BALL', emoji: '⚽' },
+  { word: 'SOCK', emoji: '🧦' },
+  { word: 'SHOE', emoji: '👟' },
+  { word: 'DOOR', emoji: '🚪' },
+  { word: 'RING', emoji: '💍' },
+  { word: 'DRUM', emoji: '🥁' },
+  { word: 'BELL', emoji: '🔔' },
+  { word: 'GIFT', emoji: '🎁' },
+  { word: 'SOAP', emoji: '🧼' },
+  { word: 'BONE', emoji: '🦴' },
+  { word: 'TENT', emoji: '⛺' },
+  { word: 'DICE', emoji: '🎲' },
+  { word: 'KITE', emoji: '🪁' },
+  { word: 'BULB', emoji: '💡' },
+  // vehicles
+  { word: 'BUS',  emoji: '🚌' },
+  { word: 'CAR',  emoji: '🚗' },
+  { word: 'VAN',  emoji: '🚐' },
   { word: 'BOAT', emoji: '⛵' },
-  { word: 'DUCK', emoji: '\u{1F986}' },
-  { word: 'LION', emoji: '\u{1F981}' },
-  { word: 'TREE', emoji: '\u{1F333}' },
-  { word: 'BEAR', emoji: '\u{1F43B}' },
-  { word: 'BIRD', emoji: '\u{1F426}' },
-  { word: 'CRAB', emoji: '\u{1F980}' },
-  { word: 'KITE', emoji: '\u{1FA81}' },
+  { word: 'SHIP', emoji: '🚢' },
+  { word: 'TAXI', emoji: '🚕' },
+  { word: 'BIKE', emoji: '🚲' },
+  { word: 'SLED', emoji: '🛷' },
 ];
 const HARD_WORDS = [
-  { word: 'APPLE',    emoji: '\u{1F34E}' },
-  { word: 'HORSE',    emoji: '\u{1F434}' },
-  { word: 'MOUSE',    emoji: '\u{1F42D}' },
-  { word: 'SNAKE',    emoji: '\u{1F40D}' },
-  { word: 'TIGER',    emoji: '\u{1F42F}' },
-  { word: 'PIZZA',    emoji: '\u{1F355}' },
-  { word: 'ROBOT',    emoji: '\u{1F916}' },
-  { word: 'TRAIN',    emoji: '\u{1F682}' },
-  { word: 'WHALE',    emoji: '\u{1F433}' },
-  { word: 'ZEBRA',    emoji: '\u{1F993}' },
-  { word: 'MONKEY',   emoji: '\u{1F435}' },
-  { word: 'ROCKET',   emoji: '\u{1F680}' },
-  { word: 'FLOWER',   emoji: '\u{1F338}' },
-  { word: 'TURTLE',   emoji: '\u{1F422}' },
-  { word: 'GUITAR',   emoji: '\u{1F3B8}' },
-  { word: 'CASTLE',   emoji: '\u{1F3F0}' },
-  { word: 'DRAGON',   emoji: '\u{1F409}' },
-  { word: 'BANANA',   emoji: '\u{1F34C}' },
-  { word: 'SPIDER',   emoji: '\u{1F577}️' },
-  { word: 'PENGUIN',  emoji: '\u{1F427}' },
-  { word: 'RAINBOW',  emoji: '\u{1F308}' },
-  { word: 'DOLPHIN',  emoji: '\u{1F42C}' },
-  { word: 'UNICORN',  emoji: '\u{1F984}' },
-  { word: 'ELEPHANT', emoji: '\u{1F418}' },
-  { word: 'DINOSAUR', emoji: '\u{1F995}' },
+  // animals
+  { word: 'HORSE',    emoji: '🐴' },
+  { word: 'MOUSE',    emoji: '🐭' },
+  { word: 'SNAKE',    emoji: '🐍' },
+  { word: 'TIGER',    emoji: '🐯' },
+  { word: 'WHALE',    emoji: '🐳' },
+  { word: 'ZEBRA',    emoji: '🦓' },
+  { word: 'SHARK',    emoji: '🦈' },
+  { word: 'SLOTH',    emoji: '🦥' },
+  { word: 'KOALA',    emoji: '🐨' },
+  { word: 'PANDA',    emoji: '🐼' },
+  { word: 'CAMEL',    emoji: '🐫' },
+  { word: 'HIPPO',    emoji: '🦛' },
+  { word: 'MONKEY',   emoji: '🐵' },
+  { word: 'TURTLE',   emoji: '🐢' },
+  { word: 'SPIDER',   emoji: '🕷️' },
+  { word: 'SHRIMP',   emoji: '🦐' },
+  { word: 'PENGUIN',  emoji: '🐧' },
+  { word: 'DOLPHIN',  emoji: '🐬' },
+  { word: 'OCTOPUS',  emoji: '🐙' },
+  { word: 'GIRAFFE',  emoji: '🦒' },
+  { word: 'PEACOCK',  emoji: '🦚' },
+  { word: 'RACCOON',  emoji: '🦝' },
+  { word: 'HAMSTER',  emoji: '🐹' },
+  { word: 'LOBSTER',  emoji: '🦞' },
+  { word: 'ELEPHANT', emoji: '🐘' },
+  { word: 'DINOSAUR', emoji: '🦕' },
+  // nature
+  { word: 'CLOUD',    emoji: '☁️' },
+  { word: 'SHELL',    emoji: '🐚' },
+  { word: 'BEACH',    emoji: '🏖️' },
+  { word: 'COMET',    emoji: '☄️' },
+  { word: 'PLANET',   emoji: '🪐' },
+  { word: 'CACTUS',   emoji: '🌵' },
+  { word: 'FLOWER',   emoji: '🌸' },
+  { word: 'ISLAND',   emoji: '🏝️' },
+  { word: 'VOLCANO',  emoji: '🌋' },
+  { word: 'TORNADO',  emoji: '🌪️' },
+  { word: 'RAINBOW',  emoji: '🌈' },
+  { word: 'MOUNTAIN', emoji: '⛰️' },
+  { word: 'MUSHROOM', emoji: '🍄' },
+  // food
+  { word: 'APPLE',    emoji: '🍎' },
+  { word: 'PIZZA',    emoji: '🍕' },
+  { word: 'BREAD',    emoji: '🍞' },
+  { word: 'LEMON',    emoji: '🍋' },
+  { word: 'PEACH',    emoji: '🍑' },
+  { word: 'CANDY',    emoji: '🍬' },
+  { word: 'DONUT',    emoji: '🍩' },
+  { word: 'BANANA',   emoji: '🍌' },
+  { word: 'GRAPES',   emoji: '🍇' },
+  { word: 'CHERRY',   emoji: '🍒' },
+  { word: 'COOKIE',   emoji: '🍪' },
+  { word: 'BURGER',   emoji: '🍔' },
+  { word: 'CHEESE',   emoji: '🧀' },
+  { word: 'CARROT',   emoji: '🥕' },
+  { word: 'TOMATO',   emoji: '🍅' },
+  { word: 'ORANGE',   emoji: '🍊' },
+  { word: 'WAFFLE',   emoji: '🧇' },
+  { word: 'POPCORN',  emoji: '🍿' },
+  { word: 'PRETZEL',  emoji: '🥨' },
+  // around the house
+  { word: 'HOUSE',    emoji: '🏠' },
+  { word: 'CHAIR',    emoji: '🪑' },
+  { word: 'BROOM',    emoji: '🧹' },
+  { word: 'CLOCK',    emoji: '🕐' },
+  { word: 'PHONE',    emoji: '📱' },
+  { word: 'CANDLE',   emoji: '🕯️' },
+  { word: 'WINDOW',   emoji: '🪟' },
+  { word: 'LADDER',   emoji: '🪜' },
+  { word: 'PENCIL',   emoji: '✏️' },
+  { word: 'CRAYON',   emoji: '🖍️' },
+  { word: 'HAMMER',   emoji: '🔨' },
+  { word: 'MAGNET',   emoji: '🧲' },
+  { word: 'BASKET',   emoji: '🧺' },
+  { word: 'MIRROR',   emoji: '🪞' },
+  { word: 'CAMERA',   emoji: '📷' },
+  { word: 'GUITAR',   emoji: '🎸' },
+  { word: 'BALLOON',  emoji: '🎈' },
+  { word: 'GLASSES',  emoji: '👓' },
+  { word: 'UMBRELLA', emoji: '☂️' },
+  { word: 'SCISSORS', emoji: '✂️' },
+  // vehicles
+  { word: 'TRAIN',    emoji: '🚂' },
+  { word: 'PLANE',    emoji: '✈️' },
+  { word: 'TRUCK',    emoji: '🚚' },
+  { word: 'CANOE',    emoji: '🛶' },
+  { word: 'ROCKET',   emoji: '🚀' },
+  { word: 'TRACTOR',  emoji: '🚜' },
+  { word: 'SCOOTER',  emoji: '🛴' },
+  // make-believe
+  { word: 'ROBOT',    emoji: '🤖' },
+  { word: 'CROWN',    emoji: '👑' },
+  { word: 'GHOST',    emoji: '👻' },
+  { word: 'CASTLE',   emoji: '🏰' },
+  { word: 'DRAGON',   emoji: '🐉' },
+  { word: 'WIZARD',   emoji: '🧙' },
+  { word: 'PIRATE',   emoji: '🏴‍☠️' },
+  { word: 'MERMAID',  emoji: '🧜' },
+  { word: 'UNICORN',  emoji: '🦄' },
+  { word: 'DIAMOND',  emoji: '💎' },
 ];
 const MAX_WRONG = 6;
 
@@ -346,6 +499,7 @@ function win() {
   messageEl.textContent = 'You got it! It’s ' + article + ' ' + current.word + '! \u{1F389}';
   speak('Yay! ' + current.word + '!');
   launchConfetti();
+  addTrophy(current.emoji);
 }
 
 function lose() {
@@ -359,6 +513,54 @@ function lose() {
   }
   messageEl.textContent = 'Oh no! The word was ' + current.word + '. Try again!';
   speak('The word was ' + current.word + '. Try again!');
+}
+
+// ----- trophy shelf -----
+const trophiesEl = document.getElementById('trophies');
+const TROPHY_KEY = 'hangman-trophies';
+let trophies = [];
+try { trophies = JSON.parse(localStorage.getItem(TROPHY_KEY)) || []; } catch (e) {}
+
+function saveTrophies() {
+  try { localStorage.setItem(TROPHY_KEY, JSON.stringify(trophies)); } catch (e) {}
+}
+
+function addTrophy(emoji) {
+  trophies.push(emoji);
+  saveTrophies();
+  renderTrophies(true);
+}
+
+function renderTrophies(animateLast) {
+  trophiesEl.classList.toggle('show', trophies.length > 0);
+  trophiesEl.innerHTML = '';
+  if (trophies.length === 0) return;
+
+  const label = document.createElement('span');
+  label.className = 'label';
+  label.textContent = '\u{1F3C6} My wins:';
+  trophiesEl.appendChild(label);
+
+  trophies.forEach((emoji, i) => {
+    const span = document.createElement('span');
+    span.className = 'trophy';
+    if (animateLast && i === trophies.length - 1) span.classList.add('new');
+    span.textContent = emoji;
+    trophiesEl.appendChild(span);
+  });
+
+  const clearBtn = document.createElement('button');
+  clearBtn.className = 'clear-btn';
+  clearBtn.textContent = '✕';
+  clearBtn.title = 'Clear trophies';
+  clearBtn.addEventListener('click', () => {
+    if (confirm('Clear all your trophies?')) {
+      trophies = [];
+      saveTrophies();
+      renderTrophies(false);
+    }
+  });
+  trophiesEl.appendChild(clearBtn);
 }
 
 function speak(text) {
@@ -452,6 +654,7 @@ function tickConfetti() {
 }
 
 newGame();
+renderTrophies(false);
 </script>
 </body>
 </html>
