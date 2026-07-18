@@ -35,7 +35,8 @@
     font-size: 1.05rem; font-weight: 600; cursor: pointer;
     box-shadow: 0 3px 10px rgba(0,0,0,0.2); transition: transform 0.1s;
   }
-  .controls button:active { transform: scale(0.95); }
+  .controls button:active:not(:disabled) { transform: scale(0.95); }
+  .controls button:disabled { opacity: 0.4; cursor: default; }
   .new-btn { background: rgba(255,255,255,0.3); color: #fff; }
   .set-select {
     border: none; border-radius: 2rem; padding: 0.6rem 1.2rem;
@@ -57,6 +58,30 @@
     width: 1.2rem; height: 1.2rem;
     accent-color: #ffd700;
     cursor: pointer;
+  }
+
+  .progress {
+    display: flex; align-items: center; gap: 0.7rem;
+    width: 100%; max-width: 480px;
+    margin-bottom: 1rem;
+  }
+  .progress-bar {
+    flex: 1; height: 1.1rem;
+    background: rgba(255,255,255,0.3);
+    border-radius: 0.6rem;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.15);
+  }
+  .progress-fill {
+    height: 100%; width: 0;
+    background: linear-gradient(90deg, #ffd700, #ff9f43);
+    border-radius: 0.6rem;
+    transition: width 0.4s ease;
+  }
+  .progress-text {
+    color: #fff; font-weight: 700; font-size: 1rem;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+    white-space: nowrap;
   }
 
   .stage {
@@ -289,8 +314,14 @@
     <select class="set-select" id="setSelect" title="Choose a word set"></select>
     <button class="edit-btn" id="editSetBtn" title="Edit this word set">&#9998; Edit</button>
     <button class="add-btn" id="newSetBtn" title="Make a new word set">&#10133; New Set</button>
-    <button class="new-btn" id="newBtn">New Word</button>
+    <button class="new-btn" id="prevBtn" title="Back to the last word">&#9664; Back</button>
+    <button class="new-btn" id="nextBtn" title="On to the next word">Next &#9654;</button>
     <label class="hint-toggle"><input type="checkbox" id="hintToggle" checked> Picture hint</label>
+  </div>
+
+  <div class="progress">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <span class="progress-text" id="progressText"></span>
   </div>
 
   <div class="stage">
@@ -529,7 +560,10 @@ const messageEl = document.getElementById('message');
 const lettersEl = document.getElementById('letters');
 const playAgainBtn = document.getElementById('playAgainBtn');
 const hintToggle = document.getElementById('hintToggle');
-const newBtn = document.getElementById('newBtn');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const progressFill = document.getElementById('progressFill');
+const progressText = document.getElementById('progressText');
 const setSelect = document.getElementById('setSelect');
 const editSetBtn = document.getElementById('editSetBtn');
 const newSetBtn = document.getElementById('newSetBtn');
@@ -603,24 +637,91 @@ function renderSetSelect() {
   editSetBtn.style.display = BUILTIN_SETS[selectedSet] ? 'none' : '';
 }
 
+// ----- playthrough progress -----
+// Each set gets one shuffled run through its whole word list. The order,
+// current position, and which words have been won all survive reloads.
+const PROGRESS_KEY = 'hangman-progress';
+let progressStore = {};
+try {
+  const stored = JSON.parse(localStorage.getItem(PROGRESS_KEY));
+  if (stored && typeof stored === 'object') progressStore = stored;
+} catch (e) {}
+
+let playthrough = null; // { order: [words], completed: Set, index }
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function loadPlaythrough() {
+  const words = getActiveWordList().map(e => e.word);
+  let p = progressStore[selectedSet];
+  const valid = p && Array.isArray(p.order) && Array.isArray(p.completed) &&
+    p.order.length === words.length &&
+    new Set(p.order).size === p.order.length &&
+    words.every(w => p.order.includes(w));
+  if (!valid) p = { order: shuffle(words), completed: [], index: 0 };
+  playthrough = {
+    order: p.order,
+    completed: new Set(p.completed.filter(w => p.order.includes(w))),
+    index: Math.min(Math.max(0, p.index | 0), p.order.length - 1),
+  };
+  savePlaythrough();
+}
+
+function savePlaythrough() {
+  progressStore[selectedSet] = {
+    order: playthrough.order,
+    completed: [...playthrough.completed],
+    index: playthrough.index,
+  };
+  try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(progressStore)); } catch (e) {}
+}
+
+function resetPlaythrough() {
+  delete progressStore[selectedSet];
+  loadPlaythrough();
+  newGame();
+}
+
+function updateProgressUI() {
+  const total = playthrough.order.length;
+  const done = playthrough.completed.size;
+  progressFill.style.width = (done / total * 100) + '%';
+  progressText.textContent = 'Word ' + (playthrough.index + 1) + ' of ' + total + ' · ⭐ ' + done;
+  prevBtn.disabled = playthrough.index === 0;
+  nextBtn.disabled = playthrough.index === total - 1;
+}
+
+function goTo(delta) {
+  const ni = playthrough.index + delta;
+  if (ni < 0 || ni >= playthrough.order.length) return;
+  playthrough.index = ni;
+  newGame();
+}
+
+function nextUncompletedIndex() {
+  const n = playthrough.order.length;
+  for (let k = 1; k <= n; k++) {
+    const i = (playthrough.index + k) % n;
+    if (!playthrough.completed.has(playthrough.order[i])) return i;
+  }
+  return -1;
+}
+
 let current = null;
 let guessed = new Set();
 let wrongCount = 0;
 let gameOver = false;
-let lastWord = '';
-
-function pickWord() {
-  const list = getActiveWordList();
-  let pick;
-  do {
-    pick = list[Math.floor(Math.random() * list.length)];
-  } while (pick.word === lastWord && list.length > 1);
-  lastWord = pick.word;
-  return pick;
-}
+let playAgainAction = null;
 
 function newGame() {
-  current = pickWord();
+  current = WORD_MAP.get(playthrough.order[playthrough.index]);
   guessed = new Set();
   wrongCount = 0;
   gameOver = false;
@@ -628,7 +729,11 @@ function newGame() {
   updatePicture();
   pictureEl.classList.remove('revealed');
   playAgainBtn.classList.remove('show');
-  messageEl.textContent = 'Guess the word!';
+  messageEl.textContent = playthrough.completed.has(current.word)
+    ? '⭐ You already got this one — play it again!'
+    : 'Guess the word!';
+  updateProgressUI();
+  savePlaythrough();
 
   for (let i = 0; i < MAX_WRONG; i++) {
     document.getElementById('part' + i).classList.remove('show');
@@ -691,11 +796,29 @@ function endGame() {
 
 function win() {
   endGame();
-  const article = 'AEIOU'.includes(current.word[0]) ? 'an' : 'a';
-  messageEl.textContent = 'You got it! It’s ' + article + ' ' + current.word + '! \u{1F389}';
-  speak('Yay! ' + current.word + '!');
-  launchConfetti();
+  playthrough.completed.add(current.word);
+  savePlaythrough();
+  updateProgressUI();
   addTrophy(current.emoji);
+
+  const allDone = playthrough.completed.size === playthrough.order.length;
+  if (allDone) {
+    messageEl.textContent = '\u{1F31F} YOU FINISHED ALL THE WORDS! \u{1F31F}';
+    speak('Wow! You finished all the words! Amazing!');
+    launchFinale();
+    playAgainBtn.textContent = 'Start Over \u{1F504}';
+    playAgainAction = resetPlaythrough;
+  } else {
+    const article = 'AEIOU'.includes(current.word[0]) ? 'an' : 'a';
+    messageEl.textContent = 'You got it! It’s ' + article + ' ' + current.word + '! \u{1F389}';
+    speak('Yay! ' + current.word + '!');
+    launchConfetti();
+    playAgainBtn.textContent = 'Next Word ▶';
+    playAgainAction = () => {
+      playthrough.index = nextUncompletedIndex();
+      newGame();
+    };
+  }
 }
 
 function lose() {
@@ -709,6 +832,8 @@ function lose() {
   }
   messageEl.textContent = 'Oh no! The word was ' + current.word + '. Try again!';
   speak('The word was ' + current.word + '. Try again!');
+  playAgainBtn.textContent = 'Try Again!';
+  playAgainAction = newGame;
 }
 
 // ----- trophy shelf -----
@@ -771,13 +896,15 @@ function speak(text) {
 hintToggle.addEventListener('change', () => {
   if (!gameOver) updatePicture();
 });
-newBtn.addEventListener('click', newGame);
-playAgainBtn.addEventListener('click', newGame);
+prevBtn.addEventListener('click', () => goTo(-1));
+nextBtn.addEventListener('click', () => goTo(1));
+playAgainBtn.addEventListener('click', () => (playAgainAction || newGame)());
 
 setSelect.addEventListener('change', () => {
   selectedSet = setSelect.value;
   saveSelectedSet();
   renderSetSelect();
+  loadPlaythrough();
   newGame();
 });
 
@@ -918,6 +1045,7 @@ saveSetBtn.addEventListener('click', () => {
   saveSelectedSet();
   renderSetSelect();
   closeSetEditor();
+  loadPlaythrough();
   newGame();
 });
 
@@ -926,11 +1054,13 @@ deleteSetBtn.addEventListener('click', () => {
   const set = customSets.find(s => s.id === editingSetId);
   if (!confirm('Delete the set "' + set.name + '"?')) return;
   customSets = customSets.filter(s => s.id !== editingSetId);
+  delete progressStore[editingSetId];
   if (selectedSet === editingSetId) selectedSet = 'easy';
   saveCustomSets();
   saveSelectedSet();
   renderSetSelect();
   closeSetEditor();
+  loadPlaythrough();
   newGame();
 });
 
@@ -940,6 +1070,8 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeSetEditor();
     return;
   }
+  if (e.key === 'ArrowLeft') { goTo(-1); return; }
+  if (e.key === 'ArrowRight') { goTo(1); return; }
   const ch = e.key.toUpperCase();
   if (ch.length === 1 && ch >= 'A' && ch <= 'Z') {
     const idx = ch.charCodeAt(0) - 65;
@@ -961,9 +1093,16 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-function launchConfetti() {
+function startConfettiLoop() {
+  if (!confettiRunning) {
+    confettiRunning = true;
+    requestAnimationFrame(tickConfetti);
+  }
+}
+
+function launchConfetti(count = 150) {
   const colors = ['#ffd700', '#ff6b6b', '#4ecdc4', '#a78bfa', '#4caf50', '#ff9f43', '#f368e0'];
-  for (let i = 0; i < 150; i++) {
+  for (let i = 0; i < count; i++) {
     pieces.push({
       x: Math.random() * canvas.width,
       y: -20 - Math.random() * canvas.height * 0.5,
@@ -972,28 +1111,80 @@ function launchConfetti() {
       color: colors[Math.floor(Math.random() * colors.length)],
       vy: 2 + Math.random() * 3,
       vx: -1.5 + Math.random() * 3,
+      g: 0,
       angle: Math.random() * Math.PI * 2,
       spin: -0.1 + Math.random() * 0.2,
     });
   }
-  if (!confettiRunning) {
-    confettiRunning = true;
-    requestAnimationFrame(tickConfetti);
+  startConfettiLoop();
+}
+
+// sparkles drift down from the top like confetti, but drawn as emoji
+function launchSparkles(count = 60) {
+  const sparkles = ['✨', '⭐', '🌟', '💫'];
+  for (let i = 0; i < count; i++) {
+    pieces.push({
+      emoji: sparkles[Math.floor(Math.random() * sparkles.length)],
+      size: 16 + Math.random() * 22,
+      x: Math.random() * canvas.width,
+      y: -30 - Math.random() * canvas.height * 0.6,
+      vy: 2 + Math.random() * 3,
+      vx: -1.5 + Math.random() * 3,
+      g: 0,
+      angle: -0.5 + Math.random(),
+      spin: -0.06 + Math.random() * 0.12,
+    });
   }
+  startConfettiLoop();
+}
+
+// the set's own emojis shoot up from the bottom and rain back down
+function launchEmojiFountain(emojis) {
+  for (let i = 0; i < 60; i++) {
+    pieces.push({
+      emoji: emojis[i % emojis.length],
+      size: 26 + Math.random() * 26,
+      x: canvas.width * 0.5 + (Math.random() - 0.5) * canvas.width * 0.5,
+      y: canvas.height + 30,
+      vy: -(12 + Math.random() * 8),
+      vx: -5 + Math.random() * 10,
+      g: 0.22,
+      angle: -0.5 + Math.random(),
+      spin: -0.08 + Math.random() * 0.16,
+    });
+  }
+  startConfettiLoop();
+}
+
+function launchFinale() {
+  const emojis = shuffle(playthrough.order.map(w => WORD_MAP.get(w).emoji));
+  launchConfetti(300);
+  launchSparkles(80);
+  launchEmojiFountain(emojis);
+  setTimeout(() => { launchConfetti(150); launchEmojiFountain(emojis); }, 800);
+  setTimeout(() => { launchSparkles(60); launchEmojiFountain(emojis); }, 1600);
 }
 
 function tickConfetti() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  pieces = pieces.filter(p => p.y < canvas.height + 30);
+  pieces = pieces.filter(p => p.vy < 0 || p.y < canvas.height + 60);
   for (const p of pieces) {
+    p.vy += p.g;
     p.y += p.vy;
-    p.x += p.vx + Math.sin(p.y / 30);
+    p.x += p.vx + (p.g ? 0 : Math.sin(p.y / 30));
     p.angle += p.spin;
     ctx.save();
     ctx.translate(p.x, p.y);
     ctx.rotate(p.angle);
-    ctx.fillStyle = p.color;
-    ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+    if (p.emoji) {
+      ctx.font = p.size + 'px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(p.emoji, 0, 0);
+    } else {
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+    }
     ctx.restore();
   }
   if (pieces.length > 0) {
@@ -1005,6 +1196,7 @@ function tickConfetti() {
 }
 
 renderSetSelect();
+loadPlaythrough();
 newGame();
 renderTrophies(false);
 </script>
