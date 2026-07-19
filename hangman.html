@@ -1,0 +1,1503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hangman - Kid Games</title>
+<link rel="apple-touch-icon" href="apple-touch-icon-hangman.png" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: linear-gradient(135deg, #43cea2 0%, #185a9d 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5rem;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .back-link {
+    align-self: flex-start;
+    color: #fff;
+    text-decoration: none;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    opacity: 0.9;
+  }
+  .back-link:hover { opacity: 1; text-decoration: underline; }
+  h1 { color: #fff; font-size: 2.2rem; margin-bottom: 1rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
+  .controls {
+    display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; justify-content: center;
+  }
+  .controls button {
+    border: none; border-radius: 2rem; padding: 0.6rem 1.4rem;
+    font-size: 1.05rem; font-weight: 600; cursor: pointer;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.2); transition: transform 0.1s;
+  }
+  .controls button:active:not(:disabled) { transform: scale(0.95); }
+  .controls button:disabled { opacity: 0.4; cursor: default; }
+  .new-btn { background: rgba(255,255,255,0.3); color: #fff; }
+  .set-select {
+    border: none; border-radius: 2rem; padding: 0.6rem 1.2rem;
+    font-size: 1.05rem; font-weight: 600; cursor: pointer;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+    background: #ffd700; color: #333;
+    max-width: 14rem;
+  }
+  .edit-btn, .add-btn { background: #fff; color: #333; }
+  .hint-toggle {
+    display: flex; align-items: center; gap: 0.4rem;
+    background: rgba(255,255,255,0.3); color: #fff;
+    border-radius: 2rem; padding: 0.6rem 1.2rem;
+    font-size: 1.05rem; font-weight: 600; cursor: pointer;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+    user-select: none;
+  }
+  .hint-toggle input {
+    width: 1.2rem; height: 1.2rem;
+    accent-color: #ffd700;
+    cursor: pointer;
+  }
+
+  .progress {
+    display: flex; align-items: center; gap: 0.7rem;
+    width: 100%; max-width: 480px;
+    margin-bottom: 1rem;
+  }
+  .progress-bar {
+    flex: 1; height: 1.1rem;
+    background: rgba(255,255,255,0.3);
+    border-radius: 0.6rem;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.15);
+  }
+  .progress-fill {
+    height: 100%; width: 0;
+    background: linear-gradient(90deg, #ffd700, #ff9f43);
+    border-radius: 0.6rem;
+    transition: width 0.4s ease;
+  }
+  .progress-text {
+    color: #fff; font-weight: 700; font-size: 1rem;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+    white-space: nowrap;
+  }
+
+  .stage {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    background: rgba(255,255,255,0.92);
+    border-radius: 1.25rem;
+    padding: 1rem 1.5rem;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+    margin-bottom: 1rem;
+  }
+  .gallows svg { display: block; }
+  .gallows .part { visibility: hidden; }
+  .gallows .part.show { visibility: visible; }
+
+  .picture {
+    font-size: 7rem;
+    line-height: 1;
+    filter: brightness(0);
+    user-select: none;
+  }
+  .picture.revealed {
+    filter: brightness(1) drop-shadow(0 0 18px rgba(255, 215, 0, 0.9));
+    /* transition only on reveal, so a new game snaps back to black instantly */
+    transition: filter 0.8s ease;
+    animation: pop 0.6s ease;
+  }
+  @keyframes pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.35); }
+    100% { transform: scale(1); }
+  }
+
+  .word {
+    display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+  .slot {
+    width: 3rem; height: 3.6rem;
+    background: rgba(255,255,255,0.92);
+    border-radius: 0.6rem;
+    border-bottom: 5px solid #185a9d;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.2rem; font-weight: 800; color: #185a9d;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  .slot.filled { animation: pop 0.4s ease; }
+  /* only the letter text is tinted — empty slots look identical so vowel spots aren't given away */
+  .slot.vowel { color: #e07b00; }
+
+  .message {
+    color: #fff; font-size: 1.4rem; font-weight: 700; min-height: 2rem;
+    margin-bottom: 0.75rem; text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+    text-align: center;
+  }
+
+  .letters {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.5rem;
+    max-width: 480px;
+    width: 100%;
+  }
+  .letter-btn {
+    aspect-ratio: 1;
+    border: none; border-radius: 0.7rem;
+    background: #fff; color: #333;
+    font-size: 1.5rem; font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    transition: transform 0.1s, background 0.2s, color 0.2s;
+  }
+  .letter-btn:not(:disabled):hover { transform: translateY(-2px); }
+  .letter-btn:not(:disabled):active { transform: scale(0.9); }
+  .letter-btn:disabled { cursor: default; }
+  /* consonants cool blue, vowels (incl. Y) warm orange, to teach the difference */
+  .letter-btn.consonant { background: #e3f2fd; color: #1565c0; }
+  .letter-btn.vowel { background: #fff3d6; color: #e07b00; }
+  .letter-btn.good { background: #4caf50; color: #fff; }
+  .letter-btn.bad { background: #ef5350; color: #fff; opacity: 0.6; }
+
+  .play-again {
+    display: none;
+    border: none; border-radius: 2rem; padding: 0.8rem 2rem;
+    font-size: 1.3rem; font-weight: 700; cursor: pointer;
+    background: #ffd700; color: #333;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+    margin-top: 1rem;
+    animation: pop 0.5s ease;
+  }
+  .play-again.show { display: block; }
+
+  .trophies {
+    display: none;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    max-width: 480px;
+    background: rgba(255,255,255,0.25);
+    border-radius: 1rem;
+    padding: 0.6rem 0.9rem;
+    margin-top: 1.25rem;
+  }
+  .trophies.show { display: flex; }
+  .trophies .label {
+    color: #fff; font-weight: 700; font-size: 1rem;
+    margin-right: 0.3rem;
+  }
+  .trophies .trophy {
+    font-size: 1.7rem; line-height: 1;
+    user-select: none;
+  }
+  .trophies .trophy.new { animation: pop 0.6s ease; }
+  .trophies .clear-btn {
+    border: none; background: rgba(255,255,255,0.4); color: #185a9d;
+    border-radius: 50%; width: 1.6rem; height: 1.6rem;
+    font-size: 0.9rem; font-weight: 700; cursor: pointer;
+    margin-left: auto;
+  }
+
+  /* ----- word set editor modal ----- */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 20;
+    align-items: center; justify-content: center;
+    padding: 1rem;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: #fff;
+    border-radius: 1.25rem;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+    width: 100%; max-width: 540px;
+    max-height: 90vh;
+    display: flex; flex-direction: column;
+    padding: 1.25rem;
+    gap: 0.75rem;
+  }
+  .modal h2 { color: #185a9d; font-size: 1.4rem; }
+  .modal input[type="text"] {
+    border: 2px solid #c5d5e4; border-radius: 0.7rem;
+    padding: 0.55rem 0.8rem;
+    font-size: 1.05rem;
+    width: 100%;
+    outline: none;
+  }
+  .modal input[type="text"]:focus { border-color: #43cea2; }
+  .modal-toolbar {
+    display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;
+  }
+  .modal-toolbar input { flex: 1; min-width: 8rem; }
+  .modal-toolbar .mini-btn {
+    border: none; border-radius: 1.5rem;
+    padding: 0.45rem 0.9rem;
+    font-size: 0.9rem; font-weight: 600; cursor: pointer;
+    background: #e3ecf5; color: #185a9d;
+  }
+  .pick-count {
+    color: #185a9d; font-weight: 700; font-size: 0.95rem;
+    white-space: nowrap;
+  }
+  .emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+    gap: 0.5rem;
+    overflow-y: auto;
+    padding: 0.25rem;
+    min-height: 8rem;
+  }
+  .emoji-cell {
+    position: relative;
+    border: 3px solid #e3ecf5; border-radius: 0.8rem;
+    background: #f7fafd;
+    padding: 0.45rem 0.2rem 0.3rem;
+    display: flex; flex-direction: column; align-items: center; gap: 0.15rem;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.1s, border-color 0.15s, background 0.15s;
+  }
+  .emoji-cell:active { transform: scale(0.93); }
+  .emoji-cell .em { font-size: 2rem; line-height: 1; }
+  .emoji-cell .wd { font-size: 0.7rem; font-weight: 700; color: #4a6a88; }
+  .emoji-cell.picked {
+    border-color: #ffd700;
+    background: #fff8dc;
+  }
+  .emoji-cell.picked::after {
+    content: '✔';
+    position: absolute; top: -0.5rem; right: -0.35rem;
+    background: #4caf50; color: #fff;
+    border-radius: 50%;
+    width: 1.3rem; height: 1.3rem;
+    font-size: 0.8rem;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.25);
+  }
+  .emoji-cell.hidden { display: none; }
+  .no-match {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: #90a4b8; font-weight: 600;
+    padding: 1.5rem 0;
+  }
+  .modal-actions {
+    display: flex; gap: 0.6rem; justify-content: flex-end; flex-wrap: wrap;
+  }
+  .modal-actions button {
+    border: none; border-radius: 2rem;
+    padding: 0.65rem 1.4rem;
+    font-size: 1.05rem; font-weight: 700; cursor: pointer;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+  }
+  .modal-actions .save-btn { background: #4caf50; color: #fff; }
+  .modal-actions .cancel-btn { background: #e3ecf5; color: #185a9d; }
+  .modal-actions .delete-btn { background: #ef5350; color: #fff; margin-right: auto; }
+  .modal-actions .delete-btn.hidden { display: none; }
+
+  /* ----- letter sounds helper ----- */
+  .sounds-btn { background: #a78bfa; color: #fff; }
+  .sound-head { display: flex; align-items: center; justify-content: space-between; }
+  .sound-close {
+    border: none; background: #e3ecf5; color: #185a9d;
+    border-radius: 50%; width: 2rem; height: 2rem;
+    font-size: 1rem; font-weight: 700; cursor: pointer;
+  }
+  .sound-tabs { display: flex; gap: 0.5rem; }
+  .sound-tab {
+    flex: 1; border: none; border-radius: 0.7rem; padding: 0.5rem;
+    font-size: 1rem; font-weight: 700; cursor: pointer;
+    background: #e3ecf5; color: #185a9d;
+  }
+  .sound-tab.active { background: #185a9d; color: #fff; }
+  .sound-body {
+    overflow-y: auto;
+    display: flex; flex-direction: column; gap: 0.6rem;
+    padding: 0.15rem;
+  }
+  .mini-letters { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.35rem; }
+  .mini-letters .letter-btn { font-size: 1.1rem; border-radius: 0.5rem; box-shadow: 0 2px 5px rgba(0,0,0,0.15); }
+  .mini-letters .letter-btn.current { outline: 3px solid #1565c0; }
+  .mini-letters .letter-btn.vowel.current { outline-color: #e07b00; }
+  .sound-group-label { font-weight: 800; font-size: 1rem; margin-top: 0.25rem; }
+  .sound-group-label.vowel { color: #e07b00; }
+  .sound-group-label.consonant { color: #1565c0; }
+  .sound-group-label.digraph { color: #7b5cd6; }
+  .sound-card {
+    border: 3px solid #e3ecf5; border-radius: 0.9rem;
+    padding: 0.6rem 0.7rem;
+    display: flex; flex-direction: column; gap: 0.5rem;
+  }
+  .sound-card.vowel { background: #fffaf0; border-color: #ffe0b2; }
+  .sound-card.consonant { background: #f4f9ff; border-color: #cfe3f7; }
+  .sound-card.digraph { background: #f8f5ff; border-color: #e2d9f7; }
+  .sound-card-head { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
+  .sound-chip {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 2rem; height: 2rem; padding: 0 0.3rem; border-radius: 0.5rem;
+    font-weight: 800; font-size: 1.1rem;
+  }
+  .sound-chip.vowel { background: #fff3d6; color: #e07b00; }
+  .sound-chip.consonant { background: #e3f2fd; color: #1565c0; }
+  .sound-chip.digraph { background: #ede7fb; color: #7b5cd6; }
+  .sound-chip.current { outline: 2px solid currentColor; }
+  .sound-name { font-weight: 700; color: #333; font-size: 1rem; flex: 1; }
+  .say-btn {
+    border: none; background: #ffd700; border-radius: 50%;
+    width: 2.1rem; height: 2.1rem; font-size: 1.05rem; cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  }
+  .sound-examples { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .example-chip {
+    border: none; background: #fff; border-radius: 0.7rem;
+    padding: 0.4rem 0.6rem;
+    display: flex; align-items: center; gap: 0.4rem;
+    cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    font-weight: 700; color: #4a6a88; font-size: 0.95rem;
+  }
+  .example-chip:active { transform: scale(0.93); }
+  .example-chip .ex-em { font-size: 1.5rem; line-height: 1; }
+  .sound-card.vowel .hl { color: #e07b00; text-decoration: underline; }
+  .sound-card.consonant .hl { color: #1565c0; text-decoration: underline; }
+  .sound-card.digraph .hl { color: #7b5cd6; text-decoration: underline; }
+
+  #confetti-canvas {
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 10;
+  }
+</style>
+</head>
+<body>
+  <a class="back-link" href="index.html">&larr; All Games</a>
+  <h1>Hangman</h1>
+
+  <div class="controls">
+    <select class="set-select" id="setSelect" title="Choose a word set"></select>
+    <button class="edit-btn" id="editSetBtn" title="Edit this word set">&#9998; Edit</button>
+    <button class="add-btn" id="newSetBtn" title="Make a new word set">&#10133; New Set</button>
+    <button class="new-btn" id="prevBtn" title="Back to the last word">&#9664; Back</button>
+    <button class="new-btn" id="nextBtn" title="On to the next word">Next &#9654;</button>
+    <label class="hint-toggle"><input type="checkbox" id="hintToggle" checked> Picture hint</label>
+    <button class="sounds-btn" id="soundHelpBtn" title="Learn what sound each letter makes">&#128266; Letter Sounds</button>
+  </div>
+
+  <div class="progress">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <span class="progress-text" id="progressText"></span>
+  </div>
+
+  <div class="stage">
+    <div class="gallows">
+      <svg width="150" height="190" viewBox="0 0 150 190">
+        <!-- gallows -->
+        <line x1="10" y1="180" x2="110" y2="180" stroke="#5d4037" stroke-width="8" stroke-linecap="round"/>
+        <line x1="40" y1="180" x2="40" y2="15" stroke="#5d4037" stroke-width="8" stroke-linecap="round"/>
+        <line x1="36" y1="15" x2="110" y2="15" stroke="#5d4037" stroke-width="8" stroke-linecap="round"/>
+        <line x1="110" y1="15" x2="110" y2="38" stroke="#8d6e63" stroke-width="4"/>
+        <!-- stick figure, one part per wrong guess -->
+        <circle class="part" id="part0" cx="110" cy="52" r="14" fill="none" stroke="#333" stroke-width="4"/>
+        <line class="part" id="part1" x1="110" y1="66" x2="110" y2="115" stroke="#333" stroke-width="4" stroke-linecap="round"/>
+        <line class="part" id="part2" x1="110" y1="80" x2="85" y2="100" stroke="#333" stroke-width="4" stroke-linecap="round"/>
+        <line class="part" id="part3" x1="110" y1="80" x2="135" y2="100" stroke="#333" stroke-width="4" stroke-linecap="round"/>
+        <line class="part" id="part4" x1="110" y1="115" x2="90" y2="145" stroke="#333" stroke-width="4" stroke-linecap="round"/>
+        <line class="part" id="part5" x1="110" y1="115" x2="130" y2="145" stroke="#333" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="picture" id="picture">&#128049;</div>
+  </div>
+
+  <div class="word" id="word"></div>
+  <div class="message" id="message"></div>
+  <div class="letters" id="letters"></div>
+  <button class="play-again" id="playAgainBtn">Play Again!</button>
+  <div class="trophies" id="trophies"></div>
+
+  <div class="modal-overlay" id="setModal">
+    <div class="modal">
+      <h2 id="modalTitle">New Word Set</h2>
+      <input type="text" id="setNameInput" maxlength="30" placeholder="Name your set (e.g. Unicorn Magic)">
+      <div class="modal-toolbar">
+        <input type="text" id="setSearch" placeholder="&#128269; Search words...">
+        <button class="mini-btn" id="pickShownBtn">Pick all shown</button>
+        <button class="mini-btn" id="clearPicksBtn">Clear</button>
+        <span class="pick-count" id="pickCount">0 picked</span>
+      </div>
+      <div class="emoji-grid" id="emojiGrid"></div>
+      <div class="modal-actions">
+        <button class="delete-btn hidden" id="deleteSetBtn">Delete Set</button>
+        <button class="cancel-btn" id="cancelSetBtn">Cancel</button>
+        <button class="save-btn" id="saveSetBtn">Save &amp; Play</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="soundModal">
+    <div class="modal sound-modal">
+      <div class="sound-head">
+        <h2>Letter Sounds</h2>
+        <button class="sound-close" id="soundCloseBtn" title="Close">&#10005;</button>
+      </div>
+      <div class="sound-tabs">
+        <button class="sound-tab active" id="tabLetters">By Letter</button>
+        <button class="sound-tab" id="tabSounds">By Sound</button>
+      </div>
+      <div class="sound-body" id="soundBody"></div>
+    </div>
+  </div>
+
+  <canvas id="confetti-canvas"></canvas>
+
+<script>
+const EASY_WORDS = [
+  // animals
+  { word: 'CAT',  emoji: '🐱' },
+  { word: 'DOG',  emoji: '🐶' },
+  { word: 'BEE',  emoji: '🐝' },
+  { word: 'PIG',  emoji: '🐷' },
+  { word: 'COW',  emoji: '🐮' },
+  { word: 'FOX',  emoji: '🦊' },
+  { word: 'OWL',  emoji: '🦉' },
+  { word: 'BUG',  emoji: '🐞' },
+  { word: 'HEN',  emoji: '🐔' },
+  { word: 'BAT',  emoji: '🦇' },
+  { word: 'RAT',  emoji: '🐀' },
+  { word: 'ANT',  emoji: '🐜' },
+  { word: 'FISH', emoji: '🐟' },
+  { word: 'FROG', emoji: '🐸' },
+  { word: 'DUCK', emoji: '🦆' },
+  { word: 'LION', emoji: '🦁' },
+  { word: 'BEAR', emoji: '🐻' },
+  { word: 'BIRD', emoji: '🐦' },
+  { word: 'CRAB', emoji: '🦀' },
+  { word: 'GOAT', emoji: '🐐' },
+  { word: 'WOLF', emoji: '🐺' },
+  { word: 'DEER', emoji: '🦌' },
+  { word: 'SWAN', emoji: '🦢' },
+  { word: 'SEAL', emoji: '🦭' },
+  { word: 'WORM', emoji: '🪱' },
+  // nature
+  { word: 'SUN',  emoji: '☀️' },
+  { word: 'STAR', emoji: '⭐' },
+  { word: 'MOON', emoji: '🌙' },
+  { word: 'TREE', emoji: '🌳' },
+  { word: 'LEAF', emoji: '🍁' },
+  { word: 'ROSE', emoji: '🌹' },
+  { word: 'SNOW', emoji: '❄️' },
+  { word: 'FIRE', emoji: '🔥' },
+  { word: 'WAVE', emoji: '🌊' },
+  // food
+  { word: 'EGG',  emoji: '🥚' },
+  { word: 'PIE',  emoji: '🥧' },
+  { word: 'ICE',  emoji: '🧊' },
+  { word: 'CAKE', emoji: '🎂' },
+  { word: 'CORN', emoji: '🌽' },
+  { word: 'MILK', emoji: '🥛' },
+  { word: 'TACO', emoji: '🌮' },
+  { word: 'PEAR', emoji: '🍐' },
+  // around the house
+  { word: 'KEY',  emoji: '🔑' },
+  { word: 'HAT',  emoji: '🎩' },
+  { word: 'BED',  emoji: '🛏️' },
+  { word: 'BOOK', emoji: '📖' },
+  { word: 'BALL', emoji: '⚽' },
+  { word: 'SOCK', emoji: '🧦' },
+  { word: 'SHOE', emoji: '👟' },
+  { word: 'DOOR', emoji: '🚪' },
+  { word: 'RING', emoji: '💍' },
+  { word: 'DRUM', emoji: '🥁' },
+  { word: 'BELL', emoji: '🔔' },
+  { word: 'GIFT', emoji: '🎁' },
+  { word: 'SOAP', emoji: '🧼' },
+  { word: 'BONE', emoji: '🦴' },
+  { word: 'TENT', emoji: '⛺' },
+  { word: 'DICE', emoji: '🎲' },
+  { word: 'KITE', emoji: '🪁' },
+  { word: 'BULB', emoji: '💡' },
+  // vehicles
+  { word: 'BUS',  emoji: '🚌' },
+  { word: 'CAR',  emoji: '🚗' },
+  { word: 'VAN',  emoji: '🚐' },
+  { word: 'BOAT', emoji: '⛵' },
+  { word: 'SHIP', emoji: '🚢' },
+  { word: 'TAXI', emoji: '🚕' },
+  { word: 'BIKE', emoji: '🚲' },
+  { word: 'SLED', emoji: '🛷' },
+];
+const HARD_WORDS = [
+  // animals
+  { word: 'HORSE',    emoji: '🐴' },
+  { word: 'MOUSE',    emoji: '🐭' },
+  { word: 'SNAKE',    emoji: '🐍' },
+  { word: 'TIGER',    emoji: '🐯' },
+  { word: 'WHALE',    emoji: '🐳' },
+  { word: 'ZEBRA',    emoji: '🦓' },
+  { word: 'SHARK',    emoji: '🦈' },
+  { word: 'SLOTH',    emoji: '🦥' },
+  { word: 'KOALA',    emoji: '🐨' },
+  { word: 'PANDA',    emoji: '🐼' },
+  { word: 'CAMEL',    emoji: '🐫' },
+  { word: 'HIPPO',    emoji: '🦛' },
+  { word: 'MONKEY',   emoji: '🐵' },
+  { word: 'TURTLE',   emoji: '🐢' },
+  { word: 'SPIDER',   emoji: '🕷️' },
+  { word: 'SHRIMP',   emoji: '🦐' },
+  { word: 'PENGUIN',  emoji: '🐧' },
+  { word: 'DOLPHIN',  emoji: '🐬' },
+  { word: 'OCTOPUS',  emoji: '🐙' },
+  { word: 'GIRAFFE',  emoji: '🦒' },
+  { word: 'PEACOCK',  emoji: '🦚' },
+  { word: 'RACCOON',  emoji: '🦝' },
+  { word: 'HAMSTER',  emoji: '🐹' },
+  { word: 'LOBSTER',  emoji: '🦞' },
+  { word: 'ELEPHANT', emoji: '🐘' },
+  { word: 'DINOSAUR', emoji: '🦕' },
+  // nature
+  { word: 'CLOUD',    emoji: '☁️' },
+  { word: 'SHELL',    emoji: '🐚' },
+  { word: 'BEACH',    emoji: '🏖️' },
+  { word: 'COMET',    emoji: '☄️' },
+  { word: 'PLANET',   emoji: '🪐' },
+  { word: 'CACTUS',   emoji: '🌵' },
+  { word: 'FLOWER',   emoji: '🌸' },
+  { word: 'ISLAND',   emoji: '🏝️' },
+  { word: 'VOLCANO',  emoji: '🌋' },
+  { word: 'TORNADO',  emoji: '🌪️' },
+  { word: 'RAINBOW',  emoji: '🌈' },
+  { word: 'MOUNTAIN', emoji: '⛰️' },
+  { word: 'MUSHROOM', emoji: '🍄' },
+  // food
+  { word: 'APPLE',    emoji: '🍎' },
+  { word: 'PIZZA',    emoji: '🍕' },
+  { word: 'BREAD',    emoji: '🍞' },
+  { word: 'LEMON',    emoji: '🍋' },
+  { word: 'PEACH',    emoji: '🍑' },
+  { word: 'CANDY',    emoji: '🍬' },
+  { word: 'DONUT',    emoji: '🍩' },
+  { word: 'BANANA',   emoji: '🍌' },
+  { word: 'GRAPES',   emoji: '🍇' },
+  { word: 'CHERRY',   emoji: '🍒' },
+  { word: 'COOKIE',   emoji: '🍪' },
+  { word: 'BURGER',   emoji: '🍔' },
+  { word: 'CHEESE',   emoji: '🧀' },
+  { word: 'CARROT',   emoji: '🥕' },
+  { word: 'TOMATO',   emoji: '🍅' },
+  { word: 'ORANGE',   emoji: '🍊' },
+  { word: 'WAFFLE',   emoji: '🧇' },
+  { word: 'POPCORN',  emoji: '🍿' },
+  { word: 'PRETZEL',  emoji: '🥨' },
+  // around the house
+  { word: 'HOUSE',    emoji: '🏠' },
+  { word: 'CHAIR',    emoji: '🪑' },
+  { word: 'BROOM',    emoji: '🧹' },
+  { word: 'CLOCK',    emoji: '🕐' },
+  { word: 'PHONE',    emoji: '📱' },
+  { word: 'CANDLE',   emoji: '🕯️' },
+  { word: 'WINDOW',   emoji: '🪟' },
+  { word: 'LADDER',   emoji: '🪜' },
+  { word: 'PENCIL',   emoji: '✏️' },
+  { word: 'CRAYON',   emoji: '🖍️' },
+  { word: 'HAMMER',   emoji: '🔨' },
+  { word: 'MAGNET',   emoji: '🧲' },
+  { word: 'BASKET',   emoji: '🧺' },
+  { word: 'MIRROR',   emoji: '🪞' },
+  { word: 'CAMERA',   emoji: '📷' },
+  { word: 'GUITAR',   emoji: '🎸' },
+  { word: 'BALLOON',  emoji: '🎈' },
+  { word: 'GLASSES',  emoji: '👓' },
+  { word: 'UMBRELLA', emoji: '☂️' },
+  { word: 'SCISSORS', emoji: '✂️' },
+  // vehicles
+  { word: 'TRAIN',    emoji: '🚂' },
+  { word: 'PLANE',    emoji: '✈️' },
+  { word: 'TRUCK',    emoji: '🚚' },
+  { word: 'CANOE',    emoji: '🛶' },
+  { word: 'ROCKET',   emoji: '🚀' },
+  { word: 'TRACTOR',  emoji: '🚜' },
+  { word: 'SCOOTER',  emoji: '🛴' },
+  // make-believe
+  { word: 'ROBOT',    emoji: '🤖' },
+  { word: 'CROWN',    emoji: '👑' },
+  { word: 'GHOST',    emoji: '👻' },
+  { word: 'CASTLE',   emoji: '🏰' },
+  { word: 'DRAGON',   emoji: '🐉' },
+  { word: 'WIZARD',   emoji: '🧙' },
+  { word: 'PIRATE',   emoji: '🏴‍☠️' },
+  { word: 'MERMAID',  emoji: '🧜' },
+  { word: 'UNICORN',  emoji: '🦄' },
+  { word: 'DIAMOND',  emoji: '💎' },
+];
+const ALL_WORDS = [...EASY_WORDS, ...HARD_WORDS].sort((a, b) => a.word.localeCompare(b.word));
+const WORD_MAP = new Map(ALL_WORDS.map(e => [e.word, e]));
+const MAX_WRONG = 6;
+// Y counts as a vowel here — close enough for learning the difference.
+const VOWELS = 'AEIOUY';
+
+const pictureEl = document.getElementById('picture');
+const wordEl = document.getElementById('word');
+const messageEl = document.getElementById('message');
+const lettersEl = document.getElementById('letters');
+const playAgainBtn = document.getElementById('playAgainBtn');
+const hintToggle = document.getElementById('hintToggle');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const progressFill = document.getElementById('progressFill');
+const progressText = document.getElementById('progressText');
+const setSelect = document.getElementById('setSelect');
+const editSetBtn = document.getElementById('editSetBtn');
+const newSetBtn = document.getElementById('newSetBtn');
+
+// ----- word sets -----
+// Built-in sets keep the old easy/hard behavior; kids can add their own.
+const BUILTIN_SETS = {
+  easy: { name: 'Easy (short words)', list: EASY_WORDS },
+  hard: { name: 'Hard (long words)', list: HARD_WORDS },
+  all:  { name: 'All Words', list: ALL_WORDS },
+};
+const SETS_KEY = 'hangman-word-sets';
+const SELECTED_SET_KEY = 'hangman-selected-set';
+
+let customSets = [];
+try {
+  const stored = JSON.parse(localStorage.getItem(SETS_KEY));
+  if (Array.isArray(stored)) {
+    customSets = stored.filter(s => s && s.id && s.name && Array.isArray(s.words));
+  }
+} catch (e) {}
+
+let selectedSet = localStorage.getItem(SELECTED_SET_KEY) || 'easy';
+if (!BUILTIN_SETS[selectedSet] && !customSets.some(s => s.id === selectedSet)) {
+  selectedSet = 'easy';
+}
+
+function saveCustomSets() {
+  try { localStorage.setItem(SETS_KEY, JSON.stringify(customSets)); } catch (e) {}
+}
+
+function saveSelectedSet() {
+  try { localStorage.setItem(SELECTED_SET_KEY, selectedSet); } catch (e) {}
+}
+
+function getActiveWordList() {
+  if (BUILTIN_SETS[selectedSet]) return BUILTIN_SETS[selectedSet].list;
+  const set = customSets.find(s => s.id === selectedSet);
+  if (set) {
+    const list = set.words.map(w => WORD_MAP.get(w)).filter(Boolean);
+    if (list.length > 0) return list;
+  }
+  return BUILTIN_SETS.easy.list;
+}
+
+function renderSetSelect() {
+  setSelect.innerHTML = '';
+  const builtinGroup = document.createElement('optgroup');
+  builtinGroup.label = 'Built-in';
+  for (const [id, set] of Object.entries(BUILTIN_SETS)) {
+    const opt = document.createElement('option');
+    opt.value = id;
+    opt.textContent = set.name;
+    builtinGroup.appendChild(opt);
+  }
+  setSelect.appendChild(builtinGroup);
+
+  if (customSets.length > 0) {
+    const customGroup = document.createElement('optgroup');
+    customGroup.label = 'My Sets';
+    for (const set of customSets) {
+      const opt = document.createElement('option');
+      opt.value = set.id;
+      opt.textContent = set.name + ' (' + set.words.length + ')';
+      customGroup.appendChild(opt);
+    }
+    setSelect.appendChild(customGroup);
+  }
+
+  setSelect.value = selectedSet;
+  editSetBtn.style.display = BUILTIN_SETS[selectedSet] ? 'none' : '';
+}
+
+// ----- playthrough progress -----
+// Each set gets one shuffled run through its whole word list. The order,
+// current position, and which words have been won all survive reloads.
+const PROGRESS_KEY = 'hangman-progress';
+let progressStore = {};
+try {
+  const stored = JSON.parse(localStorage.getItem(PROGRESS_KEY));
+  if (stored && typeof stored === 'object') progressStore = stored;
+} catch (e) {}
+
+let playthrough = null; // { order: [words], completed: Set, index }
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function loadPlaythrough() {
+  const words = getActiveWordList().map(e => e.word);
+  let p = progressStore[selectedSet];
+  const valid = p && Array.isArray(p.order) && Array.isArray(p.completed) &&
+    p.order.length === words.length &&
+    new Set(p.order).size === p.order.length &&
+    words.every(w => p.order.includes(w));
+  if (!valid) p = { order: shuffle(words), completed: [], index: 0 };
+  playthrough = {
+    order: p.order,
+    completed: new Set(p.completed.filter(w => p.order.includes(w))),
+    index: Math.min(Math.max(0, p.index | 0), p.order.length - 1),
+  };
+  savePlaythrough();
+}
+
+function savePlaythrough() {
+  progressStore[selectedSet] = {
+    order: playthrough.order,
+    completed: [...playthrough.completed],
+    index: playthrough.index,
+  };
+  try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(progressStore)); } catch (e) {}
+}
+
+function resetPlaythrough() {
+  delete progressStore[selectedSet];
+  loadPlaythrough();
+  newGame();
+}
+
+function updateProgressUI() {
+  const total = playthrough.order.length;
+  const done = playthrough.completed.size;
+  progressFill.style.width = (done / total * 100) + '%';
+  progressText.textContent = 'Word ' + (playthrough.index + 1) + ' of ' + total + ' · ⭐ ' + done;
+  prevBtn.disabled = playthrough.index === 0;
+  nextBtn.disabled = playthrough.index === total - 1;
+}
+
+function goTo(delta) {
+  const ni = playthrough.index + delta;
+  if (ni < 0 || ni >= playthrough.order.length) return;
+  playthrough.index = ni;
+  newGame();
+}
+
+function nextUncompletedIndex() {
+  const n = playthrough.order.length;
+  for (let k = 1; k <= n; k++) {
+    const i = (playthrough.index + k) % n;
+    if (!playthrough.completed.has(playthrough.order[i])) return i;
+  }
+  return -1;
+}
+
+let current = null;
+let guessed = new Set();
+let wrongCount = 0;
+let gameOver = false;
+let playAgainAction = null;
+
+function newGame() {
+  current = WORD_MAP.get(playthrough.order[playthrough.index]);
+  guessed = new Set();
+  wrongCount = 0;
+  gameOver = false;
+
+  updatePicture();
+  pictureEl.classList.remove('revealed');
+  playAgainBtn.classList.remove('show');
+  messageEl.textContent = playthrough.completed.has(current.word)
+    ? '⭐ You already got this one — play it again!'
+    : 'Guess the word!';
+  updateProgressUI();
+  savePlaythrough();
+
+  for (let i = 0; i < MAX_WRONG; i++) {
+    document.getElementById('part' + i).classList.remove('show');
+  }
+
+  wordEl.innerHTML = '';
+  for (const ch of current.word) {
+    const slot = document.createElement('div');
+    slot.className = 'slot ' + (VOWELS.includes(ch) ? 'vowel' : 'consonant');
+    slot.dataset.letter = ch;
+    wordEl.appendChild(slot);
+  }
+
+  lettersEl.innerHTML = '';
+  for (let i = 0; i < 26; i++) {
+    const ch = String.fromCharCode(65 + i);
+    const btn = document.createElement('button');
+    btn.className = 'letter-btn ' + (VOWELS.includes(ch) ? 'vowel' : 'consonant');
+    btn.textContent = ch;
+    btn.addEventListener('click', () => guess(ch, btn));
+    lettersEl.appendChild(btn);
+  }
+}
+
+function guess(ch, btn) {
+  if (gameOver || guessed.has(ch)) return;
+  guessed.add(ch);
+  btn.disabled = true;
+
+  if (current.word.includes(ch)) {
+    btn.classList.add('good');
+    let allFilled = true;
+    for (const slot of wordEl.children) {
+      if (slot.dataset.letter === ch) {
+        slot.textContent = ch;
+        slot.classList.add('filled');
+      }
+      if (!slot.textContent) allFilled = false;
+    }
+    if (allFilled) win();
+  } else {
+    btn.classList.add('bad');
+    document.getElementById('part' + wrongCount).classList.add('show');
+    wrongCount++;
+    if (wrongCount >= MAX_WRONG) lose();
+  }
+}
+
+function updatePicture() {
+  pictureEl.textContent = hintToggle.checked ? current.emoji : '❓';
+}
+
+function endGame() {
+  gameOver = true;
+  for (const btn of lettersEl.children) btn.disabled = true;
+  playAgainBtn.classList.add('show');
+  pictureEl.textContent = current.emoji;
+  pictureEl.classList.add('revealed');
+}
+
+function win() {
+  endGame();
+  playthrough.completed.add(current.word);
+  savePlaythrough();
+  updateProgressUI();
+  addTrophy(current.emoji);
+
+  const allDone = playthrough.completed.size === playthrough.order.length;
+  if (allDone) {
+    messageEl.textContent = '\u{1F31F} YOU FINISHED ALL THE WORDS! \u{1F31F}';
+    speak('Wow! You finished all the words! Amazing!');
+    launchFinale();
+    playAgainBtn.textContent = 'Start Over \u{1F504}';
+    playAgainAction = resetPlaythrough;
+  } else {
+    const article = 'AEIOU'.includes(current.word[0]) ? 'an' : 'a';
+    messageEl.textContent = 'You got it! It’s ' + article + ' ' + current.word + '! \u{1F389}';
+    speak('Yay! ' + current.word + '!');
+    launchConfetti();
+    playAgainBtn.textContent = 'Next Word ▶';
+    playAgainAction = () => {
+      playthrough.index = nextUncompletedIndex();
+      newGame();
+    };
+  }
+}
+
+function lose() {
+  endGame();
+  // fill in the missing letters so kids learn the word
+  for (const slot of wordEl.children) {
+    if (!slot.textContent) {
+      slot.textContent = slot.dataset.letter;
+      slot.style.color = '#ef5350';
+    }
+  }
+  messageEl.textContent = 'Oh no! The word was ' + current.word + '. Try again!';
+  speak('The word was ' + current.word + '. Try again!');
+  playAgainBtn.textContent = 'Try Again!';
+  playAgainAction = newGame;
+}
+
+// ----- trophy shelf -----
+const trophiesEl = document.getElementById('trophies');
+const TROPHY_KEY = 'hangman-trophies';
+let trophies = [];
+try { trophies = JSON.parse(localStorage.getItem(TROPHY_KEY)) || []; } catch (e) {}
+
+function saveTrophies() {
+  try { localStorage.setItem(TROPHY_KEY, JSON.stringify(trophies)); } catch (e) {}
+}
+
+function addTrophy(emoji) {
+  trophies.push(emoji);
+  saveTrophies();
+  renderTrophies(true);
+}
+
+function renderTrophies(animateLast) {
+  trophiesEl.classList.toggle('show', trophies.length > 0);
+  trophiesEl.innerHTML = '';
+  if (trophies.length === 0) return;
+
+  const label = document.createElement('span');
+  label.className = 'label';
+  label.textContent = '\u{1F3C6} My wins:';
+  trophiesEl.appendChild(label);
+
+  trophies.forEach((emoji, i) => {
+    const span = document.createElement('span');
+    span.className = 'trophy';
+    if (animateLast && i === trophies.length - 1) span.classList.add('new');
+    span.textContent = emoji;
+    trophiesEl.appendChild(span);
+  });
+
+  const clearBtn = document.createElement('button');
+  clearBtn.className = 'clear-btn';
+  clearBtn.textContent = '✕';
+  clearBtn.title = 'Clear trophies';
+  clearBtn.addEventListener('click', () => {
+    if (confirm('Clear all your trophies?')) {
+      trophies = [];
+      saveTrophies();
+      renderTrophies(false);
+    }
+  });
+  trophiesEl.appendChild(clearBtn);
+}
+
+function speak(text) {
+  if (!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = 0.9;
+  u.pitch = 1.2;
+  speechSynthesis.speak(u);
+}
+
+hintToggle.addEventListener('change', () => {
+  if (!gameOver) updatePicture();
+});
+prevBtn.addEventListener('click', () => goTo(-1));
+nextBtn.addEventListener('click', () => goTo(1));
+playAgainBtn.addEventListener('click', () => (playAgainAction || newGame)());
+
+setSelect.addEventListener('change', () => {
+  selectedSet = setSelect.value;
+  saveSelectedSet();
+  renderSetSelect();
+  loadPlaythrough();
+  newGame();
+});
+
+// ----- word set editor -----
+const setModal = document.getElementById('setModal');
+const modalTitle = document.getElementById('modalTitle');
+const setNameInput = document.getElementById('setNameInput');
+const setSearch = document.getElementById('setSearch');
+const emojiGrid = document.getElementById('emojiGrid');
+const pickCount = document.getElementById('pickCount');
+const pickShownBtn = document.getElementById('pickShownBtn');
+const clearPicksBtn = document.getElementById('clearPicksBtn');
+const saveSetBtn = document.getElementById('saveSetBtn');
+const cancelSetBtn = document.getElementById('cancelSetBtn');
+const deleteSetBtn = document.getElementById('deleteSetBtn');
+
+let editingSetId = null;   // null = creating a new set
+let pickedWords = new Set();
+
+function updatePickCount() {
+  pickCount.textContent = pickedWords.size + ' picked';
+}
+
+function buildEmojiGrid() {
+  emojiGrid.innerHTML = '';
+  for (const entry of ALL_WORDS) {
+    const cell = document.createElement('div');
+    cell.className = 'emoji-cell';
+    cell.dataset.word = entry.word;
+    if (pickedWords.has(entry.word)) cell.classList.add('picked');
+    const em = document.createElement('span');
+    em.className = 'em';
+    em.textContent = entry.emoji;
+    const wd = document.createElement('span');
+    wd.className = 'wd';
+    wd.textContent = entry.word;
+    cell.appendChild(em);
+    cell.appendChild(wd);
+    cell.addEventListener('click', () => {
+      if (pickedWords.has(entry.word)) {
+        pickedWords.delete(entry.word);
+        cell.classList.remove('picked');
+      } else {
+        pickedWords.add(entry.word);
+        cell.classList.add('picked');
+      }
+      updatePickCount();
+    });
+    emojiGrid.appendChild(cell);
+  }
+  const noMatch = document.createElement('div');
+  noMatch.className = 'no-match hidden';
+  noMatch.id = 'noMatch';
+  noMatch.textContent = 'No words match your search';
+  emojiGrid.appendChild(noMatch);
+  applySearchFilter();
+}
+
+function applySearchFilter() {
+  const q = setSearch.value.trim().toUpperCase();
+  let shown = 0;
+  for (const cell of emojiGrid.querySelectorAll('.emoji-cell')) {
+    const match = !q || cell.dataset.word.includes(q) ||
+      WORD_MAP.get(cell.dataset.word).emoji === setSearch.value.trim();
+    cell.classList.toggle('hidden', !match);
+    if (match) shown++;
+  }
+  document.getElementById('noMatch').classList.toggle('hidden', shown > 0);
+}
+
+function openSetEditor(setId) {
+  editingSetId = setId;
+  const existing = setId ? customSets.find(s => s.id === setId) : null;
+  modalTitle.textContent = existing ? 'Edit Word Set' : 'New Word Set';
+  setNameInput.value = existing ? existing.name : '';
+  pickedWords = new Set(existing ? existing.words : []);
+  setSearch.value = '';
+  deleteSetBtn.classList.toggle('hidden', !existing);
+  buildEmojiGrid();
+  updatePickCount();
+  setModal.classList.add('show');
+  if (!existing) setNameInput.focus();
+}
+
+function closeSetEditor() {
+  setModal.classList.remove('show');
+}
+
+newSetBtn.addEventListener('click', () => openSetEditor(null));
+editSetBtn.addEventListener('click', () => {
+  if (!BUILTIN_SETS[selectedSet]) openSetEditor(selectedSet);
+});
+cancelSetBtn.addEventListener('click', closeSetEditor);
+setModal.addEventListener('click', (e) => {
+  if (e.target === setModal) closeSetEditor();
+});
+setSearch.addEventListener('input', applySearchFilter);
+
+pickShownBtn.addEventListener('click', () => {
+  for (const cell of emojiGrid.querySelectorAll('.emoji-cell:not(.hidden)')) {
+    pickedWords.add(cell.dataset.word);
+    cell.classList.add('picked');
+  }
+  updatePickCount();
+});
+
+clearPicksBtn.addEventListener('click', () => {
+  pickedWords.clear();
+  for (const cell of emojiGrid.querySelectorAll('.emoji-cell.picked')) {
+    cell.classList.remove('picked');
+  }
+  updatePickCount();
+});
+
+saveSetBtn.addEventListener('click', () => {
+  const name = setNameInput.value.trim();
+  if (!name) {
+    setNameInput.focus();
+    setNameInput.placeholder = 'Please give your set a name!';
+    return;
+  }
+  if (pickedWords.size === 0) {
+    alert('Pick at least one picture for your set!');
+    return;
+  }
+  const words = ALL_WORDS.filter(e => pickedWords.has(e.word)).map(e => e.word);
+  if (editingSetId) {
+    const set = customSets.find(s => s.id === editingSetId);
+    set.name = name;
+    set.words = words;
+    selectedSet = editingSetId;
+  } else {
+    const id = 'set-' + Date.now();
+    customSets.push({ id, name, words });
+    selectedSet = id;
+  }
+  saveCustomSets();
+  saveSelectedSet();
+  renderSetSelect();
+  closeSetEditor();
+  loadPlaythrough();
+  newGame();
+});
+
+deleteSetBtn.addEventListener('click', () => {
+  if (!editingSetId) return;
+  const set = customSets.find(s => s.id === editingSetId);
+  if (!confirm('Delete the set "' + set.name + '"?')) return;
+  customSets = customSets.filter(s => s.id !== editingSetId);
+  delete progressStore[editingSetId];
+  if (selectedSet === editingSetId) selectedSet = 'easy';
+  saveCustomSets();
+  saveSelectedSet();
+  renderSetSelect();
+  closeSetEditor();
+  loadPlaythrough();
+  newGame();
+});
+
+// ----- letter sounds helper -----
+// One entry per sound. `letters` = every letter that can make the sound, so the
+// same entry powers both directions: letter -> its sounds, sound -> its letters.
+// In example words, [brackets] mark the letters making the sound.
+const SOUNDS = [
+  // vowel sounds
+  { type: 'vowel', letters: ['A'], name: 'short A — “aaa”', talk: 'Short A says ah, ah, ah! Like ant, apple, and cat.',
+    examples: [{ e: '🐜', t: '[A]NT' }, { e: '🍎', t: '[A]PPLE' }, { e: '🐱', t: 'C[A]T' }] },
+  { type: 'vowel', letters: ['A'], name: 'long A — says its name', talk: 'Long A says its own name: A! Like cake, whale, and train.',
+    examples: [{ e: '🎂', t: 'C[A]KE' }, { e: '🐳', t: 'WH[A]LE' }, { e: '🚂', t: 'TR[AI]N' }] },
+  { type: 'vowel', letters: ['E'], name: 'short E — “eh”', talk: 'Short E says eh, eh, eh! Like egg, bed, and hen.',
+    examples: [{ e: '🥚', t: '[E]GG' }, { e: '🛏️', t: 'B[E]D' }, { e: '🐔', t: 'H[E]N' }] },
+  { type: 'vowel', letters: ['E', 'Y'], name: 'long E — “ee”', talk: 'Long E says ee! Like bee, tree, and candy. Y can make this sound too!',
+    examples: [{ e: '🐝', t: 'B[EE]' }, { e: '🌳', t: 'TR[EE]' }, { e: '🍬', t: 'CAND[Y]' }] },
+  { type: 'vowel', letters: ['I'], name: 'short I — “ih”', talk: 'Short I says ih, ih, ih! Like pig, fish, and milk.',
+    examples: [{ e: '🐷', t: 'P[I]G' }, { e: '🐟', t: 'F[I]SH' }, { e: '🥛', t: 'M[I]LK' }] },
+  { type: 'vowel', letters: ['I', 'Y'], name: 'long I — says its name', talk: 'Long I says its own name: I! Like kite, ice, and fly. Y can make this sound too!',
+    examples: [{ e: '🪁', t: 'K[I]TE' }, { e: '🧊', t: '[I]CE' }, { e: '🪰', t: 'FL[Y]' }] },
+  { type: 'vowel', letters: ['O'], name: 'short O — “o”', talk: 'Short O says o, o, o! Like fox, sock, and frog.',
+    examples: [{ e: '🦊', t: 'F[O]X' }, { e: '🧦', t: 'S[O]CK' }, { e: '🐸', t: 'FR[O]G' }] },
+  { type: 'vowel', letters: ['O'], name: 'long O — says its name', talk: 'Long O says its own name: O! Like rose, boat, and snow.',
+    examples: [{ e: '🌹', t: 'R[O]SE' }, { e: '⛵', t: 'B[OA]T' }, { e: '❄️', t: 'SN[OW]' }] },
+  { type: 'vowel', letters: ['U'], name: 'short U — “uh”', talk: 'Short U says uh, uh, uh! Like bug, duck, and sun.',
+    examples: [{ e: '🐞', t: 'B[U]G' }, { e: '🦆', t: 'D[U]CK' }, { e: '☀️', t: 'S[U]N' }] },
+  { type: 'vowel', letters: ['U', 'O'], name: 'long U — “oo”', talk: 'Long U says oo! Like unicorn, music, and moon. Two Os together say oo too!',
+    examples: [{ e: '🦄', t: '[U]NICORN' }, { e: '🎵', t: 'M[U]SIC' }, { e: '🌙', t: 'M[OO]N' }] },
+  // consonant sounds
+  { type: 'consonant', letters: ['B'], name: '“buh”', talk: 'B says buh! Like bee, ball, and bus.',
+    examples: [{ e: '🐝', t: '[B]EE' }, { e: '⚽', t: '[B]ALL' }, { e: '🚌', t: '[B]US' }] },
+  { type: 'consonant', letters: ['C', 'K'], name: '“kuh” — two letters make it!', talk: 'C and K can both say kuh! Like cat, kite, taco, and duck.',
+    examples: [{ e: '🐱', t: '[C]AT' }, { e: '🪁', t: '[K]ITE' }, { e: '🌮', t: 'TA[C]O' }, { e: '🦆', t: 'DU[CK]' }] },
+  { type: 'consonant', letters: ['S', 'C'], name: '“sss” — two letters make it!', talk: 'S says sss, and C sometimes says sss too! Like sun, sock, ice, and pencil.',
+    examples: [{ e: '☀️', t: '[S]UN' }, { e: '🧦', t: '[S]OCK' }, { e: '🧊', t: 'I[C]E' }, { e: '✏️', t: 'PEN[C]IL' }] },
+  { type: 'consonant', letters: ['D'], name: '“duh”', talk: 'D says duh! Like dog, duck, and door.',
+    examples: [{ e: '🐶', t: '[D]OG' }, { e: '🦆', t: '[D]UCK' }, { e: '🚪', t: '[D]OOR' }] },
+  { type: 'consonant', letters: ['F', 'PH'], name: '“fff”', talk: 'F says fff! Like fish, fox, and fire. And P and H together say fff too, like dolphin!',
+    examples: [{ e: '🐟', t: '[F]ISH' }, { e: '🦊', t: '[F]OX' }, { e: '🔥', t: '[F]IRE' }, { e: '🐬', t: 'DOL[PH]IN' }] },
+  { type: 'consonant', letters: ['G'], name: 'hard G — “guh”', talk: 'G usually says guh! Like goat, gift, and grapes.',
+    examples: [{ e: '🐐', t: '[G]OAT' }, { e: '🎁', t: '[G]IFT' }, { e: '🍇', t: '[G]RAPES' }] },
+  { type: 'consonant', letters: ['J', 'G'], name: '“juh” — two letters make it!', talk: 'J says juh, and G sometimes says juh too! Like juice, giraffe, and magic.',
+    examples: [{ e: '🧃', t: '[J]UICE' }, { e: '🦒', t: '[G]IRAFFE' }, { e: '🪄', t: 'MA[G]IC' }] },
+  { type: 'consonant', letters: ['H'], name: '“hhh”', talk: 'H says hhh! Like hat, hen, and house.',
+    examples: [{ e: '🎩', t: '[H]AT' }, { e: '🐔', t: '[H]EN' }, { e: '🏠', t: '[H]OUSE' }] },
+  { type: 'consonant', letters: ['L'], name: '“lll”', talk: 'L says lll! Like lion, leaf, and lemon.',
+    examples: [{ e: '🦁', t: '[L]ION' }, { e: '🍁', t: '[L]EAF' }, { e: '🍋', t: '[L]EMON' }] },
+  { type: 'consonant', letters: ['M'], name: '“mmm”', talk: 'M says mmm! Like moon, milk, and mouse.',
+    examples: [{ e: '🌙', t: '[M]OON' }, { e: '🥛', t: '[M]ILK' }, { e: '🐭', t: '[M]OUSE' }] },
+  { type: 'consonant', letters: ['N'], name: '“nnn”', talk: 'N says nnn! Like nest, nose, and nut.',
+    examples: [{ e: '🪺', t: '[N]EST' }, { e: '👃', t: '[N]OSE' }, { e: '🥜', t: '[N]UT' }] },
+  { type: 'consonant', letters: ['P'], name: '“puh”', talk: 'P says puh! Like pig, pie, and pizza.',
+    examples: [{ e: '🐷', t: '[P]IG' }, { e: '🥧', t: '[P]IE' }, { e: '🍕', t: '[P]IZZA' }] },
+  { type: 'consonant', letters: ['Q'], name: '“kwuh” — Q brings U along', talk: 'Q says kwuh, and it almost always brings U along! Like quack, queen, and question.',
+    examples: [{ e: '🦆', t: '[QU]ACK' }, { e: '👸', t: '[QU]EEN' }, { e: '❓', t: '[QU]ESTION' }] },
+  { type: 'consonant', letters: ['R'], name: '“rrr”', talk: 'R says rrr! Like rose, ring, and rocket.',
+    examples: [{ e: '🌹', t: '[R]OSE' }, { e: '💍', t: '[R]ING' }, { e: '🚀', t: '[R]OCKET' }] },
+  { type: 'consonant', letters: ['T'], name: '“tuh”', talk: 'T says tuh! Like taco, tent, and tiger.',
+    examples: [{ e: '🌮', t: '[T]ACO' }, { e: '⛺', t: '[T]ENT' }, { e: '🐯', t: '[T]IGER' }] },
+  { type: 'consonant', letters: ['V'], name: '“vvv”', talk: 'V says vvv! Like van, volcano, and violin.',
+    examples: [{ e: '🚐', t: '[V]AN' }, { e: '🌋', t: '[V]OLCANO' }, { e: '🎻', t: '[V]IOLIN' }] },
+  { type: 'consonant', letters: ['W'], name: '“wuh”', talk: 'W says wuh! Like wave, wolf, and worm.',
+    examples: [{ e: '🌊', t: '[W]AVE' }, { e: '🐺', t: '[W]OLF' }, { e: '🪱', t: '[W]ORM' }] },
+  { type: 'consonant', letters: ['X'], name: '“ks” — at the end of words', talk: 'X says ks, usually at the end of a word! Like fox, box, and six.',
+    examples: [{ e: '🦊', t: 'FO[X]' }, { e: '📦', t: 'BO[X]' }, { e: '6️⃣', t: 'SI[X]' }] },
+  { type: 'consonant', letters: ['Y'], name: '“yuh”', talk: 'Y says yuh! Like yo-yo, yarn, and yawn.',
+    examples: [{ e: '🪀', t: '[Y]O-YO' }, { e: '🧶', t: '[Y]ARN' }, { e: '🥱', t: '[Y]AWN' }] },
+  { type: 'consonant', letters: ['Z'], name: '“zzz”', talk: 'Z says zzz! Like zebra, zero, and puzzle.',
+    examples: [{ e: '🦓', t: '[Z]EBRA' }, { e: '0️⃣', t: '[Z]ERO' }, { e: '🧩', t: 'PU[ZZ]LE' }] },
+  // digraphs — two letters teaming up to make one brand-new sound
+  { type: 'digraph', letters: ['SH'], name: '“shh”', talk: 'S and H team up to say shh, like a quiet sound! Like shark, shoe, and fish.',
+    examples: [{ e: '🦈', t: '[SH]ARK' }, { e: '👟', t: '[SH]OE' }, { e: '🐟', t: 'FI[SH]' }] },
+  { type: 'digraph', letters: ['CH'], name: '“chh”', talk: 'C and H team up to say chh, like a choo choo train! Like cheese, chair, and peach.',
+    examples: [{ e: '🧀', t: '[CH]EESE' }, { e: '🪑', t: '[CH]AIR' }, { e: '🍑', t: 'PEA[CH]' }] },
+  { type: 'digraph', letters: ['TH'], name: '“thh”', talk: 'T and H team up to say th — stick your tongue out a tiny bit! Like thumb, tooth, and bath.',
+    examples: [{ e: '👍', t: '[TH]UMB' }, { e: '🦷', t: 'TOO[TH]' }, { e: '🛁', t: 'BA[TH]' }] },
+  { type: 'digraph', letters: ['WH'], name: '“wh”', talk: 'W and H team up to say wh, like blowing air! Like whale, wheel, and wheat.',
+    examples: [{ e: '🐳', t: '[WH]ALE' }, { e: '🛞', t: '[WH]EEL' }, { e: '🌾', t: '[WH]EAT' }] },
+  { type: 'digraph', letters: ['NG'], name: '“ng”', talk: 'N and G team up to say ng, way back in your throat! Like ring, king, and song.',
+    examples: [{ e: '💍', t: 'RI[NG]' }, { e: '🤴', t: 'KI[NG]' }, { e: '🎵', t: 'SO[NG]' }] },
+];
+
+const soundModal = document.getElementById('soundModal');
+const soundBody = document.getElementById('soundBody');
+const soundHelpBtn = document.getElementById('soundHelpBtn');
+const soundCloseBtn = document.getElementById('soundCloseBtn');
+const tabLetters = document.getElementById('tabLetters');
+const tabSounds = document.getElementById('tabSounds');
+
+let soundTab = 'letters';
+let soundLetter = 'A';
+
+function renderExample(ex) {
+  const btn = document.createElement('button');
+  btn.className = 'example-chip';
+  const em = document.createElement('span');
+  em.className = 'ex-em';
+  em.textContent = ex.e;
+  btn.appendChild(em);
+  const wordSpan = document.createElement('span');
+  for (const part of ex.t.split(/(\[[^\]]+\])/)) {
+    if (!part) continue;
+    if (part.startsWith('[')) {
+      const hl = document.createElement('span');
+      hl.className = 'hl';
+      hl.textContent = part.slice(1, -1);
+      wordSpan.appendChild(hl);
+    } else {
+      wordSpan.appendChild(document.createTextNode(part));
+    }
+  }
+  btn.appendChild(wordSpan);
+  btn.addEventListener('click', () => speak(ex.t.replace(/[\[\]]/g, '').replace('-', ' ').toLowerCase()));
+  return btn;
+}
+
+function renderSoundCard(sound, focusLetter) {
+  const card = document.createElement('div');
+  card.className = 'sound-card ' + sound.type;
+  const head = document.createElement('div');
+  head.className = 'sound-card-head';
+  for (const L of sound.letters) {
+    const chip = document.createElement('span');
+    // multi-letter chips (SH, PH, ...) are letter teams, styled purple
+    chip.className = 'sound-chip ' +
+      (L.length > 1 ? 'digraph' : VOWELS.includes(L) ? 'vowel' : 'consonant');
+    if (focusLetter && L.includes(focusLetter)) chip.classList.add('current');
+    chip.textContent = L;
+    head.appendChild(chip);
+  }
+  const nm = document.createElement('span');
+  nm.className = 'sound-name';
+  nm.textContent = sound.name;
+  head.appendChild(nm);
+  const say = document.createElement('button');
+  say.className = 'say-btn';
+  say.textContent = '🔊';
+  say.title = 'Hear it';
+  say.addEventListener('click', () => speak(sound.talk));
+  head.appendChild(say);
+  card.appendChild(head);
+  const exRow = document.createElement('div');
+  exRow.className = 'sound-examples';
+  for (const ex of sound.examples) exRow.appendChild(renderExample(ex));
+  card.appendChild(exRow);
+  return card;
+}
+
+function renderSoundBody() {
+  soundBody.innerHTML = '';
+  if (soundTab === 'letters') {
+    const grid = document.createElement('div');
+    grid.className = 'mini-letters';
+    for (let i = 0; i < 26; i++) {
+      const ch = String.fromCharCode(65 + i);
+      const b = document.createElement('button');
+      b.className = 'letter-btn ' + (VOWELS.includes(ch) ? 'vowel' : 'consonant');
+      if (ch === soundLetter) b.classList.add('current');
+      b.textContent = ch;
+      b.addEventListener('click', () => { soundLetter = ch; renderSoundBody(); });
+      grid.appendChild(b);
+    }
+    soundBody.appendChild(grid);
+    // include digraphs the letter is part of; the letter's own sounds come first
+    const matches = SOUNDS.filter(s => s.letters.some(l => l.includes(soundLetter)))
+      .sort((a, b) => (a.letters[0] === soundLetter ? 0 : 1) - (b.letters[0] === soundLetter ? 0 : 1));
+    const intro = document.createElement('div');
+    intro.className = 'sound-group-label ' + (VOWELS.includes(soundLetter) ? 'vowel' : 'consonant');
+    intro.textContent = soundLetter + ' can make ' +
+      (matches.length === 1 ? 'this sound:' : 'these ' + matches.length + ' sounds:');
+    soundBody.appendChild(intro);
+    for (const s of matches) soundBody.appendChild(renderSoundCard(s, soundLetter));
+  } else {
+    const GROUP_LABELS = {
+      vowel: 'Vowel sounds',
+      consonant: 'Consonant sounds',
+      digraph: 'Letter teams — two letters, one new sound!',
+    };
+    for (const type of ['vowel', 'consonant', 'digraph']) {
+      const lab = document.createElement('div');
+      lab.className = 'sound-group-label ' + type;
+      lab.textContent = GROUP_LABELS[type];
+      soundBody.appendChild(lab);
+      for (const s of SOUNDS.filter(s => s.type === type)) {
+        soundBody.appendChild(renderSoundCard(s, null));
+      }
+    }
+  }
+}
+
+function setSoundTab(tab) {
+  soundTab = tab;
+  tabLetters.classList.toggle('active', tab === 'letters');
+  tabSounds.classList.toggle('active', tab === 'sounds');
+  renderSoundBody();
+  soundBody.scrollTop = 0;
+}
+
+soundHelpBtn.addEventListener('click', () => {
+  renderSoundBody();
+  soundModal.classList.add('show');
+});
+soundCloseBtn.addEventListener('click', () => soundModal.classList.remove('show'));
+soundModal.addEventListener('click', (e) => {
+  if (e.target === soundModal) soundModal.classList.remove('show');
+});
+tabLetters.addEventListener('click', () => setSoundTab('letters'));
+tabSounds.addEventListener('click', () => setSoundTab('sounds'));
+
+// physical keyboard support
+document.addEventListener('keydown', (e) => {
+  if (setModal.classList.contains('show')) {
+    if (e.key === 'Escape') closeSetEditor();
+    return;
+  }
+  if (soundModal.classList.contains('show')) {
+    if (e.key === 'Escape') soundModal.classList.remove('show');
+    return;
+  }
+  if (e.key === 'ArrowLeft') { goTo(-1); return; }
+  if (e.key === 'ArrowRight') { goTo(1); return; }
+  const ch = e.key.toUpperCase();
+  if (ch.length === 1 && ch >= 'A' && ch <= 'Z') {
+    const idx = ch.charCodeAt(0) - 65;
+    const btn = lettersEl.children[idx];
+    if (btn && !btn.disabled) guess(ch, btn);
+  }
+});
+
+// ----- confetti -----
+const canvas = document.getElementById('confetti-canvas');
+const ctx = canvas.getContext('2d');
+let pieces = [];
+let confettiRunning = false;
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+function startConfettiLoop() {
+  if (!confettiRunning) {
+    confettiRunning = true;
+    requestAnimationFrame(tickConfetti);
+  }
+}
+
+function launchConfetti(count = 150) {
+  const colors = ['#ffd700', '#ff6b6b', '#4ecdc4', '#a78bfa', '#4caf50', '#ff9f43', '#f368e0'];
+  for (let i = 0; i < count; i++) {
+    pieces.push({
+      x: Math.random() * canvas.width,
+      y: -20 - Math.random() * canvas.height * 0.5,
+      w: 8 + Math.random() * 8,
+      h: 6 + Math.random() * 6,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      vy: 2 + Math.random() * 3,
+      vx: -1.5 + Math.random() * 3,
+      g: 0,
+      angle: Math.random() * Math.PI * 2,
+      spin: -0.1 + Math.random() * 0.2,
+    });
+  }
+  startConfettiLoop();
+}
+
+// sparkles drift down from the top like confetti, but drawn as emoji
+function launchSparkles(count = 60) {
+  const sparkles = ['✨', '⭐', '🌟', '💫'];
+  for (let i = 0; i < count; i++) {
+    pieces.push({
+      emoji: sparkles[Math.floor(Math.random() * sparkles.length)],
+      size: 16 + Math.random() * 22,
+      x: Math.random() * canvas.width,
+      y: -30 - Math.random() * canvas.height * 0.6,
+      vy: 2 + Math.random() * 3,
+      vx: -1.5 + Math.random() * 3,
+      g: 0,
+      angle: -0.5 + Math.random(),
+      spin: -0.06 + Math.random() * 0.12,
+    });
+  }
+  startConfettiLoop();
+}
+
+// the set's own emojis shoot up from the bottom and rain back down
+function launchEmojiFountain(emojis) {
+  for (let i = 0; i < 60; i++) {
+    pieces.push({
+      emoji: emojis[i % emojis.length],
+      size: 26 + Math.random() * 26,
+      x: canvas.width * 0.5 + (Math.random() - 0.5) * canvas.width * 0.5,
+      y: canvas.height + 30,
+      vy: -(12 + Math.random() * 8),
+      vx: -5 + Math.random() * 10,
+      g: 0.22,
+      angle: -0.5 + Math.random(),
+      spin: -0.08 + Math.random() * 0.16,
+    });
+  }
+  startConfettiLoop();
+}
+
+function launchFinale() {
+  const emojis = shuffle(playthrough.order.map(w => WORD_MAP.get(w).emoji));
+  launchConfetti(300);
+  launchSparkles(80);
+  launchEmojiFountain(emojis);
+  setTimeout(() => { launchConfetti(150); launchEmojiFountain(emojis); }, 800);
+  setTimeout(() => { launchSparkles(60); launchEmojiFountain(emojis); }, 1600);
+}
+
+function tickConfetti() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  pieces = pieces.filter(p => p.vy < 0 || p.y < canvas.height + 60);
+  for (const p of pieces) {
+    p.vy += p.g;
+    p.y += p.vy;
+    p.x += p.vx + (p.g ? 0 : Math.sin(p.y / 30));
+    p.angle += p.spin;
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.angle);
+    if (p.emoji) {
+      ctx.font = p.size + 'px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(p.emoji, 0, 0);
+    } else {
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+    }
+    ctx.restore();
+  }
+  if (pieces.length > 0) {
+    requestAnimationFrame(tickConfetti);
+  } else {
+    confettiRunning = false;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+}
+
+renderSetSelect();
+loadPlaythrough();
+newGame();
+renderTrophies(false);
+</script>
+</body>
+</html>
