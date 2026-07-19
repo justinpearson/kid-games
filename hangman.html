@@ -132,6 +132,8 @@
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   }
   .slot.filled { animation: pop 0.4s ease; }
+  /* only the letter text is tinted — empty slots look identical so vowel spots aren't given away */
+  .slot.vowel { color: #e07b00; }
 
   .message {
     color: #fff; font-size: 1.4rem; font-weight: 700; min-height: 2rem;
@@ -158,6 +160,9 @@
   .letter-btn:not(:disabled):hover { transform: translateY(-2px); }
   .letter-btn:not(:disabled):active { transform: scale(0.9); }
   .letter-btn:disabled { cursor: default; }
+  /* consonants cool blue, vowels (incl. Y) warm orange, to teach the difference */
+  .letter-btn.consonant { background: #e3f2fd; color: #1565c0; }
+  .letter-btn.vowel { background: #fff3d6; color: #e07b00; }
   .letter-btn.good { background: #4caf50; color: #fff; }
   .letter-btn.bad { background: #ef5350; color: #fff; opacity: 0.6; }
 
@@ -553,6 +558,8 @@ const HARD_WORDS = [
 const ALL_WORDS = [...EASY_WORDS, ...HARD_WORDS].sort((a, b) => a.word.localeCompare(b.word));
 const WORD_MAP = new Map(ALL_WORDS.map(e => [e.word, e]));
 const MAX_WRONG = 6;
+// Y counts as a vowel here — close enough for learning the difference.
+const VOWELS = 'AEIOUY';
 
 const pictureEl = document.getElementById('picture');
 const wordEl = document.getElementById('word');
@@ -742,7 +749,7 @@ function newGame() {
   wordEl.innerHTML = '';
   for (const ch of current.word) {
     const slot = document.createElement('div');
-    slot.className = 'slot';
+    slot.className = 'slot ' + (VOWELS.includes(ch) ? 'vowel' : 'consonant');
     slot.dataset.letter = ch;
     wordEl.appendChild(slot);
   }
@@ -751,7 +758,7 @@ function newGame() {
   for (let i = 0; i < 26; i++) {
     const ch = String.fromCharCode(65 + i);
     const btn = document.createElement('button');
-    btn.className = 'letter-btn';
+    btn.className = 'letter-btn ' + (VOWELS.includes(ch) ? 'vowel' : 'consonant');
     btn.textContent = ch;
     btn.addEventListener('click', () => guess(ch, btn));
     lettersEl.appendChild(btn);
