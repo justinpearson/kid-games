@@ -331,6 +331,7 @@
   .sound-group-label { font-weight: 800; font-size: 1rem; margin-top: 0.25rem; }
   .sound-group-label.vowel { color: #e07b00; }
   .sound-group-label.consonant { color: #1565c0; }
+  .sound-group-label.digraph { color: #7b5cd6; }
   .sound-card {
     border: 3px solid #e3ecf5; border-radius: 0.9rem;
     padding: 0.6rem 0.7rem;
@@ -338,14 +339,16 @@
   }
   .sound-card.vowel { background: #fffaf0; border-color: #ffe0b2; }
   .sound-card.consonant { background: #f4f9ff; border-color: #cfe3f7; }
+  .sound-card.digraph { background: #f8f5ff; border-color: #e2d9f7; }
   .sound-card-head { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
   .sound-chip {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 2rem; height: 2rem; border-radius: 0.5rem;
+    min-width: 2rem; height: 2rem; padding: 0 0.3rem; border-radius: 0.5rem;
     font-weight: 800; font-size: 1.1rem;
   }
   .sound-chip.vowel { background: #fff3d6; color: #e07b00; }
   .sound-chip.consonant { background: #e3f2fd; color: #1565c0; }
+  .sound-chip.digraph { background: #ede7fb; color: #7b5cd6; }
   .sound-chip.current { outline: 2px solid currentColor; }
   .sound-name { font-weight: 700; color: #333; font-size: 1rem; flex: 1; }
   .say-btn {
@@ -365,6 +368,7 @@
   .example-chip .ex-em { font-size: 1.5rem; line-height: 1; }
   .sound-card.vowel .hl { color: #e07b00; text-decoration: underline; }
   .sound-card.consonant .hl { color: #1565c0; text-decoration: underline; }
+  .sound-card.digraph .hl { color: #7b5cd6; text-decoration: underline; }
 
   #confetti-canvas {
     position: fixed; inset: 0;
@@ -1183,8 +1187,8 @@ const SOUNDS = [
     examples: [{ e: '☀️', t: '[S]UN' }, { e: '🧦', t: '[S]OCK' }, { e: '🧊', t: 'I[C]E' }, { e: '✏️', t: 'PEN[C]IL' }] },
   { type: 'consonant', letters: ['D'], name: '“duh”', talk: 'D says duh! Like dog, duck, and door.',
     examples: [{ e: '🐶', t: '[D]OG' }, { e: '🦆', t: '[D]UCK' }, { e: '🚪', t: '[D]OOR' }] },
-  { type: 'consonant', letters: ['F'], name: '“fff”', talk: 'F says fff! Like fish, fox, and fire.',
-    examples: [{ e: '🐟', t: '[F]ISH' }, { e: '🦊', t: '[F]OX' }, { e: '🔥', t: '[F]IRE' }] },
+  { type: 'consonant', letters: ['F', 'PH'], name: '“fff”', talk: 'F says fff! Like fish, fox, and fire. And P and H together say fff too, like dolphin!',
+    examples: [{ e: '🐟', t: '[F]ISH' }, { e: '🦊', t: '[F]OX' }, { e: '🔥', t: '[F]IRE' }, { e: '🐬', t: 'DOL[PH]IN' }] },
   { type: 'consonant', letters: ['G'], name: 'hard G — “guh”', talk: 'G usually says guh! Like goat, gift, and grapes.',
     examples: [{ e: '🐐', t: '[G]OAT' }, { e: '🎁', t: '[G]IFT' }, { e: '🍇', t: '[G]RAPES' }] },
   { type: 'consonant', letters: ['J', 'G'], name: '“juh” — two letters make it!', talk: 'J says juh, and G sometimes says juh too! Like juice, giraffe, and magic.',
@@ -1215,6 +1219,17 @@ const SOUNDS = [
     examples: [{ e: '🪀', t: '[Y]O-YO' }, { e: '🧶', t: '[Y]ARN' }, { e: '🥱', t: '[Y]AWN' }] },
   { type: 'consonant', letters: ['Z'], name: '“zzz”', talk: 'Z says zzz! Like zebra, zero, and puzzle.',
     examples: [{ e: '🦓', t: '[Z]EBRA' }, { e: '0️⃣', t: '[Z]ERO' }, { e: '🧩', t: 'PU[ZZ]LE' }] },
+  // digraphs — two letters teaming up to make one brand-new sound
+  { type: 'digraph', letters: ['SH'], name: '“shh”', talk: 'S and H team up to say shh, like a quiet sound! Like shark, shoe, and fish.',
+    examples: [{ e: '🦈', t: '[SH]ARK' }, { e: '👟', t: '[SH]OE' }, { e: '🐟', t: 'FI[SH]' }] },
+  { type: 'digraph', letters: ['CH'], name: '“chh”', talk: 'C and H team up to say chh, like a choo choo train! Like cheese, chair, and peach.',
+    examples: [{ e: '🧀', t: '[CH]EESE' }, { e: '🪑', t: '[CH]AIR' }, { e: '🍑', t: 'PEA[CH]' }] },
+  { type: 'digraph', letters: ['TH'], name: '“thh”', talk: 'T and H team up to say th — stick your tongue out a tiny bit! Like thumb, tooth, and bath.',
+    examples: [{ e: '👍', t: '[TH]UMB' }, { e: '🦷', t: 'TOO[TH]' }, { e: '🛁', t: 'BA[TH]' }] },
+  { type: 'digraph', letters: ['WH'], name: '“wh”', talk: 'W and H team up to say wh, like blowing air! Like whale, wheel, and wheat.',
+    examples: [{ e: '🐳', t: '[WH]ALE' }, { e: '🛞', t: '[WH]EEL' }, { e: '🌾', t: '[WH]EAT' }] },
+  { type: 'digraph', letters: ['NG'], name: '“ng”', talk: 'N and G team up to say ng, way back in your throat! Like ring, king, and song.',
+    examples: [{ e: '💍', t: 'RI[NG]' }, { e: '🤴', t: 'KI[NG]' }, { e: '🎵', t: 'SO[NG]' }] },
 ];
 
 const soundModal = document.getElementById('soundModal');
@@ -1258,8 +1273,10 @@ function renderSoundCard(sound, focusLetter) {
   head.className = 'sound-card-head';
   for (const L of sound.letters) {
     const chip = document.createElement('span');
-    chip.className = 'sound-chip ' + (VOWELS.includes(L) ? 'vowel' : 'consonant');
-    if (L === focusLetter) chip.classList.add('current');
+    // multi-letter chips (SH, PH, ...) are letter teams, styled purple
+    chip.className = 'sound-chip ' +
+      (L.length > 1 ? 'digraph' : VOWELS.includes(L) ? 'vowel' : 'consonant');
+    if (focusLetter && L.includes(focusLetter)) chip.classList.add('current');
     chip.textContent = L;
     head.appendChild(chip);
   }
@@ -1296,8 +1313,8 @@ function renderSoundBody() {
       grid.appendChild(b);
     }
     soundBody.appendChild(grid);
-    // sounds where this letter is the main letter come first
-    const matches = SOUNDS.filter(s => s.letters.includes(soundLetter))
+    // include digraphs the letter is part of; the letter's own sounds come first
+    const matches = SOUNDS.filter(s => s.letters.some(l => l.includes(soundLetter)))
       .sort((a, b) => (a.letters[0] === soundLetter ? 0 : 1) - (b.letters[0] === soundLetter ? 0 : 1));
     const intro = document.createElement('div');
     intro.className = 'sound-group-label ' + (VOWELS.includes(soundLetter) ? 'vowel' : 'consonant');
@@ -1306,10 +1323,15 @@ function renderSoundBody() {
     soundBody.appendChild(intro);
     for (const s of matches) soundBody.appendChild(renderSoundCard(s, soundLetter));
   } else {
-    for (const type of ['vowel', 'consonant']) {
+    const GROUP_LABELS = {
+      vowel: 'Vowel sounds',
+      consonant: 'Consonant sounds',
+      digraph: 'Letter teams — two letters, one new sound!',
+    };
+    for (const type of ['vowel', 'consonant', 'digraph']) {
       const lab = document.createElement('div');
       lab.className = 'sound-group-label ' + type;
-      lab.textContent = type === 'vowel' ? 'Vowel sounds' : 'Consonant sounds';
+      lab.textContent = GROUP_LABELS[type];
       soundBody.appendChild(lab);
       for (const s of SOUNDS.filter(s => s.type === type)) {
         soundBody.appendChild(renderSoundCard(s, null));
