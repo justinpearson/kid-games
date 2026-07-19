@@ -304,6 +304,68 @@
   .modal-actions .delete-btn { background: #ef5350; color: #fff; margin-right: auto; }
   .modal-actions .delete-btn.hidden { display: none; }
 
+  /* ----- letter sounds helper ----- */
+  .sounds-btn { background: #a78bfa; color: #fff; }
+  .sound-head { display: flex; align-items: center; justify-content: space-between; }
+  .sound-close {
+    border: none; background: #e3ecf5; color: #185a9d;
+    border-radius: 50%; width: 2rem; height: 2rem;
+    font-size: 1rem; font-weight: 700; cursor: pointer;
+  }
+  .sound-tabs { display: flex; gap: 0.5rem; }
+  .sound-tab {
+    flex: 1; border: none; border-radius: 0.7rem; padding: 0.5rem;
+    font-size: 1rem; font-weight: 700; cursor: pointer;
+    background: #e3ecf5; color: #185a9d;
+  }
+  .sound-tab.active { background: #185a9d; color: #fff; }
+  .sound-body {
+    overflow-y: auto;
+    display: flex; flex-direction: column; gap: 0.6rem;
+    padding: 0.15rem;
+  }
+  .mini-letters { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.35rem; }
+  .mini-letters .letter-btn { font-size: 1.1rem; border-radius: 0.5rem; box-shadow: 0 2px 5px rgba(0,0,0,0.15); }
+  .mini-letters .letter-btn.current { outline: 3px solid #1565c0; }
+  .mini-letters .letter-btn.vowel.current { outline-color: #e07b00; }
+  .sound-group-label { font-weight: 800; font-size: 1rem; margin-top: 0.25rem; }
+  .sound-group-label.vowel { color: #e07b00; }
+  .sound-group-label.consonant { color: #1565c0; }
+  .sound-card {
+    border: 3px solid #e3ecf5; border-radius: 0.9rem;
+    padding: 0.6rem 0.7rem;
+    display: flex; flex-direction: column; gap: 0.5rem;
+  }
+  .sound-card.vowel { background: #fffaf0; border-color: #ffe0b2; }
+  .sound-card.consonant { background: #f4f9ff; border-color: #cfe3f7; }
+  .sound-card-head { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
+  .sound-chip {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 2rem; height: 2rem; border-radius: 0.5rem;
+    font-weight: 800; font-size: 1.1rem;
+  }
+  .sound-chip.vowel { background: #fff3d6; color: #e07b00; }
+  .sound-chip.consonant { background: #e3f2fd; color: #1565c0; }
+  .sound-chip.current { outline: 2px solid currentColor; }
+  .sound-name { font-weight: 700; color: #333; font-size: 1rem; flex: 1; }
+  .say-btn {
+    border: none; background: #ffd700; border-radius: 50%;
+    width: 2.1rem; height: 2.1rem; font-size: 1.05rem; cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  }
+  .sound-examples { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .example-chip {
+    border: none; background: #fff; border-radius: 0.7rem;
+    padding: 0.4rem 0.6rem;
+    display: flex; align-items: center; gap: 0.4rem;
+    cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    font-weight: 700; color: #4a6a88; font-size: 0.95rem;
+  }
+  .example-chip:active { transform: scale(0.93); }
+  .example-chip .ex-em { font-size: 1.5rem; line-height: 1; }
+  .sound-card.vowel .hl { color: #e07b00; text-decoration: underline; }
+  .sound-card.consonant .hl { color: #1565c0; text-decoration: underline; }
+
   #confetti-canvas {
     position: fixed; inset: 0;
     pointer-events: none;
@@ -322,6 +384,7 @@
     <button class="new-btn" id="prevBtn" title="Back to the last word">&#9664; Back</button>
     <button class="new-btn" id="nextBtn" title="On to the next word">Next &#9654;</button>
     <label class="hint-toggle"><input type="checkbox" id="hintToggle" checked> Picture hint</label>
+    <button class="sounds-btn" id="soundHelpBtn" title="Learn what sound each letter makes">&#128266; Letter Sounds</button>
   </div>
 
   <div class="progress">
@@ -371,6 +434,20 @@
         <button class="cancel-btn" id="cancelSetBtn">Cancel</button>
         <button class="save-btn" id="saveSetBtn">Save &amp; Play</button>
       </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="soundModal">
+    <div class="modal sound-modal">
+      <div class="sound-head">
+        <h2>Letter Sounds</h2>
+        <button class="sound-close" id="soundCloseBtn" title="Close">&#10005;</button>
+      </div>
+      <div class="sound-tabs">
+        <button class="sound-tab active" id="tabLetters">By Letter</button>
+        <button class="sound-tab" id="tabSounds">By Sound</button>
+      </div>
+      <div class="sound-body" id="soundBody"></div>
     </div>
   </div>
 
@@ -1071,10 +1148,203 @@ deleteSetBtn.addEventListener('click', () => {
   newGame();
 });
 
+// ----- letter sounds helper -----
+// One entry per sound. `letters` = every letter that can make the sound, so the
+// same entry powers both directions: letter -> its sounds, sound -> its letters.
+// In example words, [brackets] mark the letters making the sound.
+const SOUNDS = [
+  // vowel sounds
+  { type: 'vowel', letters: ['A'], name: 'short A — “aaa”', talk: 'Short A says ah, ah, ah! Like ant, apple, and cat.',
+    examples: [{ e: '🐜', t: '[A]NT' }, { e: '🍎', t: '[A]PPLE' }, { e: '🐱', t: 'C[A]T' }] },
+  { type: 'vowel', letters: ['A'], name: 'long A — says its name', talk: 'Long A says its own name: A! Like cake, whale, and train.',
+    examples: [{ e: '🎂', t: 'C[A]KE' }, { e: '🐳', t: 'WH[A]LE' }, { e: '🚂', t: 'TR[AI]N' }] },
+  { type: 'vowel', letters: ['E'], name: 'short E — “eh”', talk: 'Short E says eh, eh, eh! Like egg, bed, and hen.',
+    examples: [{ e: '🥚', t: '[E]GG' }, { e: '🛏️', t: 'B[E]D' }, { e: '🐔', t: 'H[E]N' }] },
+  { type: 'vowel', letters: ['E', 'Y'], name: 'long E — “ee”', talk: 'Long E says ee! Like bee, tree, and candy. Y can make this sound too!',
+    examples: [{ e: '🐝', t: 'B[EE]' }, { e: '🌳', t: 'TR[EE]' }, { e: '🍬', t: 'CAND[Y]' }] },
+  { type: 'vowel', letters: ['I'], name: 'short I — “ih”', talk: 'Short I says ih, ih, ih! Like pig, fish, and milk.',
+    examples: [{ e: '🐷', t: 'P[I]G' }, { e: '🐟', t: 'F[I]SH' }, { e: '🥛', t: 'M[I]LK' }] },
+  { type: 'vowel', letters: ['I', 'Y'], name: 'long I — says its name', talk: 'Long I says its own name: I! Like kite, ice, and fly. Y can make this sound too!',
+    examples: [{ e: '🪁', t: 'K[I]TE' }, { e: '🧊', t: '[I]CE' }, { e: '🪰', t: 'FL[Y]' }] },
+  { type: 'vowel', letters: ['O'], name: 'short O — “o”', talk: 'Short O says o, o, o! Like fox, sock, and frog.',
+    examples: [{ e: '🦊', t: 'F[O]X' }, { e: '🧦', t: 'S[O]CK' }, { e: '🐸', t: 'FR[O]G' }] },
+  { type: 'vowel', letters: ['O'], name: 'long O — says its name', talk: 'Long O says its own name: O! Like rose, boat, and snow.',
+    examples: [{ e: '🌹', t: 'R[O]SE' }, { e: '⛵', t: 'B[OA]T' }, { e: '❄️', t: 'SN[OW]' }] },
+  { type: 'vowel', letters: ['U'], name: 'short U — “uh”', talk: 'Short U says uh, uh, uh! Like bug, duck, and sun.',
+    examples: [{ e: '🐞', t: 'B[U]G' }, { e: '🦆', t: 'D[U]CK' }, { e: '☀️', t: 'S[U]N' }] },
+  { type: 'vowel', letters: ['U', 'O'], name: 'long U — “oo”', talk: 'Long U says oo! Like unicorn, music, and moon. Two Os together say oo too!',
+    examples: [{ e: '🦄', t: '[U]NICORN' }, { e: '🎵', t: 'M[U]SIC' }, { e: '🌙', t: 'M[OO]N' }] },
+  // consonant sounds
+  { type: 'consonant', letters: ['B'], name: '“buh”', talk: 'B says buh! Like bee, ball, and bus.',
+    examples: [{ e: '🐝', t: '[B]EE' }, { e: '⚽', t: '[B]ALL' }, { e: '🚌', t: '[B]US' }] },
+  { type: 'consonant', letters: ['C', 'K'], name: '“kuh” — two letters make it!', talk: 'C and K can both say kuh! Like cat, kite, taco, and duck.',
+    examples: [{ e: '🐱', t: '[C]AT' }, { e: '🪁', t: '[K]ITE' }, { e: '🌮', t: 'TA[C]O' }, { e: '🦆', t: 'DU[CK]' }] },
+  { type: 'consonant', letters: ['S', 'C'], name: '“sss” — two letters make it!', talk: 'S says sss, and C sometimes says sss too! Like sun, sock, ice, and pencil.',
+    examples: [{ e: '☀️', t: '[S]UN' }, { e: '🧦', t: '[S]OCK' }, { e: '🧊', t: 'I[C]E' }, { e: '✏️', t: 'PEN[C]IL' }] },
+  { type: 'consonant', letters: ['D'], name: '“duh”', talk: 'D says duh! Like dog, duck, and door.',
+    examples: [{ e: '🐶', t: '[D]OG' }, { e: '🦆', t: '[D]UCK' }, { e: '🚪', t: '[D]OOR' }] },
+  { type: 'consonant', letters: ['F'], name: '“fff”', talk: 'F says fff! Like fish, fox, and fire.',
+    examples: [{ e: '🐟', t: '[F]ISH' }, { e: '🦊', t: '[F]OX' }, { e: '🔥', t: '[F]IRE' }] },
+  { type: 'consonant', letters: ['G'], name: 'hard G — “guh”', talk: 'G usually says guh! Like goat, gift, and grapes.',
+    examples: [{ e: '🐐', t: '[G]OAT' }, { e: '🎁', t: '[G]IFT' }, { e: '🍇', t: '[G]RAPES' }] },
+  { type: 'consonant', letters: ['J', 'G'], name: '“juh” — two letters make it!', talk: 'J says juh, and G sometimes says juh too! Like juice, giraffe, and magic.',
+    examples: [{ e: '🧃', t: '[J]UICE' }, { e: '🦒', t: '[G]IRAFFE' }, { e: '🪄', t: 'MA[G]IC' }] },
+  { type: 'consonant', letters: ['H'], name: '“hhh”', talk: 'H says hhh! Like hat, hen, and house.',
+    examples: [{ e: '🎩', t: '[H]AT' }, { e: '🐔', t: '[H]EN' }, { e: '🏠', t: '[H]OUSE' }] },
+  { type: 'consonant', letters: ['L'], name: '“lll”', talk: 'L says lll! Like lion, leaf, and lemon.',
+    examples: [{ e: '🦁', t: '[L]ION' }, { e: '🍁', t: '[L]EAF' }, { e: '🍋', t: '[L]EMON' }] },
+  { type: 'consonant', letters: ['M'], name: '“mmm”', talk: 'M says mmm! Like moon, milk, and mouse.',
+    examples: [{ e: '🌙', t: '[M]OON' }, { e: '🥛', t: '[M]ILK' }, { e: '🐭', t: '[M]OUSE' }] },
+  { type: 'consonant', letters: ['N'], name: '“nnn”', talk: 'N says nnn! Like nest, nose, and nut.',
+    examples: [{ e: '🪺', t: '[N]EST' }, { e: '👃', t: '[N]OSE' }, { e: '🥜', t: '[N]UT' }] },
+  { type: 'consonant', letters: ['P'], name: '“puh”', talk: 'P says puh! Like pig, pie, and pizza.',
+    examples: [{ e: '🐷', t: '[P]IG' }, { e: '🥧', t: '[P]IE' }, { e: '🍕', t: '[P]IZZA' }] },
+  { type: 'consonant', letters: ['Q'], name: '“kwuh” — Q brings U along', talk: 'Q says kwuh, and it almost always brings U along! Like quack, queen, and question.',
+    examples: [{ e: '🦆', t: '[QU]ACK' }, { e: '👸', t: '[QU]EEN' }, { e: '❓', t: '[QU]ESTION' }] },
+  { type: 'consonant', letters: ['R'], name: '“rrr”', talk: 'R says rrr! Like rose, ring, and rocket.',
+    examples: [{ e: '🌹', t: '[R]OSE' }, { e: '💍', t: '[R]ING' }, { e: '🚀', t: '[R]OCKET' }] },
+  { type: 'consonant', letters: ['T'], name: '“tuh”', talk: 'T says tuh! Like taco, tent, and tiger.',
+    examples: [{ e: '🌮', t: '[T]ACO' }, { e: '⛺', t: '[T]ENT' }, { e: '🐯', t: '[T]IGER' }] },
+  { type: 'consonant', letters: ['V'], name: '“vvv”', talk: 'V says vvv! Like van, volcano, and violin.',
+    examples: [{ e: '🚐', t: '[V]AN' }, { e: '🌋', t: '[V]OLCANO' }, { e: '🎻', t: '[V]IOLIN' }] },
+  { type: 'consonant', letters: ['W'], name: '“wuh”', talk: 'W says wuh! Like wave, wolf, and worm.',
+    examples: [{ e: '🌊', t: '[W]AVE' }, { e: '🐺', t: '[W]OLF' }, { e: '🪱', t: '[W]ORM' }] },
+  { type: 'consonant', letters: ['X'], name: '“ks” — at the end of words', talk: 'X says ks, usually at the end of a word! Like fox, box, and six.',
+    examples: [{ e: '🦊', t: 'FO[X]' }, { e: '📦', t: 'BO[X]' }, { e: '6️⃣', t: 'SI[X]' }] },
+  { type: 'consonant', letters: ['Y'], name: '“yuh”', talk: 'Y says yuh! Like yo-yo, yarn, and yawn.',
+    examples: [{ e: '🪀', t: '[Y]O-YO' }, { e: '🧶', t: '[Y]ARN' }, { e: '🥱', t: '[Y]AWN' }] },
+  { type: 'consonant', letters: ['Z'], name: '“zzz”', talk: 'Z says zzz! Like zebra, zero, and puzzle.',
+    examples: [{ e: '🦓', t: '[Z]EBRA' }, { e: '0️⃣', t: '[Z]ERO' }, { e: '🧩', t: 'PU[ZZ]LE' }] },
+];
+
+const soundModal = document.getElementById('soundModal');
+const soundBody = document.getElementById('soundBody');
+const soundHelpBtn = document.getElementById('soundHelpBtn');
+const soundCloseBtn = document.getElementById('soundCloseBtn');
+const tabLetters = document.getElementById('tabLetters');
+const tabSounds = document.getElementById('tabSounds');
+
+let soundTab = 'letters';
+let soundLetter = 'A';
+
+function renderExample(ex) {
+  const btn = document.createElement('button');
+  btn.className = 'example-chip';
+  const em = document.createElement('span');
+  em.className = 'ex-em';
+  em.textContent = ex.e;
+  btn.appendChild(em);
+  const wordSpan = document.createElement('span');
+  for (const part of ex.t.split(/(\[[^\]]+\])/)) {
+    if (!part) continue;
+    if (part.startsWith('[')) {
+      const hl = document.createElement('span');
+      hl.className = 'hl';
+      hl.textContent = part.slice(1, -1);
+      wordSpan.appendChild(hl);
+    } else {
+      wordSpan.appendChild(document.createTextNode(part));
+    }
+  }
+  btn.appendChild(wordSpan);
+  btn.addEventListener('click', () => speak(ex.t.replace(/[\[\]]/g, '').replace('-', ' ').toLowerCase()));
+  return btn;
+}
+
+function renderSoundCard(sound, focusLetter) {
+  const card = document.createElement('div');
+  card.className = 'sound-card ' + sound.type;
+  const head = document.createElement('div');
+  head.className = 'sound-card-head';
+  for (const L of sound.letters) {
+    const chip = document.createElement('span');
+    chip.className = 'sound-chip ' + (VOWELS.includes(L) ? 'vowel' : 'consonant');
+    if (L === focusLetter) chip.classList.add('current');
+    chip.textContent = L;
+    head.appendChild(chip);
+  }
+  const nm = document.createElement('span');
+  nm.className = 'sound-name';
+  nm.textContent = sound.name;
+  head.appendChild(nm);
+  const say = document.createElement('button');
+  say.className = 'say-btn';
+  say.textContent = '🔊';
+  say.title = 'Hear it';
+  say.addEventListener('click', () => speak(sound.talk));
+  head.appendChild(say);
+  card.appendChild(head);
+  const exRow = document.createElement('div');
+  exRow.className = 'sound-examples';
+  for (const ex of sound.examples) exRow.appendChild(renderExample(ex));
+  card.appendChild(exRow);
+  return card;
+}
+
+function renderSoundBody() {
+  soundBody.innerHTML = '';
+  if (soundTab === 'letters') {
+    const grid = document.createElement('div');
+    grid.className = 'mini-letters';
+    for (let i = 0; i < 26; i++) {
+      const ch = String.fromCharCode(65 + i);
+      const b = document.createElement('button');
+      b.className = 'letter-btn ' + (VOWELS.includes(ch) ? 'vowel' : 'consonant');
+      if (ch === soundLetter) b.classList.add('current');
+      b.textContent = ch;
+      b.addEventListener('click', () => { soundLetter = ch; renderSoundBody(); });
+      grid.appendChild(b);
+    }
+    soundBody.appendChild(grid);
+    // sounds where this letter is the main letter come first
+    const matches = SOUNDS.filter(s => s.letters.includes(soundLetter))
+      .sort((a, b) => (a.letters[0] === soundLetter ? 0 : 1) - (b.letters[0] === soundLetter ? 0 : 1));
+    const intro = document.createElement('div');
+    intro.className = 'sound-group-label ' + (VOWELS.includes(soundLetter) ? 'vowel' : 'consonant');
+    intro.textContent = soundLetter + ' can make ' +
+      (matches.length === 1 ? 'this sound:' : 'these ' + matches.length + ' sounds:');
+    soundBody.appendChild(intro);
+    for (const s of matches) soundBody.appendChild(renderSoundCard(s, soundLetter));
+  } else {
+    for (const type of ['vowel', 'consonant']) {
+      const lab = document.createElement('div');
+      lab.className = 'sound-group-label ' + type;
+      lab.textContent = type === 'vowel' ? 'Vowel sounds' : 'Consonant sounds';
+      soundBody.appendChild(lab);
+      for (const s of SOUNDS.filter(s => s.type === type)) {
+        soundBody.appendChild(renderSoundCard(s, null));
+      }
+    }
+  }
+}
+
+function setSoundTab(tab) {
+  soundTab = tab;
+  tabLetters.classList.toggle('active', tab === 'letters');
+  tabSounds.classList.toggle('active', tab === 'sounds');
+  renderSoundBody();
+  soundBody.scrollTop = 0;
+}
+
+soundHelpBtn.addEventListener('click', () => {
+  renderSoundBody();
+  soundModal.classList.add('show');
+});
+soundCloseBtn.addEventListener('click', () => soundModal.classList.remove('show'));
+soundModal.addEventListener('click', (e) => {
+  if (e.target === soundModal) soundModal.classList.remove('show');
+});
+tabLetters.addEventListener('click', () => setSoundTab('letters'));
+tabSounds.addEventListener('click', () => setSoundTab('sounds'));
+
 // physical keyboard support
 document.addEventListener('keydown', (e) => {
   if (setModal.classList.contains('show')) {
     if (e.key === 'Escape') closeSetEditor();
+    return;
+  }
+  if (soundModal.classList.contains('show')) {
+    if (e.key === 'Escape') soundModal.classList.remove('show');
     return;
   }
   if (e.key === 'ArrowLeft') { goTo(-1); return; }
