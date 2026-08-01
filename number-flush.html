@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Number Flush - Kid Games</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 20px 20px;
+  }
+  .back-link {
+    align-self: flex-start;
+    color: #fff;
+    text-decoration: none;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.9;
+  }
+  .back-link:hover { opacity: 1; text-decoration: underline; }
+
+  .container {
+    background: white;
+    border-radius: 20px;
+    padding: 18px 22px 22px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    width: min(96vw, 950px);
+  }
+
+  h1 {
+    text-align: center;
+    color: #333;
+    font-size: 1.6rem;
+    margin-bottom: 8px;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+
+  .say-btn {
+    border: none;
+    border-radius: 999px;
+    padding: 12px 26px;
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: white;
+    cursor: pointer;
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    transition: transform 0.15s ease;
+  }
+  .say-btn:hover { transform: scale(1.05); }
+  .say-btn:active { transform: scale(0.97); }
+  .say-btn.pulse { animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+  }
+
+  .stars {
+    font-size: 1.3rem;
+    min-width: 2em;
+    text-align: center;
+  }
+
+  /* ---- The game stage ------------------------------------------------- */
+  .stage {
+    position: relative;
+    width: 100%;
+    height: min(66vh, 560px);
+    min-height: 430px;
+    background: linear-gradient(180deg, #cfe8ff 0%, #eaf6ff 55%, #d8f0e0 100%);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  /* Digit buttons with claw arms, spread across the top */
+  .digit-row {
+    position: absolute;
+    top: 8px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-evenly;
+  }
+  .digit-unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 9%;
+  }
+  .digit-btn {
+    width: 100%;
+    max-width: 54px;
+    aspect-ratio: 1;
+    border: none;
+    border-radius: 10px;
+    font-size: clamp(1rem, 3.2vw, 1.5rem);
+    font-weight: bold;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .digit-btn:hover { transform: translateY(-3px); }
+  .digit-btn:active { transform: translateY(-1px); }
+  .digit-btn.good { animation: flash-good 0.5s ease; }
+  .digit-btn.bad { animation: shake-bad 0.45s ease; }
+  @keyframes flash-good {
+    0%, 100% { filter: none; }
+    40% { filter: brightness(1.6) saturate(1.4); }
+  }
+  @keyframes shake-bad {
+    0%, 100% { transform: translateX(0); filter: none; }
+    20% { transform: translateX(-5px); filter: grayscale(0.7); }
+    40% { transform: translateX(5px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+
+  /* Same cheerful gradients as the number grid game */
+  .color-1 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+  .color-2 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+  .color-3 { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+  .color-4 { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+  .color-5 { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+  .color-6 { background: linear-gradient(135deg, #30cfd0 0%, #5b86e5 100%); }
+  .color-7 { background: linear-gradient(135deg, #e040fb 0%, #aa00ff 100%); }
+  .color-8 { background: linear-gradient(135deg, #ff9a56 0%, #ff6a88 100%); }
+  .color-9 { background: linear-gradient(135deg, #ffc371 0%, #ff5f6d 100%); }
+  .color-0 { background: linear-gradient(135deg, #2af598 0%, #009efd 100%); }
+
+  /* The claw arm hanging below each digit button, holding a basketball */
+  .claw {
+    position: relative;
+    width: 40px;
+    height: 66px;
+  }
+  .claw .rod {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 5px;
+    height: 26px;
+    background: linear-gradient(180deg, #9aa2ad, #6e7681);
+    border-radius: 3px;
+  }
+  .claw .prong {
+    position: absolute;
+    top: 22px;
+    left: 50%;
+    width: 6px;
+    height: 22px;
+    background: linear-gradient(180deg, #8a929c, #59616b);
+    border-radius: 4px;
+    transform-origin: top center;
+    transition: transform 0.18s ease;
+  }
+  .claw .prong.left  { transform: translateX(-50%) rotate(28deg); }
+  .claw .prong.right { transform: translateX(-50%) rotate(-28deg); }
+  .claw.open .prong.left  { transform: translateX(-50%) rotate(62deg); }
+  .claw.open .prong.right { transform: translateX(-50%) rotate(-62deg); }
+  .claw .claw-ball {
+    position: absolute;
+    top: 34px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 26px;
+    line-height: 1;
+    transition: opacity 0.15s ease;
+  }
+  .claw .claw-ball.gone { opacity: 0; }
+
+  /* Basketball hoop, mid-stage */
+  .hoop {
+    position: absolute;
+    top: 26%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 150px;
+    text-align: center;
+  }
+  .backboard {
+    width: 110px;
+    height: 66px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.9);
+    border: 3px solid #d8dde5;
+    border-radius: 6px;
+    position: relative;
+  }
+  .backboard::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 6px;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 26px;
+    border: 3px solid #ff7043;
+    border-radius: 3px;
+  }
+  .rim {
+    width: 74px;
+    height: 16px;
+    margin: -4px auto 0;
+    border: 5px solid #ff5722;
+    border-radius: 50%;
+    background: transparent;
+    position: relative;
+    z-index: 5;
+  }
+  .net {
+    width: 58px;
+    height: 44px;
+    margin: -6px auto 0;
+    clip-path: polygon(0 0, 100% 0, 78% 100%, 22% 100%);
+    background:
+      repeating-linear-gradient(65deg,  rgba(255,255,255,0.95) 0 2px, transparent 2px 9px),
+      repeating-linear-gradient(-65deg, rgba(255,255,255,0.95) 0 2px, transparent 2px 9px);
+    z-index: 4;
+    position: relative;
+    pointer-events: none;
+  }
+
+  /* The toilet at the bottom where swished balls collect */
+  .toilet {
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 210px;
+    height: 150px;
+  }
+  .tank {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 150px;
+    height: 52px;
+    background: linear-gradient(180deg, #ffffff, #dfe6ee);
+    border: 2px solid #c3ccd8;
+    border-radius: 8px;
+  }
+  .flusher {
+    position: absolute;
+    top: 10px;
+    left: 12px;
+    width: 26px;
+    height: 10px;
+    background: linear-gradient(180deg, #cfd6df, #98a2af);
+    border-radius: 5px;
+    transform-origin: left center;
+    transition: transform 0.25s ease;
+  }
+  .toilet.flushing .flusher { transform: rotate(28deg); }
+  .bowl {
+    position: absolute;
+    top: 42px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 190px;
+    height: 74px;
+    background: linear-gradient(180deg, #ffffff, #e8edf3);
+    border: 2px solid #c3ccd8;
+    border-radius: 50%;
+    overflow: hidden;
+  }
+  .water {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 150px;
+    height: 46px;
+    background: radial-gradient(ellipse at center, #7fd4ff 0%, #35a7e8 75%);
+    border-radius: 50%;
+  }
+  .swirl {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, transparent 0 60%, rgba(255,255,255,0.75) 72%, transparent 84%);
+    opacity: 0;
+  }
+  .toilet.flushing .swirl {
+    opacity: 1;
+    animation: swirl-spin 0.5s linear infinite;
+  }
+  @keyframes swirl-spin {
+    from { transform: rotate(0deg) scale(1); }
+    to   { transform: rotate(360deg) scale(0.92); }
+  }
+  .pedestal {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 70px;
+    height: 40px;
+    background: linear-gradient(180deg, #e8edf3, #c9d2dc);
+    border: 2px solid #c3ccd8;
+    border-top: none;
+    border-radius: 0 0 14px 14px;
+  }
+  .bowl-ball {
+    position: absolute;
+    font-size: 24px;
+    line-height: 1;
+    z-index: 3;
+    animation: bob 1.6s ease-in-out infinite;
+  }
+  @keyframes bob {
+    0%, 100% { margin-top: 0; }
+    50% { margin-top: 3px; }
+  }
+
+  /* Slots above the toilet showing the digits typed so far */
+  .slots {
+    position: absolute;
+    bottom: 162px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 6;
+  }
+  .slot {
+    width: 46px;
+    height: 54px;
+    border-radius: 10px;
+    border: 3px dashed rgba(90, 110, 140, 0.5);
+    background: rgba(255, 255, 255, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.7rem;
+    font-weight: bold;
+    color: #333;
+  }
+  .slot.filled {
+    border-style: solid;
+    border-color: #43e97b;
+    background: #fff;
+    animation: slot-pop 0.35s ease;
+  }
+  @keyframes slot-pop {
+    0% { transform: scale(0.4); }
+    70% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
+
+  /* Balls flying through the air */
+  .fly-ball {
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-size: 26px;
+    line-height: 1;
+    z-index: 4;
+    pointer-events: none;
+  }
+
+  .hint {
+    text-align: center;
+    color: #666;
+    font-size: 0.95rem;
+    margin-top: 10px;
+  }
+
+  /* Confetti for the big celebration */
+  .confetti {
+    position: fixed;
+    top: -20px;
+    width: 10px;
+    height: 16px;
+    pointer-events: none;
+    z-index: 999;
+    border-radius: 2px;
+    animation: confetti-fall 3s linear forwards;
+  }
+  @keyframes confetti-fall {
+    0% {
+      opacity: 1;
+      transform: translateY(0) translateX(0) rotate(0deg);
+    }
+    100% {
+      opacity: 0.8;
+      transform: translateY(105vh) translateX(var(--drift)) rotate(var(--spin));
+    }
+  }
+
+  @media (max-width: 600px) {
+    h1 { font-size: 1.2rem; }
+    .say-btn { font-size: 1.05rem; padding: 10px 20px; }
+    .claw { height: 56px; }
+    .slot { width: 38px; height: 46px; font-size: 1.4rem; }
+    .toilet { transform: translateX(-50%) scale(0.85); transform-origin: bottom center; }
+  }
+</style>
+</head>
+<body>
+  <a href="index.html" class="back-link">&larr; Back to Games</a>
+  <div class="container">
+    <h1>&#127936; Number Flush! &#128701;</h1>
+    <div class="topbar">
+      <button class="say-btn pulse" id="sayBtn">&#128266; Say the Number</button>
+      <div class="stars" id="stars" title="Rounds finished"></div>
+    </div>
+    <div class="stage" id="stage">
+      <div class="digit-row" id="digitRow"></div>
+      <div class="hoop">
+        <div class="backboard"></div>
+        <div class="rim" id="rim"></div>
+        <div class="net"></div>
+      </div>
+      <div class="slots" id="slots"></div>
+      <div class="toilet" id="toilet">
+        <div class="tank"><div class="flusher"></div></div>
+        <div class="bowl">
+          <div class="water" id="water"><div class="swirl"></div></div>
+        </div>
+        <div class="pedestal"></div>
+      </div>
+    </div>
+    <p class="hint">Listen to the number, then press its digits in order. Swish every ball into the toilet, then&hellip; FLUSH!</p>
+  </div>
+  <p style="margin-top:1rem;color:rgba(255,255,255,0.7);font-size:0.85rem;"><a href="https://github.com/justinpearson/kid-games" style="color:rgba(255,255,255,0.9);">View source on GitHub</a></p>
+<script>
+// ---------------------------------------------------------------------------
+// Number Flush!  The computer says a number (1-3 digits). Under each digit
+// 0-9, a claw arm holds a basketball. Press the right digit and the claw
+// drops its ball through the hoop into the toilet; press the wrong one and
+// the ball clanks off the rim and bounces away. Finish the whole number and
+// the toilet flushes everything away with confetti. Then a new round starts.
+// ---------------------------------------------------------------------------
+
+var stage = document.getElementById('stage');
+var digitRow = document.getElementById('digitRow');
+var slotsEl = document.getElementById('slots');
+var toiletEl = document.getElementById('toilet');
+var waterEl = document.getElementById('water');
+var rimEl = document.getElementById('rim');
+var sayBtn = document.getElementById('sayBtn');
+var starsEl = document.getElementById('stars');
+
+var targetStr = '';     // the number to type, as a string of digits
+var typedIdx = 0;       // how many digits have been typed correctly
+var busy = false;       // true while a ball is flying or the toilet is flushing
+var roundsDone = 0;
+var claws = [];         // claw DOM info per digit 0-9
+
+// ----- Build the digit row -------------------------------------------------
+
+for (var d = 0; d <= 9; d++) {
+    (function (digit) {
+        var unit = document.createElement('div');
+        unit.className = 'digit-unit';
+
+        var btn = document.createElement('button');
+        btn.className = 'digit-btn color-' + digit;
+        btn.textContent = digit;
+        btn.setAttribute('aria-label', 'Digit ' + digit);
+        btn.addEventListener('click', function () { pressDigit(digit); });
+
+        var claw = document.createElement('div');
+        claw.className = 'claw';
+        claw.innerHTML =
+            '<div class="rod"></div>' +
+            '<div class="prong left"></div>' +
+            '<div class="prong right"></div>' +
+            '<span class="claw-ball">&#127936;</span>';
+
+        unit.appendChild(btn);
+        unit.appendChild(claw);
+        digitRow.appendChild(unit);
+
+        claws[digit] = {
+            btn: btn,
+            claw: claw,
+            ball: claw.querySelector('.claw-ball')
+        };
+    })(d);
+}
+
+// Keyboard support: the number keys work too.
+document.addEventListener('keydown', function (e) {
+    if (e.key >= '0' && e.key <= '9') {
+        pressDigit(parseInt(e.key, 10));
+    }
+});
+
+sayBtn.addEventListener('click', function () {
+    sayBtn.classList.remove('pulse');
+    speakTarget();
+});
+
+// ----- Rounds --------------------------------------------------------------
+
+function pickTarget() {
+    // 1, 2 or 3 digits, each length equally likely.
+    var len = 1 + Math.floor(Math.random() * 3);
+    var min = len === 1 ? 0 : Math.pow(10, len - 1);
+    var max = Math.pow(10, len) - 1;
+    var n = min + Math.floor(Math.random() * (max - min + 1));
+    return n.toString();
+}
+
+function newRound() {
+    targetStr = pickTarget();
+    typedIdx = 0;
+    busy = false;
+
+    // Empty slots, one per digit of the target.
+    slotsEl.innerHTML = '';
+    for (var i = 0; i < targetStr.length; i++) {
+        var slot = document.createElement('div');
+        slot.className = 'slot';
+        slotsEl.appendChild(slot);
+    }
+
+    // Every claw gets its basketball back.
+    claws.forEach(function (c) {
+        c.claw.classList.remove('open');
+        c.ball.classList.remove('gone');
+    });
+
+    starsEl.textContent = roundsDone === 0 ? '' : '⭐ ' + roundsDone;
+}
+
+function speakTarget() {
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        var utterance = new SpeechSynthesisUtterance(targetStr);
+        utterance.rate = 0.85;
+        utterance.pitch = 1.1;
+        utterance.volume = 1.0;
+        window.speechSynthesis.speak(utterance);
+    } else {
+        alert('The number is ' + targetStr);
+    }
+}
+
+// ----- Pressing digits -----------------------------------------------------
+
+function pressDigit(digit) {
+    if (busy || typedIdx >= targetStr.length) return;
+    sayBtn.classList.remove('pulse');
+    busy = true;
+
+    var correct = targetStr.charAt(typedIdx) === String(digit);
+    var c = claws[digit];
+
+    // The claw opens and lets go of its ball.
+    c.claw.classList.add('open');
+    c.ball.classList.add('gone');
+    c.btn.classList.add(correct ? 'good' : 'bad');
+    setTimeout(function () { c.btn.classList.remove('good', 'bad'); }, 600);
+    playRelease();
+
+    var flyBall = document.createElement('span');
+    flyBall.className = 'fly-ball';
+    flyBall.innerHTML = '&#127936;';
+    stage.appendChild(flyBall);
+
+    var start = centerInStage(c.ball);
+    flyBall.style.left = start.x + 'px';
+    flyBall.style.top = start.y + 'px';
+    flyBall.style.transform = 'translate(-50%, -50%)';
+
+    if (correct) {
+        animateSwish(flyBall, start, digit, c);
+    } else {
+        animateMiss(flyBall, start, digit, c);
+    }
+}
+
+// Center of an element, in stage coordinates.
+function centerInStage(el) {
+    var s = stage.getBoundingClientRect();
+    var r = el.getBoundingClientRect();
+    return {
+        x: r.left + r.width / 2 - s.left,
+        y: r.top + r.height / 2 - s.top
+    };
+}
+
+function ballKeyframe(start, x, y, scale, opacity) {
+    return {
+        transform: 'translate(-50%, -50%) translate(' + (x - start.x) + 'px, ' +
+                   (y - start.y) + 'px) scale(' + scale + ')',
+        opacity: opacity
+    };
+}
+
+// Correct digit: the ball arcs to the hoop, swishes through the net, and
+// plops into the toilet water.
+function animateSwish(flyBall, start, digit, c) {
+    var rim = centerInStage(rimEl);
+    var water = centerInStage(waterEl);
+
+    var anim = flyBall.animate([
+        Object.assign(ballKeyframe(start, start.x, start.y, 1, 1), { offset: 0, easing: 'ease-in' }),
+        Object.assign(ballKeyframe(start, rim.x, rim.y - 16, 1, 1), { offset: 0.45, easing: 'ease-in' }),
+        Object.assign(ballKeyframe(start, rim.x, rim.y + 34, 0.9, 1), { offset: 0.6, easing: 'ease-in' }),
+        Object.assign(ballKeyframe(start, water.x, water.y - 4, 0.8, 1), { offset: 0.95 }),
+        Object.assign(ballKeyframe(start, water.x, water.y + 6, 0.6, 0), { offset: 1 })
+    ], { duration: 1100, fill: 'forwards' });
+
+    setTimeout(playSwish, 480);  // swish right as it drops through the net
+
+    anim.onfinish = function () {
+        flyBall.remove();
+        addBallToBowl();
+        fillSlot(targetStr.charAt(typedIdx));
+        typedIdx++;
+        playHappy();
+        restoreClaw(c);
+
+        if (typedIdx >= targetStr.length) {
+            completeRound();
+        } else {
+            busy = false;
+        }
+    };
+}
+
+// Wrong digit: the ball clanks off the edge of the rim and bounces away off
+// the screen, looking embarrassed.
+function animateMiss(flyBall, start, digit, c) {
+    var rim = centerInStage(rimEl);
+    // Hit the near edge of the rim, then bounce away from the hoop.
+    var fromLeft = start.x < rim.x;
+    var edgeX = rim.x + (fromLeft ? -40 : 40);
+    var awayX = edgeX + (fromLeft ? -230 : 230);
+    var stageH = stage.getBoundingClientRect().height;
+
+    var anim = flyBall.animate([
+        Object.assign(ballKeyframe(start, start.x, start.y, 1, 1), { offset: 0, easing: 'ease-in' }),
+        Object.assign(ballKeyframe(start, edgeX, rim.y - 8, 1, 1), { offset: 0.4, easing: 'ease-out' }),
+        Object.assign(ballKeyframe(start, (edgeX + awayX) / 2, rim.y - 70, 1, 1), { offset: 0.68, easing: 'ease-in' }),
+        Object.assign(ballKeyframe(start, awayX, stageH + 40, 1, 1), { offset: 1 })
+    ], { duration: 1250, fill: 'forwards' });
+
+    setTimeout(playClank, 460);   // clank when it hits the rim
+    setTimeout(playSad, 650);
+
+    anim.onfinish = function () {
+        flyBall.remove();
+        restoreClaw(c);
+        busy = false;
+    };
+}
+
+// Close the claw and hand it a fresh basketball.
+function restoreClaw(c) {
+    setTimeout(function () {
+        c.claw.classList.remove('open');
+        c.ball.classList.remove('gone');
+    }, 350);
+}
+
+function fillSlot(digitChar) {
+    var slot = slotsEl.children[typedIdx];
+    if (slot) {
+        slot.textContent = digitChar;
+        slot.classList.add('filled');
+    }
+}
+
+function addBallToBowl() {
+    var ball = document.createElement('span');
+    ball.className = 'bowl-ball';
+    ball.innerHTML = '&#127936;';
+    // Scatter the balls a bit across the water.
+    var count = waterEl.querySelectorAll('.bowl-ball').length;
+    ball.style.left = (28 + count * 38 + Math.random() * 10) + 'px';
+    ball.style.top = (8 + Math.random() * 8) + 'px';
+    ball.style.animationDelay = (Math.random() * 0.8) + 's';
+    waterEl.appendChild(ball);
+}
+
+// ----- Finishing a round: confetti, then FLUSH -----------------------------
+
+function completeRound() {
+    roundsDone++;
+    shootConfetti(140);
+    playFanfare();
+
+    setTimeout(flushToilet, 1100);
+}
+
+function flushToilet() {
+    toiletEl.classList.add('flushing');
+    playFlush();
+
+    var drain = centerInStage(waterEl);
+
+    // The collected balls and the typed digits all spiral down the drain.
+    var goners = [];
+    waterEl.querySelectorAll('.bowl-ball').forEach(function (b) { goners.push(b); });
+    slotsEl.querySelectorAll('.slot').forEach(function (s) { goners.push(s); });
+
+    goners.forEach(function (el, i) {
+        var pos = centerInStage(el);
+        var dx = drain.x - pos.x;
+        var dy = drain.y - pos.y;
+        el.style.zIndex = 7;
+        el.animate([
+            { transform: 'translate(0, 0) rotate(0deg) scale(1)', opacity: 1 },
+            { transform: 'translate(' + (dx * 0.5 - 30) + 'px, ' + (dy * 0.6) + 'px) rotate(360deg) scale(0.7)', opacity: 1, offset: 0.55 },
+            { transform: 'translate(' + dx + 'px, ' + dy + 'px) rotate(900deg) scale(0)', opacity: 0 }
+        ], {
+            duration: 1400,
+            delay: i * 90,
+            easing: 'ease-in',
+            fill: 'forwards'
+        });
+    });
+
+    // Tidy up and start the next round once the flush finishes.
+    setTimeout(function () {
+        toiletEl.classList.remove('flushing');
+        waterEl.querySelectorAll('.bowl-ball').forEach(function (b) { b.remove(); });
+        newRound();
+        // Announce the new number automatically (the player has already
+        // interacted, so speech is allowed now).
+        setTimeout(speakTarget, 500);
+    }, 2400);
+}
+
+// ----- Confetti (same recipe as the number grid game) ----------------------
+
+var CONFETTI_COLORS = [
+    '#ffd700', '#ff6b6b', '#4facfe', '#43e97b', '#f093fb',
+    '#fee140', '#00f2fe', '#aa00ff', '#ff9a56', '#2af598'
+];
+
+function shootConfetti(count) {
+    for (var i = 0; i < count; i++) {
+        var piece = document.createElement('div');
+        piece.className = 'confetti';
+        piece.style.left = Math.random() * 100 + 'vw';
+        piece.style.background = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
+        piece.style.animationDelay = Math.random() * 0.5 + 's';
+        piece.style.animationDuration = 2 + Math.random() * 1.5 + 's';
+        piece.style.setProperty('--drift', (Math.random() * 200 - 100) + 'px');
+        piece.style.setProperty('--spin', (Math.random() * 720 - 360) + 'deg');
+        document.body.appendChild(piece);
+        removeAfterAnimation(piece);
+    }
+}
+
+function removeAfterAnimation(el) {
+    var done = false;
+    function cleanup() {
+        if (done) return;
+        done = true;
+        if (el.parentNode) el.parentNode.removeChild(el);
+    }
+    el.addEventListener('animationend', cleanup);
+    setTimeout(cleanup, 4000);
+}
+
+// ----- Sound effects (Web Audio, no audio files needed) --------------------
+
+var audioCtx = null;
+function getCtx() {
+    if (!('AudioContext' in window || 'webkitAudioContext' in window)) return null;
+    if (!audioCtx) {
+        var AudioCtx = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioCtx();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+}
+
+// Play one tone with a quick fade in/out.
+function tone(ctx, type, freq, start, dur, vol, endFreq) {
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, start);
+    if (endFreq) osc.frequency.exponentialRampToValueAtTime(endFreq, start + dur);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(vol, start + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(start);
+    osc.stop(start + dur + 0.05);
+}
+
+// A burst of filtered white noise (for swishes and flushes).
+function noiseBurst(ctx, start, dur, vol, filterFrom, filterTo) {
+    var buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
+    var data = buffer.getChannelData(0);
+    for (var i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    var src = ctx.createBufferSource();
+    src.buffer = buffer;
+    var filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(filterFrom, start);
+    filter.frequency.exponentialRampToValueAtTime(filterTo, start + dur);
+    var gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(vol, start + dur * 0.15);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    src.start(start);
+    src.stop(start + dur);
+}
+
+function playRelease() {
+    var ctx = getCtx();
+    if (!ctx) return;
+    tone(ctx, 'square', 900, ctx.currentTime, 0.07, 0.08);
+}
+
+function playSwish() {
+    var ctx = getCtx();
+    if (!ctx) return;
+    noiseBurst(ctx, ctx.currentTime, 0.3, 0.25, 3500, 500);
+}
+
+function playHappy() {
+    var ctx = getCtx();
+    if (!ctx) return;
+    var t = ctx.currentTime;
+    [523.25, 659.25, 783.99].forEach(function (f, i) {
+        tone(ctx, 'triangle', f, t + i * 0.09, 0.18, 0.25);
+    });
+}
+
+function playClank() {
+    var ctx = getCtx();
+    if (!ctx) return;
+    var t = ctx.currentTime;
+    tone(ctx, 'square', 220, t, 0.1, 0.2);
+    tone(ctx, 'square', 180, t + 0.02, 0.12, 0.15);
+}
+
+function playSad() {
+    var ctx = getCtx();
+    if (!ctx) return;
+    var t = ctx.currentTime;
+    tone(ctx, 'sawtooth', 300, t, 0.28, 0.12, 240);
+    tone(ctx, 'sawtooth', 240, t + 0.3, 0.45, 0.12, 160);
+}
+
+function playFanfare() {
+    var ctx = getCtx();
+    if (!ctx) return;
+    var t = ctx.currentTime;
+    [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach(function (f, i) {
+        tone(ctx, 'triangle', f, t + i * 0.16, 0.26, 0.3);
+    });
+}
+
+function playFlush() {
+    var ctx = getCtx();
+    if (!ctx) return;
+    var t = ctx.currentTime;
+    // Whooshing water...
+    noiseBurst(ctx, t, 2.2, 0.35, 1400, 150);
+    // ...with a few gurgle blips sprinkled in.
+    for (var i = 0; i < 6; i++) {
+        var start = t + 0.2 + Math.random() * 1.6;
+        tone(ctx, 'sine', 150 + Math.random() * 250, start, 0.12, 0.12, 90);
+    }
+}
+
+// ----- Go! -----------------------------------------------------------------
+
+newRound();
+</script>
+</body>
+</html>
