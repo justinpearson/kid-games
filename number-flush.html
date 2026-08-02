@@ -91,6 +91,19 @@
   .reset-btn:hover { background: #eceff5; transform: scale(1.05); }
   .reset-btn:active { transform: scale(0.97); }
 
+  .set-box { display: inline-flex; align-items: center; gap: 6px; }
+  .set-box input {
+    width: 80px;
+    padding: 6px 10px;
+    font-size: 0.95rem;
+    font-weight: bold;
+    color: #333;
+    border: 2px solid #d8dde5;
+    border-radius: 999px;
+    text-align: center;
+  }
+  .set-box input:focus { outline: none; border-color: #667eea; }
+
   /* ---- The game stage ------------------------------------------------- */
   .stage {
     position: relative;
@@ -448,6 +461,11 @@
       <button class="say-btn pulse" id="sayBtn">&#128266; Say the Number</button>
       <div class="stars" id="stars" title="Rounds finished"></div>
       <button class="reset-btn" id="resetBtn" title="Reset the stars to zero">Reset &#11088;</button>
+      <button class="reset-btn" id="setBtn" title="Set the star count by hand">Set &#11088;</button>
+      <span class="set-box" id="setBox" hidden>
+        <input type="number" id="setInput" min="0" max="99999" aria-label="Star count">
+        <button class="reset-btn" id="setOk" title="Apply">&#10003;</button>
+      </span>
     </div>
     <div class="stage" id="stage">
       <div class="digit-row" id="digitRow"></div>
@@ -548,8 +566,10 @@ for (var d = 0; d <= 9; d++) {
     })(d);
 }
 
-// Keyboard support: the number keys work too.
+// Keyboard support: the number keys work too — but not while typing in a
+// text field (like the star-count input).
 document.addEventListener('keydown', function (e) {
+    if (e.target.tagName === 'INPUT') return;
     if (e.key >= '0' && e.key <= '9') {
         pressDigit(parseInt(e.key, 10));
     }
@@ -564,6 +584,41 @@ document.getElementById('resetBtn').addEventListener('click', function () {
     roundsDone = 0;
     saveStars();
     renderStars();
+});
+
+// "Set ⭐" reveals a little input so a grown-up can restore the star count
+// (e.g. after clearing the browser data wiped it out).
+var setBtn = document.getElementById('setBtn');
+var setBox = document.getElementById('setBox');
+var setInput = document.getElementById('setInput');
+
+setBtn.addEventListener('click', function () {
+    setBtn.hidden = true;
+    setBox.hidden = false;
+    setInput.value = roundsDone;
+    setInput.focus();
+    setInput.select();
+});
+
+function closeSetBox() {
+    setBox.hidden = true;
+    setBtn.hidden = false;
+}
+
+function applyStarCount() {
+    var n = parseInt(setInput.value, 10);
+    if (!isNaN(n) && n >= 0) {
+        roundsDone = n;
+        saveStars();
+        renderStars();
+    }
+    closeSetBox();
+}
+
+document.getElementById('setOk').addEventListener('click', applyStarCount);
+setInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') applyStarCount();
+    if (e.key === 'Escape') closeSetBox();
 });
 
 // ----- Rounds --------------------------------------------------------------
