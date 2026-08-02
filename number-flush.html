@@ -77,6 +77,20 @@
     text-align: center;
   }
 
+  .reset-btn {
+    border: 2px solid #d8dde5;
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: #778;
+    background: #f6f8fb;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
+  .reset-btn:hover { background: #eceff5; transform: scale(1.05); }
+  .reset-btn:active { transform: scale(0.97); }
+
   /* ---- The game stage ------------------------------------------------- */
   .stage {
     position: relative;
@@ -433,6 +447,7 @@
     <div class="topbar">
       <button class="say-btn pulse" id="sayBtn">&#128266; Say the Number</button>
       <div class="stars" id="stars" title="Rounds finished"></div>
+      <button class="reset-btn" id="resetBtn" title="Reset the stars to zero">Reset &#11088;</button>
     </div>
     <div class="stage" id="stage">
       <div class="digit-row" id="digitRow"></div>
@@ -474,8 +489,31 @@ var starsEl = document.getElementById('stars');
 var targetStr = '';     // the number to type, as a string of digits
 var typedIdx = 0;       // how many digits have been typed correctly
 var busy = false;       // true while a ball is flying or the toilet is flushing
-var roundsDone = 0;
+var roundsDone = loadStars();
 var claws = [];         // claw DOM info per digit 0-9
+
+// Stars survive reloads via localStorage (which can be unavailable, e.g. in
+// private browsing, so all access is guarded).
+var STARS_KEY = 'numberFlushStars';
+
+function loadStars() {
+    try {
+        var n = parseInt(localStorage.getItem('numberFlushStars'), 10);
+        return isNaN(n) || n < 0 ? 0 : n;
+    } catch (e) {
+        return 0;
+    }
+}
+
+function saveStars() {
+    try {
+        localStorage.setItem(STARS_KEY, String(roundsDone));
+    } catch (e) { /* no storage available; stars just won't persist */ }
+}
+
+function renderStars() {
+    starsEl.textContent = roundsDone === 0 ? '' : '⭐ ' + roundsDone;
+}
 
 // ----- Build the digit row -------------------------------------------------
 
@@ -522,6 +560,12 @@ sayBtn.addEventListener('click', function () {
     speakTarget();
 });
 
+document.getElementById('resetBtn').addEventListener('click', function () {
+    roundsDone = 0;
+    saveStars();
+    renderStars();
+});
+
 // ----- Rounds --------------------------------------------------------------
 
 function pickTarget() {
@@ -552,7 +596,7 @@ function newRound() {
         c.ball.classList.remove('gone');
     });
 
-    starsEl.textContent = roundsDone === 0 ? '' : '⭐ ' + roundsDone;
+    renderStars();
 }
 
 function speak(text) {
@@ -720,6 +764,7 @@ function addBallToBowl() {
 
 function completeRound() {
     roundsDone++;
+    saveStars();
     shootConfetti(140);
     playFanfare();
 
