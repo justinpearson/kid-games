@@ -365,6 +365,17 @@
     70% { transform: scale(1.15); }
     100% { transform: scale(1); }
   }
+  .slot.celebrate {
+    border-color: #ffb300;
+    background: #fff7d6;
+    color: #ff6d00;
+    animation: slot-celebrate 0.6s ease;
+  }
+  @keyframes slot-celebrate {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.4); box-shadow: 0 0 20px rgba(255, 179, 0, 0.85); }
+    100% { transform: scale(1); }
+  }
 
   /* Balls flying through the air */
   .fly-ball {
@@ -703,7 +714,16 @@ function completeRound() {
     shootConfetti(140);
     playFanfare();
 
-    setTimeout(flushToilet, 1100);
+    // Say the finished number one more time while its digits light up
+    // golden, one by one from left to right. Then the big flush.
+    setTimeout(function () {
+        speakTarget();
+        var slots = slotsEl.querySelectorAll('.slot');
+        slots.forEach(function (slot, i) {
+            setTimeout(function () { slot.classList.add('celebrate'); }, i * 550);
+        });
+        setTimeout(flushToilet, slots.length * 550 + 900);
+    }, 1200);
 }
 
 function flushToilet() {
