@@ -555,14 +555,20 @@ function newRound() {
     starsEl.textContent = roundsDone === 0 ? '' : '⭐ ' + roundsDone;
 }
 
-function speakTarget() {
+function speak(text) {
     if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
-        var utterance = new SpeechSynthesisUtterance(targetStr);
+        var utterance = new SpeechSynthesisUtterance(text);
         utterance.rate = 0.85;
         utterance.pitch = 1.1;
         utterance.volume = 1.0;
         window.speechSynthesis.speak(utterance);
+    }
+}
+
+function speakTarget() {
+    if ('speechSynthesis' in window) {
+        speak(targetStr);
     } else {
         alert('The number is ' + targetStr);
     }
@@ -577,6 +583,9 @@ function pressDigit(digit) {
 
     var correct = targetStr.charAt(typedIdx) === String(digit);
     var c = claws[digit];
+
+    // Say the digit that was pressed.
+    speak(String(digit));
 
     // The claw opens and lets go of its ball.
     c.claw.classList.add('open');
