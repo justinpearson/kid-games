@@ -92,6 +92,7 @@
   .reset-btn:active { transform: scale(0.97); }
 
   .set-box { display: inline-flex; align-items: center; gap: 6px; }
+  .set-box[hidden] { display: none; }
   .set-box input {
     width: 80px;
     padding: 6px 10px;
@@ -456,7 +457,7 @@
 <body>
   <a href="index.html" class="back-link">&larr; Back to Games</a>
   <div class="container">
-    <h1>&#127936; Number Flush! &#128701;</h1>
+    <h1>&#127852; Number Flush! &#128701;</h1>
     <div class="topbar">
       <button class="say-btn pulse" id="sayBtn">&#128266; Say the Number</button>
       <div class="stars" id="stars" title="Rounds finished"></div>
@@ -483,7 +484,7 @@
         <div class="pedestal"></div>
       </div>
     </div>
-    <p class="hint">Listen to the number, then press its digits in order. Swish every ball into the toilet, then&hellip; FLUSH!</p>
+    <p class="hint">Listen to the number, then press its digits in order. Swish every treat into the toilet, then&hellip; FLUSH!</p>
   </div>
   <p style="margin-top:1rem;color:rgba(255,255,255,0.7);font-size:0.85rem;"><a href="https://github.com/justinpearson/kid-games" style="color:rgba(255,255,255,0.9);">View source on GitHub</a></p>
 <script>
@@ -503,6 +504,15 @@ var waterEl = document.getElementById('water');
 var rimEl = document.getElementById('rim');
 var sayBtn = document.getElementById('sayBtn');
 var starsEl = document.getElementById('stars');
+
+// The treats the claws hold: candy, peppermint swirl, ice cream cones,
+// chocolate bars, lollipops, doughnuts, cookies, cupcakes, shaved ice,
+// and even little pizzas.
+var CANDIES = ['🍬', '🍥', '🍦', '🍫', '🍭', '🍩', '🍪', '🧁', '🍧', '🍕'];
+
+function randomCandy() {
+    return CANDIES[Math.floor(Math.random() * CANDIES.length)];
+}
 
 var targetStr = '';     // the number to type, as a string of digits
 var typedIdx = 0;       // how many digits have been typed correctly
@@ -552,7 +562,7 @@ for (var d = 0; d <= 9; d++) {
             '<div class="rod"></div>' +
             '<div class="prong left"></div>' +
             '<div class="prong right"></div>' +
-            '<span class="claw-ball">&#127936;</span>';
+            '<span class="claw-ball"></span>';
 
         unit.appendChild(btn);
         unit.appendChild(claw);
@@ -563,6 +573,7 @@ for (var d = 0; d <= 9; d++) {
             claw: claw,
             ball: claw.querySelector('.claw-ball')
         };
+        claws[digit].ball.textContent = randomCandy();
     })(d);
 }
 
@@ -645,8 +656,9 @@ function newRound() {
         slotsEl.appendChild(slot);
     }
 
-    // Every claw gets its basketball back.
+    // Every claw gets a fresh random treat.
     claws.forEach(function (c) {
+        c.ball.textContent = randomCandy();
         c.claw.classList.remove('open');
         c.ball.classList.remove('gone');
     });
@@ -693,9 +705,11 @@ function pressDigit(digit) {
     setTimeout(function () { c.btn.classList.remove('good', 'bad'); }, 600);
     playRelease();
 
+    // The flying treat is whatever this claw was holding.
+    var candy = c.ball.textContent;
     var flyBall = document.createElement('span');
     flyBall.className = 'fly-ball';
-    flyBall.innerHTML = '&#127936;';
+    flyBall.textContent = candy;
     stage.appendChild(flyBall);
 
     var start = centerInStage(c.ball);
@@ -704,7 +718,7 @@ function pressDigit(digit) {
     flyBall.style.transform = 'translate(-50%, -50%)';
 
     if (correct) {
-        animateSwish(flyBall, start, digit, c);
+        animateSwish(flyBall, start, digit, c, candy);
     } else {
         animateMiss(flyBall, start, digit, c);
     }
@@ -730,7 +744,7 @@ function ballKeyframe(start, x, y, scale, opacity) {
 
 // Correct digit: the ball arcs to the hoop, swishes through the net, and
 // plops into the toilet water.
-function animateSwish(flyBall, start, digit, c) {
+function animateSwish(flyBall, start, digit, c, candy) {
     var rim = centerInStage(rimEl);
     var water = centerInStage(waterEl);
 
@@ -746,7 +760,7 @@ function animateSwish(flyBall, start, digit, c) {
 
     anim.onfinish = function () {
         flyBall.remove();
-        addBallToBowl();
+        addBallToBowl(candy);
         fillSlot(targetStr.charAt(typedIdx));
         typedIdx++;
         playHappy();
@@ -787,9 +801,10 @@ function animateMiss(flyBall, start, digit, c) {
     };
 }
 
-// Close the claw and hand it a fresh basketball.
+// Close the claw and hand it a fresh random treat.
 function restoreClaw(c) {
     setTimeout(function () {
+        c.ball.textContent = randomCandy();
         c.claw.classList.remove('open');
         c.ball.classList.remove('gone');
     }, 350);
@@ -803,10 +818,10 @@ function fillSlot(digitChar) {
     }
 }
 
-function addBallToBowl() {
+function addBallToBowl(candy) {
     var ball = document.createElement('span');
     ball.className = 'bowl-ball';
-    ball.innerHTML = '&#127936;';
+    ball.textContent = candy;
     // Scatter the balls a bit across the water.
     var count = waterEl.querySelectorAll('.bowl-ball').length;
     ball.style.left = (28 + count * 38 + Math.random() * 10) + 'px';
