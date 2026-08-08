@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Birthday Dash &mdash; Traffic Navigation Game</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+  }
+  h1 {
+    color: #fff;
+    font-size: 2rem;
+    margin: 0.3rem 0 0.2rem;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  }
+  .tagline { color: rgba(255,255,255,0.9); margin-bottom: 0.7rem; text-align: center; }
+
+  .topbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    justify-content: center;
+    align-items: stretch;
+    margin-bottom: 0.7rem;
+    width: 100%;
+    max-width: 960px;
+  }
+  .clockcard {
+    background: #fff;
+    border-radius: 0.8rem;
+    padding: 0.5rem 1.1rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    text-align: center;
+    min-width: 150px;
+  }
+  .clockcard .label { font-size: 0.75rem; color: #777; text-transform: uppercase; letter-spacing: 0.05em; }
+  .clockcard .value { font-size: 1.5rem; font-weight: 700; color: #333; }
+  .clockcard.now .value { color: #2563eb; }
+  .clockcard.party .value { color: #d946ef; }
+  .clockcard.eta .value { color: #059669; }
+  .clockcard.eta.late .value { color: #dc2626; }
+
+  .badge {
+    align-self: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    color: #fff;
+    background: #64748b;
+  }
+  .badge.live { background: #059669; }
+  .badge.sim { background: #d97706; }
+
+  .mapwrap {
+    background: #e8f4e0;
+    border-radius: 1rem;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    width: 100%;
+    max-width: 960px;
+    position: relative;
+    overflow: hidden;
+  }
+  svg { display: block; width: 100%; height: auto; }
+  .loading-veil {
+    position: absolute; inset: 0;
+    background: rgba(255,255,255,0.85);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; color: #444; font-weight: 600;
+    z-index: 5;
+  }
+
+  .roadmath {
+    background: rgba(255,255,255,0.92);
+    border-radius: 0.8rem;
+    margin-top: 0.7rem;
+    padding: 0.5rem 1rem;
+    max-width: 960px;
+    width: 100%;
+    text-align: center;
+    font-size: 1.15rem;
+    color: #333;
+    min-height: 2.4rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+  }
+  .roadmath b { color: #2563eb; }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    justify-content: center;
+    margin-top: 0.7rem;
+  }
+  button {
+    font-family: inherit;
+    font-size: 1.05rem;
+    font-weight: 700;
+    padding: 0.6rem 1.3rem;
+    border: none;
+    border-radius: 0.7rem;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    transition: transform 0.1s, opacity 0.2s;
+  }
+  button:active { transform: scale(0.96); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-drive { background: #22c55e; color: #fff; font-size: 1.3rem; padding: 0.7rem 2rem; }
+  .btn-undo  { background: #f59e0b; color: #fff; }
+  .btn-clear { background: #ef4444; color: #fff; }
+  .btn-new   { background: #3b82f6; color: #fff; }
+  .btn-refresh { background: #8b5cf6; color: #fff; }
+
+  .legend {
+    display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;
+    margin-top: 0.6rem; color: #fff; font-size: 0.85rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 0.3rem; }
+  .chip { width: 22px; height: 8px; border-radius: 4px; display: inline-block; }
+
+  /* result overlay */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.55);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 50;
+  }
+  .overlay.show { display: flex; }
+  .resultcard {
+    background: #fff;
+    border-radius: 1.2rem;
+    padding: 2rem 2.5rem;
+    text-align: center;
+    max-width: 480px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    position: relative;
+    overflow: hidden;
+  }
+  .resultcard h2 { font-size: 2rem; margin-bottom: 0.5rem; }
+  .resultcard .bigemoji { font-size: 4rem; display: block; margin-bottom: 0.5rem; }
+  .resultcard p { color: #555; margin-bottom: 0.5rem; font-size: 1.1rem; }
+  .resultcard .mathline {
+    background: #f1f5f9; border-radius: 0.6rem; padding: 0.6rem;
+    font-size: 1.15rem; color: #334155; margin: 0.8rem 0;
+  }
+  .confetti-bit {
+    position: absolute; top: -30px; font-size: 1.4rem;
+    animation: fall 2.6s linear infinite;
+  }
+  @keyframes fall {
+    to { transform: translateY(560px) rotate(360deg); }
+  }
+
+  /* map svg element styles */
+  .street { stroke-linecap: round; cursor: pointer; }
+  .street.closed { stroke-dasharray: 10 8; }
+  .halo { stroke: #2563eb; stroke-linecap: round; opacity: 0.85; pointer-events: none; }
+  .node { fill: #fff; stroke: #475569; stroke-width: 3; cursor: pointer; }
+  .node.inpath { fill: #2563eb; stroke: #1e3a8a; }
+  .node.candidate { animation: pulse 1s ease-in-out infinite; }
+  @keyframes pulse {
+    0%, 100% { stroke-width: 3; r: 12; }
+    50% { stroke-width: 6; }
+  }
+  .minpill { pointer-events: none; }
+  .minpill rect { fill: #ffffff; stroke: #94a3b8; stroke-width: 1; opacity: 0.95; }
+  .minpill text { font-size: 15px; font-weight: 700; fill: #1e293b; text-anchor: middle; }
+  .decor { pointer-events: none; }
+
+  /* ===== debug section ===== */
+  details.debug {
+    width: 100%; max-width: 960px;
+    margin-top: 1.5rem;
+    background: #0f172a;
+    color: #cbd5e1;
+    border-radius: 0.8rem;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    font-size: 0.85rem;
+  }
+  details.debug > summary {
+    cursor: pointer;
+    padding: 0.8rem 1.2rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    list-style: none;
+  }
+  details.debug > summary::before { content: '\25B6\00a0'; }
+  details.debug[open] > summary::before { content: '\25BC\00a0'; }
+  .dbg-body { padding: 0 1.2rem 1.2rem; display: flex; flex-direction: column; gap: 1.1rem; }
+  .dbg-section h3 { color: #7dd3fc; font-size: 0.95rem; margin-bottom: 0.4rem; }
+  .dbg-section .hint { color: #64748b; font-size: 0.78rem; margin-bottom: 0.4rem; }
+  .dbg-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+  .dbg-row label { color: #94a3b8; }
+  .dbg-row input, .dbg-row select {
+    background: #1e293b; color: #e2e8f0; border: 1px solid #334155;
+    border-radius: 0.4rem; padding: 0.3rem 0.5rem; font-family: monospace; font-size: 0.85rem;
+  }
+  .dbg-row input.wide { width: 26rem; max-width: 100%; }
+  details.debug button {
+    font-size: 0.85rem; padding: 0.35rem 0.8rem; border-radius: 0.4rem;
+    background: #0284c7; color: #fff; box-shadow: none;
+  }
+  details.debug button.secondary { background: #475569; }
+  .dbg-stats { display: flex; flex-wrap: wrap; gap: 1.2rem; font-family: monospace; }
+  .dbg-stats b { color: #f8fafc; }
+  pre.jsonbox {
+    background: #020617; border: 1px solid #1e293b; border-radius: 0.5rem;
+    padding: 0.7rem; overflow: auto; max-height: 320px;
+    font-size: 0.78rem; color: #a5f3fc; white-space: pre-wrap; word-break: break-all;
+  }
+  .dbg-table-wrap { overflow-x: auto; }
+  table.dbg { border-collapse: collapse; font-family: monospace; font-size: 0.75rem; width: 100%; }
+  table.dbg th, table.dbg td { border: 1px solid #334155; padding: 0.25rem 0.45rem; text-align: right; white-space: nowrap; }
+  table.dbg th { background: #1e293b; color: #7dd3fc; position: sticky; top: 0; }
+  table.dbg td:first-child, table.dbg th:first-child { text-align: left; }
+  td.ok { color: #4ade80; } td.err { color: #f87171; }
+  .tilegrid { display: grid; grid-template-columns: repeat(2, 200px); gap: 2px; }
+  .tilecell { position: relative; width: 200px; height: 200px; background: #1e293b; }
+  .tilecell img { position: absolute; inset: 0; width: 200px; height: 200px; }
+  .tilecell .flow { opacity: 0.9; }
+  .tilecell .tile-err {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: #f87171; font-size: 0.7rem; text-align: center; padding: 0.5rem;
+  }
+  .backlink { margin: 1.2rem 0; }
+  .backlink a { color: rgba(255,255,255,0.9); }
+</style>
+</head>
+<body>
+  <h1>&#128663;&#127874; Birthday Dash!</h1>
+  <p class="tagline">The streets show <b>real traffic</b> right now. Pick the fastest roads and get to the party on time!</p>
+
+  <div class="topbar">
+    <div class="clockcard now">
+      <div class="label">&#128336; Time now</div>
+      <div class="value" id="clock-now">--:--</div>
+    </div>
+    <div class="clockcard party">
+      <div class="label">&#127874; Party starts</div>
+      <div class="value" id="clock-party">--:--</div>
+    </div>
+    <div class="clockcard eta" id="eta-card">
+      <div class="label">&#128664; You'd arrive</div>
+      <div class="value" id="clock-eta">&mdash;</div>
+    </div>
+    <span class="badge" id="data-badge">loading&hellip;</span>
+  </div>
+
+  <div class="mapwrap">
+    <div class="loading-veil" id="loading-veil">&#128678; Checking today's traffic&hellip;</div>
+    <svg id="map" viewBox="0 0 960 680" aria-label="City map"></svg>
+  </div>
+
+  <div class="roadmath" id="roadmath">Tap the glowing circles to draw your route from &#127968; home to the &#127874; party!</div>
+
+  <div class="controls">
+    <button class="btn-drive" id="btn-drive" disabled>&#128663; Drive!</button>
+    <button class="btn-undo" id="btn-undo" disabled>&#8630; Undo</button>
+    <button class="btn-clear" id="btn-clear" disabled>&#10060; Clear</button>
+    <button class="btn-new" id="btn-new">&#127922; New Game</button>
+    <button class="btn-refresh" id="btn-refresh">&#128260; Refresh Traffic</button>
+  </div>
+
+  <div class="legend">
+    <span><span class="chip" style="background:#2ecc71"></span> zooming along</span>
+    <span><span class="chip" style="background:#f39c12"></span> kind of slow</span>
+    <span><span class="chip" style="background:#e74c3c"></span> traffic jam!</span>
+    <span><span class="chip" style="background:#64748b"></span> &#128679; road closed</span>
+    <span>&#128290; number = minutes to drive that road</span>
+  </div>
+
+  <!-- ================= DEBUG SECTION ================= -->
+  <details class="debug" id="debug-panel">
+    <summary>&#128295; TomTom API Debug &amp; Evaluation</summary>
+    <div class="dbg-body">
+
+      <div class="dbg-section">
+        <h3>API key</h3>
+        <div class="dbg-row">
+          <input type="text" id="dbg-key" class="wide" spellcheck="false">
+          <button id="dbg-key-save">Save</button>
+          <button id="dbg-key-reset" class="secondary">Reset to default</button>
+          <span id="dbg-key-note" class="hint"></span>
+        </div>
+        <p class="hint">Stored in localStorage. The default is the trial key baked into this page.</p>
+      </div>
+
+      <div class="dbg-section">
+        <h3>Status</h3>
+        <div class="dbg-stats" id="dbg-stats">no calls yet</div>
+        <p class="hint">The game maps a pretend 5&times;4 street grid onto real downtown San Francisco
+        (lat 37.777&ndash;37.789, lon &minus;122.418&ndash;&minus;122.398) and queries the
+        <b>Flow Segment Data</b> endpoint once per street segment (31 calls). Responses are cached in
+        localStorage for 10 minutes to be gentle on the trial key's daily quota.</p>
+        <div class="dbg-row">
+          <button id="dbg-refetch">Re-fetch all 31 segments (bypass cache)</button>
+          <button id="dbg-clear-cache" class="secondary">Clear cache</button>
+          <span id="dbg-cache-age" class="hint"></span>
+        </div>
+      </div>
+
+      <div class="dbg-section">
+        <h3>Try a custom Flow Segment query</h3>
+        <div class="dbg-row">
+          <label>lat</label><input type="text" id="dbg-lat" value="37.7810" size="9">
+          <label>lon</label><input type="text" id="dbg-lon" value="-122.4060" size="10">
+          <label>zoom</label><input type="text" id="dbg-zoom" value="10" size="3">
+          <label>style</label>
+          <select id="dbg-style">
+            <option value="absolute">absolute</option>
+            <option value="relative0">relative0</option>
+            <option value="relative">relative</option>
+          </select>
+          <button id="dbg-run">Run</button>
+        </div>
+        <p class="hint" id="dbg-url" style="word-break:break-all"></p>
+        <pre class="jsonbox" id="dbg-json">(response JSON will appear here)</pre>
+      </div>
+
+      <div class="dbg-section">
+        <h3>Per-segment data (what the game is using)</h3>
+        <div class="dbg-table-wrap" style="max-height:340px;overflow-y:auto">
+          <table class="dbg" id="dbg-segtable"></table>
+        </div>
+      </div>
+
+      <div class="dbg-section">
+        <h3>Traffic flow tiles (visual sanity check)</h3>
+        <p class="hint">TomTom base-map tiles with the traffic <i>flow</i> raster tiles overlaid,
+        zoom 14, around the game's map area. If these load and show colored roads, the tile API + key work.</p>
+        <div class="dbg-row"><button id="dbg-tiles-load">Load tiles</button></div>
+        <div class="tilegrid" id="dbg-tiles"></div>
+      </div>
+
+      <div class="dbg-section">
+        <h3>API call log</h3>
+        <div class="dbg-row"><button id="dbg-log-clear" class="secondary">Clear log</button></div>
+        <div class="dbg-table-wrap" style="max-height:260px;overflow-y:auto">
+          <table class="dbg" id="dbg-log"></table>
+        </div>
+      </div>
+
+    </div>
+  </details>
+
+  <p class="backlink"><a href="index.html">&larr; Back to all games</a></p>
+
+  <!-- result overlay -->
+  <div class="overlay" id="overlay">
+    <div class="resultcard" id="resultcard"></div>
+  </div>
+
+<script>
+'use strict';
+
+/* ============================================================
+ *  TomTom API layer
+ * ============================================================ */
+const DEFAULT_KEY = 'fvx9g9eQPiSF2IeUTEjeDz1DynaJCPoP';
+const KEY_STORAGE = 'tomtomApiKey';
+const CACHE_STORAGE = 'birthdayDashTrafficCache';
+const CACHE_TTL_MS = 10 * 60 * 1000;
+
+function getApiKey() {
+  return localStorage.getItem(KEY_STORAGE) || DEFAULT_KEY;
+}
+
+const callLog = [];   // {time, label, url, status, ms, ok, note}
+
+function logCall(entry) {
+  callLog.unshift(entry);
+  if (callLog.length > 200) callLog.pop();
+  renderCallLog();
+  renderStats();
+}
+
+function flowUrl(lat, lon, { zoom = 10, style = 'absolute' } = {}) {
+  return 'https://api.tomtom.com/traffic/services/4/flowSegmentData/' + style + '/' + zoom +
+         '/json?point=' + lat.toFixed(5) + ',' + lon.toFixed(5) + '&key=' + getApiKey();
+}
+
+async function fetchFlow(lat, lon, opts = {}, label = 'flowSegment') {
+  const url = flowUrl(lat, lon, opts);
+  const t0 = performance.now();
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 8000);
+  try {
+    const resp = await fetch(url, { signal: ctrl.signal });
+    const ms = Math.round(performance.now() - t0);
+    if (!resp.ok) {
+      logCall({ time: new Date(), label, url, status: resp.status, ms, ok: false, note: resp.statusText });
+      throw new Error('HTTP ' + resp.status);
+    }
+    const json = await resp.json();
+    logCall({ time: new Date(), label, url, status: resp.status, ms, ok: true, note: '' });
+    return json.flowSegmentData;
+  } catch (e) {
+    if (!callLog.length || callLog[0].url !== url) {
+      logCall({ time: new Date(), label, url, status: '-', ms: Math.round(performance.now() - t0),
+                ok: false, note: e.name === 'AbortError' ? 'timeout' : String(e.message || e) });
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/* ============================================================
+ *  City grid model, mapped onto real San Francisco streets
+ * ============================================================ */
+const COLS = 5, ROWS = 4;
+const LAT_TOP = 37.7885, LAT_STEP = 0.004;    // north edge of grid, degrees per row
+const LON_LEFT = -122.418, LON_STEP = 0.005;  // west edge of grid, degrees per col
+
+const ROW_NAMES = ['Rainbow Road', 'Banana Blvd', 'Tiger Trail', 'Muffin Street'];
+const COL_NAMES = ['Robot Ave', 'Dino Drive', 'Pickle Lane', 'Comet Court', 'Bubble Way'];
+
+// SVG layout
+const M_LEFT = 90, M_TOP = 80, CELL_W = 195, CELL_H = 170;
+const nodeX = c => M_LEFT + c * CELL_W;
+const nodeY = r => M_TOP + r * CELL_H;
+const nodeLat = r => LAT_TOP - r * LAT_STEP;
+const nodeLon = c => LON_LEFT + c * LON_STEP;
+
+const nodes = [];   // {id, r, c, x, y, lat, lon}
+const edges = [];   // {id, a, b, name, mid, len, x1..y2, traffic, minutes, els}
+
+for (let r = 0; r < ROWS; r++)
+  for (let c = 0; c < COLS; c++)
+    nodes.push({ id: r * COLS + c, r, c, x: nodeX(c), y: nodeY(r), lat: nodeLat(r), lon: nodeLon(c) });
+
+function distKm(lat1, lon1, lat2, lon2) {
+  const R = 6371, d2r = Math.PI / 180;
+  const dLat = (lat2 - lat1) * d2r, dLon = (lon2 - lon1) * d2r;
+  const h = Math.sin(dLat / 2) ** 2 +
+            Math.cos(lat1 * d2r) * Math.cos(lat2 * d2r) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+function addEdge(a, b, name) {
+  const A = nodes[a], B = nodes[b];
+  edges.push({
+    id: edges.length, a, b, name,
+    mid: { lat: (A.lat + B.lat) / 2, lon: (A.lon + B.lon) / 2 },
+    len: distKm(A.lat, A.lon, B.lat, B.lon),
+    x1: A.x, y1: A.y, x2: B.x, y2: B.y,
+    traffic: null, minutes: 3, els: {}
+  });
+}
+
+for (let r = 0; r < ROWS; r++)
+  for (let c = 0; c < COLS - 1; c++)
+    addEdge(r * COLS + c, r * COLS + c + 1,
+      ROW_NAMES[r] + ' (' + COL_NAMES[c] + ' → ' + COL_NAMES[c + 1] + ')');
+for (let r = 0; r < ROWS - 1; r++)
+  for (let c = 0; c < COLS; c++)
+    addEdge(r * COLS + c, (r + 1) * COLS + c,
+      COL_NAMES[c] + ' (' + ROW_NAMES[r] + ' → ' + ROW_NAMES[r + 1] + ')');
+
+const edgesAt = nodes.map(() => []);
+edges.forEach(e => { edgesAt[e.a].push(e); edgesAt[e.b].push(e); });
+const edgeBetween = (a, b) => edges.find(e => (e.a === a && e.b === b) || (e.a === b && e.b === a));
+
+/* ============================================================
+ *  Traffic data: live TomTom with simulated fallback
+ * ============================================================ */
+let liveCount = 0;
+
+function simulateTraffic() {
+  const roll = Math.random();
+  const freeFlowSpeed = 30 + Math.random() * 25;
+  let ratio, roadClosure = false;
+  if (roll < 0.03)      { ratio = 0.12; roadClosure = true; }
+  else if (roll < 0.58) { ratio = 0.78 + Math.random() * 0.22; }
+  else if (roll < 0.86) { ratio = 0.45 + Math.random() * 0.33; }
+  else                  { ratio = 0.15 + Math.random() * 0.30; }
+  return {
+    currentSpeed: Math.round(freeFlowSpeed * ratio),
+    freeFlowSpeed: Math.round(freeFlowSpeed),
+    confidence: +(0.7 + Math.random() * 0.3).toFixed(2),
+    roadClosure, live: false
+  };
+}
+
+// Game-minute scale: real segment ~0.44 km; x6 makes free flow ~3-5 min per leg.
+function computeMinutes(edge) {
+  const sp = Math.max(edge.traffic.currentSpeed, 3);
+  const raw = edge.len / sp * 60 * 6;
+  return Math.min(15, Math.max(1, Math.round(raw)));
+}
+
+function trafficColor(t) {
+  if (t.roadClosure) return '#64748b';
+  const ratio = t.currentSpeed / Math.max(t.freeFlowSpeed, 1);
+  if (ratio >= 0.75) return '#2ecc71';
+  if (ratio >= 0.45) return '#f39c12';
+  return '#e74c3c';
+}
+
+function readCache() {
+  try {
+    const c = JSON.parse(localStorage.getItem(CACHE_STORAGE));
+    if (c && c.ts && Date.now() - c.ts < CACHE_TTL_MS && c.data) return c;
+  } catch (e) { /* corrupted cache */ }
+  return null;
+}
+
+async function loadTraffic({ bypassCache = false } = {}) {
+  document.getElementById('loading-veil').style.display = 'flex';
+  liveCount = 0;
+
+  const cache = bypassCache ? null : readCache();
+  let fetched = {};
+  if (cache) {
+    fetched = cache.data;
+    Object.keys(fetched).forEach(() => {});
+  } else {
+    const results = await Promise.allSettled(
+      edges.map(e => fetchFlow(e.mid.lat, e.mid.lon, {}, 'seg#' + e.id))
+    );
+    results.forEach((res, i) => {
+      if (res.status === 'fulfilled' && res.value) fetched[i] = res.value;
+    });
+    if (Object.keys(fetched).length > 0) {
+      try { localStorage.setItem(CACHE_STORAGE, JSON.stringify({ ts: Date.now(), data: fetched })); }
+      catch (e) { /* storage full */ }
+    }
+  }
+
+  edges.forEach(e => {
+    const d = fetched[e.id];
+    if (d && typeof d.currentSpeed === 'number') {
+      e.traffic = {
+        currentSpeed: d.currentSpeed, freeFlowSpeed: d.freeFlowSpeed,
+        currentTravelTime: d.currentTravelTime, freeFlowTravelTime: d.freeFlowTravelTime,
+        confidence: d.confidence, roadClosure: !!d.roadClosure, live: true, raw: d
+      };
+      liveCount++;
+    } else {
+      e.traffic = simulateTraffic();
+    }
+    e.minutes = e.traffic.roadClosure ? 15 : computeMinutes(e);
+  });
+
+  const badge = document.getElementById('data-badge');
+  if (liveCount === edges.length) { badge.textContent = '● LIVE TomTom traffic'; badge.className = 'badge live'; }
+  else if (liveCount > 0) { badge.textContent = '● LIVE (' + liveCount + '/' + edges.length + ' segments)'; badge.className = 'badge live'; }
+  else { badge.textContent = '○ simulated traffic (API unreachable)'; badge.className = 'badge sim'; }
+
+  document.getElementById('loading-veil').style.display = 'none';
+  renderSegTable();
+  renderStats();
+  renderCacheAge();
+}
+
+/* ============================================================
+ *  Game state
+ * ============================================================ */
+const START_MIN = 15 * 60;   // 3:00 PM, minutes since midnight
+let homeId = 0, partyId = 0, deadlineMin = 0;
+let path = [homeId];         // node ids, path[0] === homeId
+let mode = 'planning';       // planning | driving | done
+let clockMin = START_MIN;
+
+function fmtTime(min) {
+  min = Math.round(min);
+  let h = Math.floor(min / 60) % 24, m = min % 60;
+  const ap = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return h + ':' + String(m).padStart(2, '0') + ' ' + ap;
+}
+
+function dijkstra(from, to) {
+  const dist = nodes.map(() => Infinity);
+  const done = nodes.map(() => false);
+  dist[from] = 0;
+  for (;;) {
+    let u = -1, best = Infinity;
+    for (let i = 0; i < nodes.length; i++)
+      if (!done[i] && dist[i] < best) { best = dist[i]; u = i; }
+    if (u === -1 || u === to) break;
+    done[u] = true;
+    for (const e of edgesAt[u]) {
+      const v = e.a === u ? e.b : e.a;
+      if (dist[u] + e.minutes < dist[v]) dist[v] = dist[u] + e.minutes;
+    }
+  }
+  return dist[to];
+}
+
+const CORNERS = [0, COLS - 1, (ROWS - 1) * COLS, ROWS * COLS - 1];
+function newGame() {
+  const h = CORNERS[Math.floor(Math.random() * CORNERS.length)];
+  const hn = nodes[h];
+  partyId = (ROWS - 1 - hn.r) * COLS + (COLS - 1 - hn.c);  // opposite corner
+  homeId = h;
+  const shortest = dijkstra(homeId, partyId);
+  deadlineMin = START_MIN + Math.ceil((shortest * 1.15 + 2) / 5) * 5;
+  path = [homeId];
+  mode = 'planning';
+  clockMin = START_MIN;
+  hideOverlay();
+  updateAll();
+}
+
+function pathMinutes() {
+  let total = 0;
+  for (let i = 0; i < path.length - 1; i++) total += edgeBetween(path[i], path[i + 1]).minutes;
+  return total;
+}
+const pathComplete = () => path[path.length - 1] === partyId;
+
+function onNodeClick(id) {
+  if (mode !== 'planning') return;
+  const idx = path.indexOf(id);
+  if (idx >= 0) { path = path.slice(0, idx + 1); updateAll(); return; }  // truncate back
+  if (pathComplete()) return;
+  const last = path[path.length - 1];
+  if (edgeBetween(last, id)) { path.push(id); updateAll(); }
+}
+
+function onEdgeClick(e) {
+  if (mode !== 'planning' || pathComplete()) return;
+  const last = path[path.length - 1];
+  if (e.a === last && !path.includes(e.b)) { path.push(e.b); updateAll(); }
+  else if (e.b === last && !path.includes(e.a)) { path.push(e.a); updateAll(); }
+}
+
+/* ============================================================
+ *  Rendering (SVG)
+ * ============================================================ */
+const svg = document.getElementById('map');
+const SVGNS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs, parent) {
+  const n = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  (parent || svg).appendChild(n);
+  return n;
+}
+
+const layers = {};
+let carEl = null, homeEl = null, partyEl = null;
+const nodeEls = [];
+
+function buildMap() {
+  svg.innerHTML = '';
+  ['decor', 'halo', 'streets', 'pills', 'nodes', 'markers', 'car'].forEach(name => {
+    layers[name] = el('g', { class: 'layer-' + name });
+  });
+
+  // grass blocks + buildings
+  const DECOR = ['\u{1F3E2}','\u{1F3EB}','\u{1F333}','\u{1F3EA}','\u{1F3E5}','⛲','\u{1F3F0}','\u{1F332}','\u{1F3E1}','\u{1F6DD}','\u{1F33B}','\u{1F3DF}'];
+  let d = 0;
+  for (let r = 0; r < ROWS - 1; r++)
+    for (let c = 0; c < COLS - 1; c++) {
+      const cx = nodeX(c) + CELL_W / 2, cy = nodeY(r) + CELL_H / 2;
+      el('rect', { x: nodeX(c) + 22, y: nodeY(r) + 22, width: CELL_W - 44, height: CELL_H - 44,
+                   rx: 14, fill: '#d4ecc3', class: 'decor' }, layers.decor);
+      el('text', { x: cx, y: cy + 12, 'text-anchor': 'middle', 'font-size': 34, class: 'decor' },
+         layers.decor).textContent = DECOR[d++ % DECOR.length];
+    }
+
+  edges.forEach(e => {
+    e.els.halo = el('line', { x1: e.x1, y1: e.y1, x2: e.x2, y2: e.y2,
+                              class: 'halo', 'stroke-width': 26, visibility: 'hidden' }, layers.halo);
+    e.els.line = el('line', { x1: e.x1, y1: e.y1, x2: e.x2, y2: e.y2,
+                              class: 'street', 'stroke-width': 14, stroke: '#999' }, layers.streets);
+    e.els.line.addEventListener('click', () => onEdgeClick(e));
+
+    const mx = (e.x1 + e.x2) / 2, my = (e.y1 + e.y2) / 2;
+    const pill = el('g', { class: 'minpill' }, layers.pills);
+    e.els.pillRect = el('rect', { x: mx - 26, y: my - 13, width: 52, height: 26, rx: 13 }, pill);
+    e.els.pillText = el('text', { x: mx, y: my + 5 }, pill);
+    e.els.closedIcon = el('text', { x: mx, y: my - 18, 'text-anchor': 'middle',
+                                    'font-size': 20, class: 'decor', visibility: 'hidden' }, pill);
+    e.els.closedIcon.textContent = '\u{1F6A7}';
+  });
+
+  nodes.forEach(n => {
+    const c = el('circle', { cx: n.x, cy: n.y, r: 12, class: 'node' }, layers.nodes);
+    c.addEventListener('click', () => onNodeClick(n.id));
+    nodeEls[n.id] = c;
+  });
+
+  homeEl = el('text', { 'text-anchor': 'middle', 'font-size': 42, class: 'decor' }, layers.markers);
+  homeEl.textContent = '\u{1F3E0}';
+  partyEl = el('text', { 'text-anchor': 'middle', 'font-size': 42, class: 'decor' }, layers.markers);
+  partyEl.textContent = '\u{1F388}\u{1F382}';
+
+  carEl = el('text', { 'text-anchor': 'middle', 'font-size': 36, class: 'decor', visibility: 'hidden' }, layers.car);
+  carEl.textContent = '\u{1F697}';
+}
+
+function markerPos(n) {
+  // nudge marker emoji away from map edges
+  const dy = n.r === 0 ? -24 : -26;
+  const dx = n.c === COLS - 1 ? -34 : n.c === 0 ? 10 : 0;
+  return { x: n.x + dx, y: n.y + dy };
+}
+
+function updateMap() {
+  edges.forEach(e => {
+    const t = e.traffic || { currentSpeed: 1, freeFlowSpeed: 1, roadClosure: false };
+    e.els.line.setAttribute('stroke', trafficColor(t));
+    e.els.line.classList.toggle('closed', !!t.roadClosure);
+    e.els.pillText.textContent = e.minutes + ' min';
+    e.els.closedIcon.setAttribute('visibility', t.roadClosure ? 'visible' : 'hidden');
+    const onPath = pathHasEdge(e);
+    e.els.halo.setAttribute('visibility', onPath ? 'visible' : 'hidden');
+  });
+
+  const last = path[path.length - 1];
+  nodes.forEach(n => {
+    const c = nodeEls[n.id];
+    c.classList.toggle('inpath', path.includes(n.id));
+    const isCandidate = mode === 'planning' && !pathComplete() &&
+                        !path.includes(n.id) && !!edgeBetween(last, n.id);
+    c.classList.toggle('candidate', isCandidate);
+  });
+
+  const hp = markerPos(nodes[homeId]), pp = markerPos(nodes[partyId]);
+  homeEl.setAttribute('x', hp.x); homeEl.setAttribute('y', hp.y);
+  partyEl.setAttribute('x', pp.x); partyEl.setAttribute('y', pp.y);
+}
+
+function pathHasEdge(e) {
+  for (let i = 0; i < path.length - 1; i++) {
+    const a = path[i], b = path[i + 1];
+    if ((e.a === a && e.b === b) || (e.a === b && e.b === a)) return true;
+  }
+  return false;
+}
+
+function updateHud() {
+  document.getElementById('clock-now').textContent = fmtTime(clockMin);
+  document.getElementById('clock-party').textContent = fmtTime(deadlineMin);
+
+  const etaCard = document.getElementById('eta-card');
+  const etaVal = document.getElementById('clock-eta');
+  const mathBox = document.getElementById('roadmath');
+
+  if (path.length > 1) {
+    const legs = [];
+    for (let i = 0; i < path.length - 1; i++) legs.push(edgeBetween(path[i], path[i + 1]).minutes);
+    const total = legs.reduce((a, b) => a + b, 0);
+    const eta = START_MIN + total;
+    etaVal.textContent = fmtTime(eta);
+    etaCard.classList.toggle('late', eta > deadlineMin);
+    mathBox.innerHTML = '&#129518; Your route: <b>' + legs.join(' + ') + ' = ' + total +
+      ' minutes</b>' + (pathComplete()
+        ? (eta <= deadlineMin ? ' &mdash; that should make it! &#128588;' : ' &mdash; uh oh, that’s too slow! &#128552;')
+        : ' so far… keep going to the &#127874;!');
+  } else {
+    etaVal.textContent = '—';
+    etaCard.classList.remove('late');
+    mathBox.innerHTML = 'Tap the glowing circles to draw your route from &#127968; home to the &#127874; party!';
+  }
+
+  document.getElementById('btn-drive').disabled = !(mode === 'planning' && pathComplete());
+  document.getElementById('btn-undo').disabled = !(mode === 'planning' && path.length > 1);
+  document.getElementById('btn-clear').disabled = !(mode === 'planning' && path.length > 1);
+  document.getElementById('btn-new').disabled = mode === 'driving';
+  document.getElementById('btn-refresh').disabled = mode === 'driving';
+}
+
+function updateAll() { updateMap(); updateHud(); }
+
+/* ============================================================
+ *  Drive animation
+ * ============================================================ */
+const MS_PER_GAME_MIN = 400;
+
+function drive() {
+  if (!pathComplete() || mode !== 'planning') return;
+  mode = 'driving';
+  updateHud();
+  carEl.setAttribute('visibility', 'visible');
+
+  const legs = [];
+  for (let i = 0; i < path.length - 1; i++) {
+    const A = nodes[path[i]], B = nodes[path[i + 1]];
+    legs.push({ A, B, minutes: edgeBetween(path[i], path[i + 1]).minutes });
+  }
+  const totalMin = legs.reduce((s, l) => s + l.minutes, 0);
+  let legIdx = 0, legStart = performance.now();
+
+  function frame(now) {
+    let elapsedMin = 0;
+    for (let i = 0; i < legIdx; i++) elapsedMin += legs[i].minutes;
+
+    const leg = legs[legIdx];
+    const legDur = leg.minutes * MS_PER_GAME_MIN;
+    let t = (now - legStart) / legDur;
+    if (t >= 1) {
+      legIdx++;
+      legStart = now;
+      if (legIdx >= legs.length) {
+        clockMin = START_MIN + totalMin;
+        updateHud();
+        carEl.setAttribute('x', leg.B.x); carEl.setAttribute('y', leg.B.y - 6);
+        setTimeout(() => finishDrive(totalMin), 500);
+        return;
+      }
+      t = 0;
+    }
+    const cur = legs[legIdx];
+    carEl.setAttribute('x', cur.A.x + (cur.B.x - cur.A.x) * t);
+    carEl.setAttribute('y', cur.A.y + (cur.B.y - cur.A.y) * t - 6);
+    clockMin = START_MIN + elapsedMin + (legIdx === legs.length ? 0 : cur.minutes * Math.min(t, 1));
+    document.getElementById('clock-now').textContent = fmtTime(Math.floor(clockMin));
+    requestAnimationFrame(frame);
+  }
+  carEl.setAttribute('x', legs[0].A.x); carEl.setAttribute('y', legs[0].A.y - 6);
+  requestAnimationFrame(frame);
+}
+
+function finishDrive(totalMin) {
+  mode = 'done';
+  const arrive = START_MIN + totalMin;
+  const onTime = arrive <= deadlineMin;
+  const legs = [];
+  for (let i = 0; i < path.length - 1; i++) legs.push(edgeBetween(path[i], path[i + 1]).minutes);
+
+  const card = document.getElementById('resultcard');
+  card.innerHTML =
+    '<span class="bigemoji">' + (onTime ? '\u{1F389}\u{1F382}\u{1F388}' : '\u{1F622}\u{1F556}') + '</span>' +
+    '<h2>' + (onTime ? 'You made it!' : 'Oh no, too late!') + '</h2>' +
+    '<p>You arrived at <b>' + fmtTime(arrive) + '</b>. The party started at <b>' + fmtTime(deadlineMin) + '</b>.</p>' +
+    '<div class="mathline">' + legs.join(' + ') + ' = ' + totalMin + ' minutes of driving</div>' +
+    '<p>' + (onTime
+        ? (deadlineMin - arrive >= 1 ? 'You even had ' + (deadlineMin - arrive) + ' minutes to spare! \u{1F3C6}' : 'Phew — just in time! \u{1F60C}')
+        : 'You missed it by ' + (arrive - deadlineMin) + ' minutes. Try a faster route — watch out for red roads!') + '</p>' +
+    '<button class="btn-new" id="btn-again">' + (onTime ? '\u{1F382} Play again' : '\u{1F501} Try again') + '</button>';
+  document.getElementById('btn-again').addEventListener('click', () => {
+    if (onTime) { newGame(); }
+    else { hideOverlay(); path = [homeId]; mode = 'planning'; clockMin = START_MIN; carEl.setAttribute('visibility','hidden'); updateAll(); }
+  });
+
+  if (onTime) {
+    const BITS = ['\u{1F389}','\u{1F388}','✨','\u{1F382}','\u{1F381}'];
+    for (let i = 0; i < 34; i++) {
+      const s = document.createElement('span');
+      s.className = 'confetti-bit';
+      s.textContent = BITS[i % BITS.length];
+      s.style.left = (Math.random() * 95) + '%';
+      s.style.animationDelay = (Math.random() * 2.4) + 's';
+      s.style.animationDuration = (2 + Math.random() * 1.6) + 's';
+      card.appendChild(s);
+    }
+  }
+  document.getElementById('overlay').classList.add('show');
+  carEl.setAttribute('visibility', 'hidden');
+  updateHud();
+}
+
+function hideOverlay() { document.getElementById('overlay').classList.remove('show'); }
+
+/* ============================================================
+ *  Debug panel
+ * ============================================================ */
+function renderStats() {
+  const ok = callLog.filter(c => c.ok).length;
+  const bad = callLog.filter(c => !c.ok).length;
+  const avg = ok ? Math.round(callLog.filter(c => c.ok).reduce((s, c) => s + c.ms, 0) / ok) : 0;
+  document.getElementById('dbg-stats').innerHTML =
+    'mode: <b>' + (liveCount > 0 ? 'LIVE (' + liveCount + '/' + edges.length + ' segments)' : 'SIMULATED') + '</b>' +
+    '<span>calls ok: <b>' + ok + '</b></span>' +
+    '<span>calls failed: <b>' + bad + '</b></span>' +
+    '<span>avg latency: <b>' + (ok ? avg + ' ms' : '—') + '</b></span>';
+}
+
+function renderCacheAge() {
+  const c = readCache();
+  document.getElementById('dbg-cache-age').textContent = c
+    ? 'cache age: ' + Math.round((Date.now() - c.ts) / 1000) + 's (of ' + (CACHE_TTL_MS / 1000) + 's TTL), ' +
+      Object.keys(c.data).length + ' segments'
+    : 'cache: empty';
+}
+
+function renderCallLog() {
+  const t = document.getElementById('dbg-log');
+  let html = '<tr><th>time</th><th>label</th><th>status</th><th>ms</th><th>note</th><th>url</th></tr>';
+  for (const c of callLog) {
+    html += '<tr><td>' + c.time.toLocaleTimeString() + '</td><td>' + c.label + '</td>' +
+      '<td class="' + (c.ok ? 'ok' : 'err') + '">' + c.status + '</td><td>' + c.ms + '</td>' +
+      '<td>' + (c.note || '') + '</td>' +
+      '<td style="max-width:420px;overflow:hidden;text-overflow:ellipsis" title="' + c.url + '">' +
+      c.url.replace(/key=[^&]+/, 'key=…') + '</td></tr>';
+  }
+  t.innerHTML = html;
+}
+
+function renderSegTable() {
+  const t = document.getElementById('dbg-segtable');
+  let html = '<tr><th>segment</th><th>midpoint</th><th>src</th><th>cur km/h</th><th>free km/h</th>' +
+             '<th>ratio</th><th>curTT s</th><th>freeTT s</th><th>conf</th><th>closed</th><th>game min</th></tr>';
+  for (const e of edges) {
+    const tr = e.traffic;
+    if (!tr) continue;
+    const ratio = (tr.currentSpeed / Math.max(tr.freeFlowSpeed, 1)).toFixed(2);
+    html += '<tr><td>' + e.name + '</td>' +
+      '<td>' + e.mid.lat.toFixed(4) + ',' + e.mid.lon.toFixed(4) + '</td>' +
+      '<td class="' + (tr.live ? 'ok' : 'err') + '">' + (tr.live ? 'live' : 'sim') + '</td>' +
+      '<td>' + tr.currentSpeed + '</td><td>' + tr.freeFlowSpeed + '</td><td>' + ratio + '</td>' +
+      '<td>' + (tr.currentTravelTime ?? '—') + '</td><td>' + (tr.freeFlowTravelTime ?? '—') + '</td>' +
+      '<td>' + (tr.confidence ?? '—') + '</td><td>' + (tr.roadClosure ? '\u{1F6A7}' : '') + '</td>' +
+      '<td><b>' + e.minutes + '</b></td></tr>';
+  }
+  t.innerHTML = html;
+}
+
+async function runCustomQuery() {
+  const lat = parseFloat(document.getElementById('dbg-lat').value);
+  const lon = parseFloat(document.getElementById('dbg-lon').value);
+  const zoom = parseInt(document.getElementById('dbg-zoom').value, 10) || 10;
+  const style = document.getElementById('dbg-style').value;
+  const box = document.getElementById('dbg-json');
+  if (isNaN(lat) || isNaN(lon)) { box.textContent = 'Invalid lat/lon'; return; }
+  document.getElementById('dbg-url').textContent =
+    'GET ' + flowUrl(lat, lon, { zoom, style }).replace(/key=[^&]+/, 'key=…');
+  box.textContent = 'fetching…';
+  try {
+    const data = await fetchFlow(lat, lon, { zoom, style }, 'custom');
+    box.textContent = JSON.stringify(data, null, 2);
+  } catch (e) {
+    box.textContent = 'REQUEST FAILED: ' + e + '\n\nCommon causes:\n' +
+      ' - invalid/expired API key or daily quota exhausted (HTTP 403)\n' +
+      ' - point too far from any road (HTTP 400)\n' +
+      ' - network/CORS blocked (TypeError: Failed to fetch)\n' +
+      'Check the call log below for status codes.';
+  }
+}
+
+function lonLatToTile(lat, lon, z) {
+  const n = 2 ** z;
+  const x = Math.floor((lon + 180) / 360 * n);
+  const latR = lat * Math.PI / 180;
+  const y = Math.floor((1 - Math.log(Math.tan(latR) + 1 / Math.cos(latR)) / Math.PI) / 2 * n);
+  return { x, y };
+}
+
+function loadTiles() {
+  const grid = document.getElementById('dbg-tiles');
+  grid.innerHTML = '';
+  const z = 14;
+  const centerLat = LAT_TOP - (ROWS - 1) / 2 * LAT_STEP;
+  const centerLon = LON_LEFT + (COLS - 1) / 2 * LON_STEP;
+  const { x, y } = lonLatToTile(centerLat, centerLon, z);
+  for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+    const cell = document.createElement('div');
+    cell.className = 'tilecell';
+    const base = document.createElement('img');
+    base.src = 'https://api.tomtom.com/map/1/tile/basic/main/' + z + '/' + (x + dx - 1) + '/' + (y + dy) + '.png?key=' + getApiKey();
+    const flow = document.createElement('img');
+    flow.className = 'flow';
+    flow.src = 'https://api.tomtom.com/traffic/map/4/tile/flow/relative0/' + z + '/' + (x + dx - 1) + '/' + (y + dy) + '.png?key=' + getApiKey();
+    const err = document.createElement('div');
+    err.className = 'tile-err';
+    err.style.display = 'none';
+    err.textContent = 'tile failed to load (check key / network)';
+    base.onerror = flow.onerror = () => { err.style.display = 'flex'; };
+    cell.appendChild(base); cell.appendChild(flow); cell.appendChild(err);
+    grid.appendChild(cell);
+  }
+}
+
+function setupDebug() {
+  const keyInput = document.getElementById('dbg-key');
+  keyInput.value = getApiKey();
+  document.getElementById('dbg-key-note').textContent =
+    localStorage.getItem(KEY_STORAGE) ? '(custom key from localStorage)' : '(default trial key)';
+  document.getElementById('dbg-key-save').addEventListener('click', () => {
+    localStorage.setItem(KEY_STORAGE, keyInput.value.trim());
+    document.getElementById('dbg-key-note').textContent = '(custom key saved)';
+  });
+  document.getElementById('dbg-key-reset').addEventListener('click', () => {
+    localStorage.removeItem(KEY_STORAGE);
+    keyInput.value = DEFAULT_KEY;
+    document.getElementById('dbg-key-note').textContent = '(default trial key)';
+  });
+  document.getElementById('dbg-run').addEventListener('click', runCustomQuery);
+  document.getElementById('dbg-refetch').addEventListener('click', async () => {
+    await loadTraffic({ bypassCache: true });
+    newGame();
+  });
+  document.getElementById('dbg-clear-cache').addEventListener('click', () => {
+    localStorage.removeItem(CACHE_STORAGE);
+    renderCacheAge();
+  });
+  document.getElementById('dbg-log-clear').addEventListener('click', () => { callLog.length = 0; renderCallLog(); renderStats(); });
+  document.getElementById('dbg-tiles-load').addEventListener('click', loadTiles);
+  setInterval(renderCacheAge, 5000);
+}
+
+/* ============================================================
+ *  Boot
+ * ============================================================ */
+document.getElementById('btn-drive').addEventListener('click', drive);
+document.getElementById('btn-undo').addEventListener('click', () => {
+  if (mode === 'planning' && path.length > 1) { path.pop(); updateAll(); }
+});
+document.getElementById('btn-clear').addEventListener('click', () => {
+  if (mode === 'planning') { path = [homeId]; updateAll(); }
+});
+document.getElementById('btn-new').addEventListener('click', newGame);
+document.getElementById('btn-refresh').addEventListener('click', async () => {
+  await loadTraffic({ bypassCache: true });
+  newGame();
+});
+
+buildMap();
+setupDebug();
+loadTraffic().then(newGame);
+
+// exposed for debugging / automated tests
+window.__game = { nodes, edges, get path() { return path; }, get mode() { return mode; },
+                  get homeId() { return homeId; }, get partyId() { return partyId; },
+                  get deadlineMin() { return deadlineMin; },
+                  onNodeClick, drive, newGame, loadTraffic };
+</script>
+</body>
+</html>
