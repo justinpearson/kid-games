@@ -105,6 +105,26 @@
   }
   .set-box input:focus { outline: none; border-color: #667eea; }
 
+  .digits-box {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #778;
+  }
+  .digits-box select {
+    border: 2px solid #d8dde5;
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #333;
+    background: #f6f8fb;
+    cursor: pointer;
+  }
+  .digits-box select:focus { outline: none; border-color: #667eea; }
+
   /* ---- The game stage ------------------------------------------------- */
   .stage {
     position: relative;
@@ -467,6 +487,15 @@
         <input type="number" id="setInput" min="0" max="99999" aria-label="Star count">
         <button class="reset-btn" id="setOk" title="Apply">&#10003;</button>
       </span>
+      <label class="digits-box" title="Biggest number of digits a number can have">
+        Digits up to
+        <select id="maxDigitsSel" aria-label="Maximum number of digits">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select>
+      </label>
     </div>
     <div class="stage" id="stage">
       <div class="digit-row" id="digitRow"></div>
@@ -489,7 +518,8 @@
   <p style="margin-top:1rem;color:rgba(255,255,255,0.7);font-size:0.85rem;"><a href="https://github.com/justinpearson/kid-games" style="color:rgba(255,255,255,0.9);">View source on GitHub</a></p>
 <script>
 // ---------------------------------------------------------------------------
-// Number Flush!  The computer says a number (1-3 digits). Under each digit
+// Number Flush!  The computer says a number (1 up to "Digits up to" digits,
+// chosen from the dropdown in the top bar). Under each digit
 // 0-9, a claw arm holds a basketball. Press the right digit and the claw
 // drops its ball through the hoop into the toilet; press the wrong one and
 // the ball clanks off the rim and bounces away. Finish the whole number and
@@ -523,6 +553,26 @@ var claws = [];         // claw DOM info per digit 0-9
 // Stars survive reloads via localStorage (which can be unavailable, e.g. in
 // private browsing, so all access is guarded).
 var STARS_KEY = 'numberFlushStars';
+
+// How many digits a number may have (1-4), chosen from the "Digits up to"
+// dropdown so grown-ups can crank the difficulty up or dial it back.
+var MAX_DIGITS_KEY = 'numberFlushMaxDigits';
+var maxDigits = loadMaxDigits();
+
+function loadMaxDigits() {
+    try {
+        var n = parseInt(localStorage.getItem(MAX_DIGITS_KEY), 10);
+        return n >= 1 && n <= 4 ? n : 3;
+    } catch (e) {
+        return 3;
+    }
+}
+
+function saveMaxDigits() {
+    try {
+        localStorage.setItem(MAX_DIGITS_KEY, String(maxDigits));
+    } catch (e) { /* no storage available; the choice just won't persist */ }
+}
 
 function loadStars() {
     try {
@@ -580,7 +630,7 @@ for (var d = 0; d <= 9; d++) {
 // Keyboard support: the number keys work too — but not while typing in a
 // text field (like the star-count input).
 document.addEventListener('keydown', function (e) {
-    if (e.target.tagName === 'INPUT') return;
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
     if (e.key >= '0' && e.key <= '9') {
         pressDigit(parseInt(e.key, 10));
     }
@@ -632,11 +682,26 @@ setInput.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') closeSetBox();
 });
 
+// The "Digits up to" dropdown: changing it starts a fresh round at the new
+// difficulty (waiting until any in-flight ball or flush settles down).
+var maxDigitsSel = document.getElementById('maxDigitsSel');
+maxDigitsSel.value = String(maxDigits);
+
+maxDigitsSel.addEventListener('change', function () {
+    maxDigits = parseInt(maxDigitsSel.value, 10);
+    saveMaxDigits();
+    maxDigitsSel.blur();  // so number keys go back to the game
+    if (!busy) {
+        newRound();
+        speakTarget();
+    }
+});
+
 // ----- Rounds --------------------------------------------------------------
 
 function pickTarget() {
-    // 1, 2 or 3 digits, each length equally likely.
-    var len = 1 + Math.floor(Math.random() * 3);
+    // 1 up to maxDigits digits, each length equally likely.
+    var len = 1 + Math.floor(Math.random() * maxDigits);
     var min = len === 1 ? 0 : Math.pow(10, len - 1);
     var max = Math.pow(10, len) - 1;
     var n = min + Math.floor(Math.random() * (max - min + 1));
