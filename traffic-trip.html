@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Birthday Dash &mdash; Traffic Navigation Game</title>
+<title>Birthday Dash &mdash; UCSB to Long Beach</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -31,7 +31,7 @@
     align-items: stretch;
     margin-bottom: 0.7rem;
     width: 100%;
-    max-width: 960px;
+    max-width: 1040px;
   }
   .clockcard {
     background: #fff;
@@ -65,7 +65,7 @@
     border-radius: 1rem;
     box-shadow: 0 8px 30px rgba(0,0,0,0.25);
     width: 100%;
-    max-width: 960px;
+    max-width: 1040px;
     position: relative;
     overflow: hidden;
   }
@@ -83,7 +83,7 @@
     border-radius: 0.8rem;
     margin-top: 0.7rem;
     padding: 0.5rem 1rem;
-    max-width: 960px;
+    max-width: 1040px;
     width: 100%;
     text-align: center;
     font-size: 1.15rem;
@@ -151,7 +151,7 @@
   .resultcard p { color: #555; margin-bottom: 0.5rem; font-size: 1.1rem; }
   .resultcard .mathline {
     background: #f1f5f9; border-radius: 0.6rem; padding: 0.6rem;
-    font-size: 1.15rem; color: #334155; margin: 0.8rem 0;
+    font-size: 1.05rem; color: #334155; margin: 0.8rem 0;
   }
   .confetti-bit {
     position: absolute; top: -30px; font-size: 1.4rem;
@@ -162,24 +162,29 @@
   }
 
   /* map svg element styles */
-  .street { stroke-linecap: round; cursor: pointer; }
+  .street { stroke-linecap: round; stroke-linejoin: round; fill: none; cursor: pointer; }
   .street.closed { stroke-dasharray: 10 8; }
-  .halo { stroke: #2563eb; stroke-linecap: round; opacity: 0.85; pointer-events: none; }
+  .halo { stroke: #2563eb; stroke-linecap: round; stroke-linejoin: round; fill: none; opacity: 0.85; pointer-events: none; }
   .node { fill: #fff; stroke: #475569; stroke-width: 3; cursor: pointer; }
   .node.inpath { fill: #2563eb; stroke: #1e3a8a; }
   .node.candidate { animation: pulse 1s ease-in-out infinite; }
   @keyframes pulse {
-    0%, 100% { stroke-width: 3; r: 12; }
-    50% { stroke-width: 6; }
+    0%, 100% { stroke-width: 3; }
+    50% { stroke-width: 7; }
+  }
+  .nodelabel {
+    font-size: 12px; font-weight: 600; fill: #334155; text-anchor: middle;
+    pointer-events: none; paint-order: stroke; stroke: rgba(255,255,255,0.85); stroke-width: 3px;
   }
   .minpill { pointer-events: none; }
   .minpill rect { fill: #ffffff; stroke: #94a3b8; stroke-width: 1; opacity: 0.95; }
-  .minpill text { font-size: 15px; font-weight: 700; fill: #1e293b; text-anchor: middle; }
+  .minpill .road { font-size: 9px; font-weight: 700; fill: #64748b; text-anchor: middle; }
+  .minpill .mins { font-size: 13px; font-weight: 700; fill: #1e293b; text-anchor: middle; }
   .decor { pointer-events: none; }
 
   /* ===== debug section ===== */
   details.debug {
-    width: 100%; max-width: 960px;
+    width: 100%; max-width: 1040px;
     margin-top: 1.5rem;
     background: #0f172a;
     color: #cbd5e1;
@@ -239,7 +244,7 @@
 </head>
 <body>
   <h1>&#128663;&#127874; Birthday Dash!</h1>
-  <p class="tagline">The streets show <b>real traffic</b> right now. Pick the fastest roads and get to the party on time!</p>
+  <p class="tagline"><b>Real freeway traffic</b>, right now: drive from &#127968; UCSB to a birthday party at the &#9973; Long Beach Yacht Club. Which way will you go?</p>
 
   <div class="topbar">
     <div class="clockcard now">
@@ -258,11 +263,11 @@
   </div>
 
   <div class="mapwrap">
-    <div class="loading-veil" id="loading-veil">&#128678; Checking today's traffic&hellip;</div>
-    <svg id="map" viewBox="0 0 960 680" aria-label="City map"></svg>
+    <div class="loading-veil" id="loading-veil">&#128678; Checking freeway traffic&hellip;</div>
+    <svg id="map" viewBox="0 0 1000 680" aria-label="Southern California freeway map"></svg>
   </div>
 
-  <div class="roadmath" id="roadmath">Tap the glowing circles to draw your route from &#127968; home to the &#127874; party!</div>
+  <div class="roadmath" id="roadmath">Tap the glowing circles to pick your freeways from &#127968; UCSB to the &#127874; party in Long Beach!</div>
 
   <div class="controls">
     <button class="btn-drive" id="btn-drive" disabled>&#128663; Drive!</button>
@@ -277,7 +282,7 @@
     <span><span class="chip" style="background:#f39c12"></span> kind of slow</span>
     <span><span class="chip" style="background:#e74c3c"></span> traffic jam!</span>
     <span><span class="chip" style="background:#64748b"></span> &#128679; road closed</span>
-    <span>&#128290; number = minutes to drive that road</span>
+    <span>&#128290; number = minutes to drive that leg</span>
   </div>
 
   <!-- ================= DEBUG SECTION ================= -->
@@ -299,12 +304,15 @@
       <div class="dbg-section">
         <h3>Status</h3>
         <div class="dbg-stats" id="dbg-stats">no calls yet</div>
-        <p class="hint">The game maps a pretend 5&times;4 street grid onto real downtown San Francisco
-        (lat 37.777&ndash;37.789, lon &minus;122.418&ndash;&minus;122.398) and queries the
-        <b>Flow Segment Data</b> endpoint once per street segment (31 calls). Responses are cached in
-        localStorage for 10 minutes to be gentle on the trial key's daily quota.</p>
+        <p class="hint">The map is a schematic (not-to-scale) graph of the real freeway network between UCSB and
+        the Long Beach Yacht Club: 101, 1 (PCH), 23, 118, 126, 192, 2, 5, 10, 110, 405, 605, and 710.
+        Each of the segments queries the <b>Flow Segment Data</b> endpoint at a hand-picked
+        point that lies on that actual freeway, so speeds are the real thing. Leg minutes =
+        real driving distance &divide; live speed. Responses are cached in localStorage for 10 minutes
+        to be gentle on the trial key's daily quota. If a sample point snapped to the wrong road,
+        the <i>frc</i> column below will show it (FRC0&ndash;1 = motorway, higher = smaller road).</p>
         <div class="dbg-row">
-          <button id="dbg-refetch">Re-fetch all 31 segments (bypass cache)</button>
+          <button id="dbg-refetch">Re-fetch all segments (bypass cache)</button>
           <button id="dbg-clear-cache" class="secondary">Clear cache</button>
           <span id="dbg-cache-age" class="hint"></span>
         </div>
@@ -313,8 +321,8 @@
       <div class="dbg-section">
         <h3>Try a custom Flow Segment query</h3>
         <div class="dbg-row">
-          <label>lat</label><input type="text" id="dbg-lat" value="37.7810" size="9">
-          <label>lon</label><input type="text" id="dbg-lon" value="-122.4060" size="10">
+          <label>lat</label><input type="text" id="dbg-lat" value="34.0810" size="9">
+          <label>lon</label><input type="text" id="dbg-lon" value="-118.4670" size="10">
           <label>zoom</label><input type="text" id="dbg-zoom" value="10" size="3">
           <label>style</label>
           <select id="dbg-style">
@@ -324,6 +332,7 @@
           </select>
           <button id="dbg-run">Run</button>
         </div>
+        <p class="hint">Default point is the 405 through the Sepulveda Pass. Paste any lat/lon to explore.</p>
         <p class="hint" id="dbg-url" style="word-break:break-all"></p>
         <pre class="jsonbox" id="dbg-json">(response JSON will appear here)</pre>
       </div>
@@ -338,7 +347,7 @@
       <div class="dbg-section">
         <h3>Traffic flow tiles (visual sanity check)</h3>
         <p class="hint">TomTom base-map tiles with the traffic <i>flow</i> raster tiles overlaid,
-        zoom 14, around the game's map area. If these load and show colored roads, the tile API + key work.</p>
+        zoom 9, covering the LA basin. If these load and show colored freeways, the tile API + key work.</p>
         <div class="dbg-row"><button id="dbg-tiles-load">Load tiles</button></div>
         <div class="tilegrid" id="dbg-tiles"></div>
       </div>
@@ -369,7 +378,7 @@
  * ============================================================ */
 const DEFAULT_KEY = 'fvx9g9eQPiSF2IeUTEjeDz1DynaJCPoP';
 const KEY_STORAGE = 'tomtomApiKey';
-const CACHE_STORAGE = 'birthdayDashTrafficCache';
+const CACHE_STORAGE = 'birthdayDashTrafficCacheV2';
 const CACHE_TTL_MS = 10 * 60 * 1000;
 
 function getApiKey() {
@@ -417,87 +426,139 @@ async function fetchFlow(lat, lon, opts = {}, label = 'flowSegment') {
 }
 
 /* ============================================================
- *  City grid model, mapped onto real San Francisco streets
+ *  The real road network: UCSB -> Long Beach Yacht Club
+ *  Schematic x/y for the map; real km + a lat/lon sample point
+ *  ON each freeway for live TomTom speeds.
  * ============================================================ */
-const COLS = 5, ROWS = 4;
-const LAT_TOP = 37.7885, LAT_STEP = 0.004;    // north edge of grid, degrees per row
-const LON_LEFT = -122.418, LON_STEP = 0.005;  // west edge of grid, degrees per col
+const NODE_DEFS = [
+  // [key, label, x, y, markerDx, markerDy, labelDx, labelDy]
+  ['ucsb',  'UCSB',          60,  95,   6, -26],
+  ['sb',    'Santa Barbara', 170, 110],
+  ['mont',  'Montecito',     245,  58,   0, -26,   0, -40],
+  ['carp',  'Carpinteria',   318, 112],
+  ['vent',  'Ventura',       408, 150],
+  ['oxn',   'Oxnard',        448, 222],
+  ['scla',  'Santa Clarita', 565,  58,   0, -26,   0, -40],
+  ['simi',  'Simi Valley',   555, 125,   0, -26, -58, -20],
+  ['sanfer','Granada Hills', 655,  95,   0, -26,  30, -42],
+  ['thou',  'Thousand Oaks', 560, 205],
+  ['mal',   'Malibu',        565, 350],
+  ['sherm', 'Sherman Oaks',  690, 170],
+  ['holly', 'Hollywood',     778, 225,   0, -26, -16,   0],
+  ['dtla',  'Downtown LA',   862, 268],
+  ['sm',    'Santa Monica',  665, 372],
+  ['wla',   'West LA',       722, 322,   0, -26,  14,   0],
+  ['comm',  'Commerce',      888, 352],
+  ['norw',  'Norwalk',       905, 432],
+  ['cars',  'Carson',        735, 460,   0, -26, -16,   0],
+  ['lbw',   'Harbor',        812, 512],
+  ['seal',  'Seal Beach',    935, 508],
+  ['yacht', 'Yacht Club',    872, 598,  46,   4,   8,   2],
+];
 
-const ROW_NAMES = ['Rainbow Road', 'Banana Blvd', 'Tiger Trail', 'Muffin Street'];
-const COL_NAMES = ['Robot Ave', 'Dino Drive', 'Pickle Lane', 'Comet Court', 'Bubble Way'];
+const nodes = NODE_DEFS.map(([key, label, x, y, mdx, mdy, ldx, ldy], id) =>
+  ({ id, key, label, x, y, mdx: mdx || 0, mdy: mdy === undefined ? -26 : mdy,
+     ldx: ldx || 0, ldy: ldy || 0 }));
+const N = {};
+nodes.forEach(n => { N[n.key] = n.id; });
 
-// SVG layout
-const M_LEFT = 90, M_TOP = 80, CELL_W = 195, CELL_H = 170;
-const nodeX = c => M_LEFT + c * CELL_W;
-const nodeY = r => M_TOP + r * CELL_H;
-const nodeLat = r => LAT_TOP - r * LAT_STEP;
-const nodeLon = c => LON_LEFT + c * LON_STEP;
+// [a, b, road, km, freeFlowKmh, sampleLat, sampleLon, kind, opts]
+// kind: fwy | hwy | sfc (affects simulated fallback speeds only)
+// sample points are hand-picked to sit ON the named freeway segment.
+const EDGE_DEFS = [
+  ['ucsb', 'sb',    '101',  16, 100, 34.4405, -119.7520, 'fwy'],
+  ['sb',   'carp',  '101',  18, 105, 34.4220, -119.5960, 'fwy'],
+  ['sb',   'mont',  '192',   5,  50, 34.4450, -119.6600, 'sfc', { lp: 0.4 }],
+  ['mont', 'carp',  '192',  14,  50, 34.4269, -119.5530, 'sfc', { lp: 0.62 }],
+  ['carp', 'vent',  '101',  34, 105, 34.3735, -119.4770, 'fwy', { via: [[365, 140]], lp: 0.62 }],
+  ['vent', 'oxn',   '101',  19, 105, 34.2410, -119.1720, 'fwy', { lp: 0.65 }],
+  ['vent', 'scla',  '126',  53,  90, 34.3980, -118.9160, 'hwy', { via: [[490, 95]] }],
+  ['oxn',  'thou',  '101',  27, 105, 34.2240, -119.0740, 'fwy', { lp: 0.35 }],
+  ['oxn',  'mal',   '1',    32,  75, 34.0870, -119.0600, 'hwy', { via: [[495, 295]] }],
+  ['thou', 'simi',  '23',   18, 100, 34.2100, -118.8800, 'fwy'],
+  ['simi', 'sanfer','118',  29, 105, 34.2715, -118.6010, 'fwy', { lp: 0.42 }],
+  ['scla', 'sanfer','5',    13, 105, 34.3250, -118.5070, 'fwy'],
+  ['sanfer','sherm','405',  18, 100, 34.2210, -118.4700, 'fwy'],
+  ['sanfer','dtla', '5',    32, 105, 34.1770, -118.3110, 'fwy', { via: [[760, 160], [820, 215]], lp: 0.35 }],
+  ['thou', 'mal',   '23',   18,  50, 34.0700, -118.9330, 'sfc', { via: [[552, 280]] }],
+  ['thou', 'sherm', '101',  34, 105, 34.1685, -118.6050, 'fwy'],
+  ['mal',  'sm',    '1',    35,  65, 34.0370, -118.6790, 'hwy', { via: [[618, 370]] }],
+  ['sherm','wla',   '405',  13, 100, 34.0810, -118.4670, 'fwy'],
+  ['sherm','holly', '101',  14, 105, 34.1390, -118.3620, 'fwy', { lp: 0.72 }],
+  ['sm',   'wla',   '10',    5,  95, 34.0271, -118.4650, 'fwy', { lp: 0.35 }],
+  ['sm',   'holly', '2',    13,  40, 34.0900, -118.3860, 'sfc', { lp: 0.62 }],
+  ['wla',  'dtla',  '10',   16,  95, 34.0350, -118.3350, 'fwy', { lp: 0.45 }],
+  ['holly','dtla',  '101',   8, 100, 34.0765, -118.2630, 'fwy', { lp: 0.65 }],
+  ['wla',  'cars',  '405',  24,  95, 33.9450, -118.3690, 'fwy', { via: [[730, 405]], lp: 0.7 }],
+  ['dtla', 'comm',  '5',    11, 105, 34.0230, -118.1930, 'fwy', { lp: 0.62 }],
+  ['comm', 'norw',  '5',    13, 105, 33.9700, -118.1230, 'fwy', { lp: 0.6 }],
+  ['comm', 'lbw',   '710',  19,  95, 33.9280, -118.1730, 'fwy'],
+  ['dtla', 'cars',  '110',  21,  90, 33.9020, -118.2810, 'fwy', { via: [[805, 375]] }],
+  ['cars', 'lbw',   '405',  10,  95, 33.8310, -118.2530, 'fwy', { lp: 0.6 }],
+  ['norw', 'seal',  '605',  19, 100, 33.8660, -118.0800, 'fwy', { lp: 0.6 }],
+  ['lbw',  'seal',  '405',  11,  95, 33.8080, -118.1450, 'fwy'],
+  ['lbw',  'yacht', '710',   8,  60, 33.7800, -118.2130, 'hwy', { lp: 0.55 }],
+  ['cars', 'yacht', '1',    16,  70, 33.7870, -118.1580, 'hwy', { via: [[755, 530], [805, 583]], lp: 0.4 }],
+  ['sm',   'cars',  '1',    34,  70, 33.8490, -118.3880, 'hwy', { via: [[692, 428]], lp: 0.38 }],
+  ['seal', 'yacht', '2nd St', 6, 40, 33.7593, -118.1140, 'sfc', { lp: 0.6 }],
+];
 
-const nodes = [];   // {id, r, c, x, y, lat, lon}
-const edges = [];   // {id, a, b, name, mid, len, x1..y2, traffic, minutes, els}
-
-for (let r = 0; r < ROWS; r++)
-  for (let c = 0; c < COLS; c++)
-    nodes.push({ id: r * COLS + c, r, c, x: nodeX(c), y: nodeY(r), lat: nodeLat(r), lon: nodeLon(c) });
-
-function distKm(lat1, lon1, lat2, lon2) {
-  const R = 6371, d2r = Math.PI / 180;
-  const dLat = (lat2 - lat1) * d2r, dLon = (lon2 - lon1) * d2r;
-  const h = Math.sin(dLat / 2) ** 2 +
-            Math.cos(lat1 * d2r) * Math.cos(lat2 * d2r) * Math.sin(dLon / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(h));
-}
-
-function addEdge(a, b, name) {
-  const A = nodes[a], B = nodes[b];
-  edges.push({
-    id: edges.length, a, b, name,
-    mid: { lat: (A.lat + B.lat) / 2, lon: (A.lon + B.lon) / 2 },
-    len: distKm(A.lat, A.lon, B.lat, B.lon),
-    x1: A.x, y1: A.y, x2: B.x, y2: B.y,
-    traffic: null, minutes: 3, els: {}
-  });
-}
-
-for (let r = 0; r < ROWS; r++)
-  for (let c = 0; c < COLS - 1; c++)
-    addEdge(r * COLS + c, r * COLS + c + 1,
-      ROW_NAMES[r] + ' (' + COL_NAMES[c] + ' → ' + COL_NAMES[c + 1] + ')');
-for (let r = 0; r < ROWS - 1; r++)
-  for (let c = 0; c < COLS; c++)
-    addEdge(r * COLS + c, (r + 1) * COLS + c,
-      COL_NAMES[c] + ' (' + ROW_NAMES[r] + ' → ' + ROW_NAMES[r + 1] + ')');
+const edges = EDGE_DEFS.map(([a, b, road, km, ffKmh, lat, lon, kind, opts], id) => {
+  const A = nodes[N[a]], B = nodes[N[b]];
+  const pts = [[A.x, A.y], ...((opts && opts.via) || []), [B.x, B.y]];
+  const cum = [0];
+  for (let i = 1; i < pts.length; i++)
+    cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  return {
+    id, a: N[a], b: N[b], road, km, ffKmh, kind,
+    sample: { lat, lon }, pts, cum, pixlen: cum[cum.length - 1],
+    lp: (opts && opts.lp) || 0.5,
+    name: road + ': ' + A.label + ' ↔ ' + B.label,
+    traffic: null, minutes: 5, els: {}
+  };
+});
 
 const edgesAt = nodes.map(() => []);
 edges.forEach(e => { edgesAt[e.a].push(e); edgesAt[e.b].push(e); });
 const edgeBetween = (a, b) => edges.find(e => (e.a === a && e.b === b) || (e.a === b && e.b === a));
+
+// point at fraction t (0..1 of pixel length) along an edge's polyline
+function edgePointAt(e, t) {
+  const target = Math.max(0, Math.min(1, t)) * e.pixlen;
+  let i = 1;
+  while (i < e.cum.length - 1 && e.cum[i] < target) i++;
+  const segLen = e.cum[i] - e.cum[i - 1] || 1;
+  const u = (target - e.cum[i - 1]) / segLen;
+  return {
+    x: e.pts[i - 1][0] + (e.pts[i][0] - e.pts[i - 1][0]) * u,
+    y: e.pts[i - 1][1] + (e.pts[i][1] - e.pts[i - 1][1]) * u
+  };
+}
 
 /* ============================================================
  *  Traffic data: live TomTom with simulated fallback
  * ============================================================ */
 let liveCount = 0;
 
-function simulateTraffic() {
+function simulateTraffic(e) {
   const roll = Math.random();
-  const freeFlowSpeed = 30 + Math.random() * 25;
   let ratio, roadClosure = false;
-  if (roll < 0.03)      { ratio = 0.12; roadClosure = true; }
-  else if (roll < 0.58) { ratio = 0.78 + Math.random() * 0.22; }
-  else if (roll < 0.86) { ratio = 0.45 + Math.random() * 0.33; }
+  if (roll < 0.02)      { ratio = 0.12; roadClosure = true; }
+  else if (roll < 0.55) { ratio = 0.78 + Math.random() * 0.22; }
+  else if (roll < 0.85) { ratio = 0.45 + Math.random() * 0.33; }
   else                  { ratio = 0.15 + Math.random() * 0.30; }
   return {
-    currentSpeed: Math.round(freeFlowSpeed * ratio),
-    freeFlowSpeed: Math.round(freeFlowSpeed),
+    currentSpeed: Math.round(e.ffKmh * ratio),
+    freeFlowSpeed: e.ffKmh,
     confidence: +(0.7 + Math.random() * 0.3).toFixed(2),
     roadClosure, live: false
   };
 }
 
-// Game-minute scale: real segment ~0.44 km; x6 makes free flow ~3-5 min per leg.
+// Real minutes: hand-measured driving km / live speed.
 function computeMinutes(edge) {
-  const sp = Math.max(edge.traffic.currentSpeed, 3);
-  const raw = edge.len / sp * 60 * 6;
-  return Math.min(15, Math.max(1, Math.round(raw)));
+  const sp = Math.max(edge.traffic.currentSpeed, 5);
+  return Math.min(99, Math.max(1, Math.round(edge.km / sp * 60)));
 }
 
 function trafficColor(t) {
@@ -524,10 +585,9 @@ async function loadTraffic({ bypassCache = false } = {}) {
   let fetched = {};
   if (cache) {
     fetched = cache.data;
-    Object.keys(fetched).forEach(() => {});
   } else {
     const results = await Promise.allSettled(
-      edges.map(e => fetchFlow(e.mid.lat, e.mid.lon, {}, 'seg#' + e.id))
+      edges.map(e => fetchFlow(e.sample.lat, e.sample.lon, {}, e.road + '#' + e.id))
     );
     results.forEach((res, i) => {
       if (res.status === 'fulfilled' && res.value) fetched[i] = res.value;
@@ -544,13 +604,14 @@ async function loadTraffic({ bypassCache = false } = {}) {
       e.traffic = {
         currentSpeed: d.currentSpeed, freeFlowSpeed: d.freeFlowSpeed,
         currentTravelTime: d.currentTravelTime, freeFlowTravelTime: d.freeFlowTravelTime,
-        confidence: d.confidence, roadClosure: !!d.roadClosure, live: true, raw: d
+        confidence: d.confidence, roadClosure: !!d.roadClosure,
+        frc: d.frc, live: true, raw: d
       };
       liveCount++;
     } else {
-      e.traffic = simulateTraffic();
+      e.traffic = simulateTraffic(e);
     }
-    e.minutes = e.traffic.roadClosure ? 15 : computeMinutes(e);
+    e.minutes = computeMinutes(e);
   });
 
   const badge = document.getElementById('data-badge');
@@ -567,9 +628,10 @@ async function loadTraffic({ bypassCache = false } = {}) {
 /* ============================================================
  *  Game state
  * ============================================================ */
-const START_MIN = 15 * 60;   // 3:00 PM, minutes since midnight
-let homeId = 0, partyId = 0, deadlineMin = 0;
-let path = [homeId];         // node ids, path[0] === homeId
+const START_MIN = 10 * 60;   // leave UCSB at 10:00 AM
+const homeId = N.ucsb, partyId = N.yacht;
+let deadlineMin = 0;
+let path = [homeId];
 let mode = 'planning';       // planning | driving | done
 let clockMin = START_MIN;
 
@@ -599,17 +661,14 @@ function dijkstra(from, to) {
   return dist[to];
 }
 
-const CORNERS = [0, COLS - 1, (ROWS - 1) * COLS, ROWS * COLS - 1];
 function newGame() {
-  const h = CORNERS[Math.floor(Math.random() * CORNERS.length)];
-  const hn = nodes[h];
-  partyId = (ROWS - 1 - hn.r) * COLS + (COLS - 1 - hn.c);  // opposite corner
-  homeId = h;
   const shortest = dijkstra(homeId, partyId);
-  deadlineMin = START_MIN + Math.ceil((shortest * 1.15 + 2) / 5) * 5;
+  const buffer = 5 + Math.floor(Math.random() * 3) * 5;   // 5, 10, or 15 min of slack
+  deadlineMin = START_MIN + Math.ceil((shortest * 1.1 + buffer) / 5) * 5;
   path = [homeId];
   mode = 'planning';
   clockMin = START_MIN;
+  if (carEl) carEl.setAttribute('visibility', 'hidden');
   hideOverlay();
   updateAll();
 }
@@ -655,58 +714,68 @@ const nodeEls = [];
 
 function buildMap() {
   svg.innerHTML = '';
-  ['decor', 'halo', 'streets', 'pills', 'nodes', 'markers', 'car'].forEach(name => {
+  ['decor', 'halo', 'streets', 'pills', 'nodes', 'labels', 'markers', 'car'].forEach(name => {
     layers[name] = el('g', { class: 'layer-' + name });
   });
 
-  // grass blocks + buildings
-  const DECOR = ['\u{1F3E2}','\u{1F3EB}','\u{1F333}','\u{1F3EA}','\u{1F3E5}','⛲','\u{1F3F0}','\u{1F332}','\u{1F3E1}','\u{1F6DD}','\u{1F33B}','\u{1F3DF}'];
-  let d = 0;
-  for (let r = 0; r < ROWS - 1; r++)
-    for (let c = 0; c < COLS - 1; c++) {
-      const cx = nodeX(c) + CELL_W / 2, cy = nodeY(r) + CELL_H / 2;
-      el('rect', { x: nodeX(c) + 22, y: nodeY(r) + 22, width: CELL_W - 44, height: CELL_H - 44,
-                   rx: 14, fill: '#d4ecc3', class: 'decor' }, layers.decor);
-      el('text', { x: cx, y: cy + 12, 'text-anchor': 'middle', 'font-size': 34, class: 'decor' },
-         layers.decor).textContent = DECOR[d++ % DECOR.length];
-    }
+  // land + Pacific Ocean
+  el('rect', { x: 0, y: 0, width: 1000, height: 680, fill: '#e6f0d6', class: 'decor' }, layers.decor);
+  el('polygon', {
+    class: 'decor', fill: '#aed4f2',
+    points: '0,160 180,175 330,180 425,255 505,320 555,405 660,425 770,540 845,615 1000,638 1000,680 0,680'
+  }, layers.decor);
+  const DECOR = [
+    ['\u{1F30A}', 250, 265, 26], ['\u{1F30A}', 480, 430, 26], ['\u{1F30A}', 700, 525, 24],
+    ['⛵', 600, 478, 28], ['⛵', 935, 655, 26], ['\u{1F6F3}', 795, 600, 30],
+    ['\u{1F3C4}', 355, 245, 26],
+    ['\u{1F3A2}', 625, 42, 26],   // Six Flags, Santa Clarita
+    ['⛰', 448, 48, 28], ['\u{1F3D4}', 748, 70, 28],
+    ['\u{1F353}', 521, 240, 22],  // Oxnard strawberry fields
+    ['\u{1F3AC}', 800, 188, 24], ['\u{1F3D9}', 897, 250, 30],
+    ['✈', 690, 442, 24],     // LAX
+    ['\u{1F3A1}', 652, 406, 24],  // Santa Monica pier
+    ['\u{1F334}', 330, 142, 24], ['\u{1F334}', 604, 322, 24], ['\u{1F334}', 952, 470, 24],
+  ];
+  DECOR.forEach(([em, x, y, size]) => {
+    el('text', { x, y, 'text-anchor': 'middle', 'font-size': size, class: 'decor' }, layers.decor).textContent = em;
+  });
+  el('text', { x: 12, y: 672, 'font-size': 12, fill: '#64748b', class: 'decor' }, layers.decor)
+    .textContent = 'Map not to scale — but the traffic is real!';
 
   edges.forEach(e => {
-    e.els.halo = el('line', { x1: e.x1, y1: e.y1, x2: e.x2, y2: e.y2,
-                              class: 'halo', 'stroke-width': 26, visibility: 'hidden' }, layers.halo);
-    e.els.line = el('line', { x1: e.x1, y1: e.y1, x2: e.x2, y2: e.y2,
-                              class: 'street', 'stroke-width': 14, stroke: '#999' }, layers.streets);
+    const ptsStr = e.pts.map(p => p.join(',')).join(' ');
+    e.els.halo = el('polyline', { points: ptsStr, class: 'halo', 'stroke-width': 24, visibility: 'hidden' }, layers.halo);
+    e.els.line = el('polyline', { points: ptsStr, class: 'street', 'stroke-width': 12, stroke: '#999' }, layers.streets);
     e.els.line.addEventListener('click', () => onEdgeClick(e));
 
-    const mx = (e.x1 + e.x2) / 2, my = (e.y1 + e.y2) / 2;
+    const m = edgePointAt(e, e.lp);
     const pill = el('g', { class: 'minpill' }, layers.pills);
-    e.els.pillRect = el('rect', { x: mx - 26, y: my - 13, width: 52, height: 26, rx: 13 }, pill);
-    e.els.pillText = el('text', { x: mx, y: my + 5 }, pill);
-    e.els.closedIcon = el('text', { x: mx, y: my - 18, 'text-anchor': 'middle',
-                                    'font-size': 20, class: 'decor', visibility: 'hidden' }, pill);
+    e.els.pillRect = el('rect', { x: m.x - 24, y: m.y - 15, width: 48, height: 30, rx: 9 }, pill);
+    e.els.pillRoad = el('text', { x: m.x, y: m.y - 4 }, pill);
+    e.els.pillRoad.setAttribute('class', 'road');
+    e.els.pillRoad.textContent = e.road;
+    e.els.pillText = el('text', { x: m.x, y: m.y + 10 }, pill);
+    e.els.pillText.setAttribute('class', 'mins');
+    e.els.closedIcon = el('text', { x: m.x, y: m.y - 20, 'text-anchor': 'middle',
+                                    'font-size': 18, class: 'decor', visibility: 'hidden' }, pill);
     e.els.closedIcon.textContent = '\u{1F6A7}';
   });
 
   nodes.forEach(n => {
-    const c = el('circle', { cx: n.x, cy: n.y, r: 12, class: 'node' }, layers.nodes);
+    const c = el('circle', { cx: n.x, cy: n.y, r: 11, class: 'node' }, layers.nodes);
     c.addEventListener('click', () => onNodeClick(n.id));
     nodeEls[n.id] = c;
+    const labelText = n.id === partyId ? 'Long Beach Yacht Club' : n.label;
+    el('text', { x: n.x + n.ldx, y: n.y + 24 + n.ldy, class: 'nodelabel' }, layers.labels).textContent = labelText;
   });
 
-  homeEl = el('text', { 'text-anchor': 'middle', 'font-size': 42, class: 'decor' }, layers.markers);
+  homeEl = el('text', { 'text-anchor': 'middle', 'font-size': 38, class: 'decor' }, layers.markers);
   homeEl.textContent = '\u{1F3E0}';
-  partyEl = el('text', { 'text-anchor': 'middle', 'font-size': 42, class: 'decor' }, layers.markers);
-  partyEl.textContent = '\u{1F388}\u{1F382}';
+  partyEl = el('text', { 'text-anchor': 'middle', 'font-size': 36, class: 'decor' }, layers.markers);
+  partyEl.textContent = '⛵\u{1F382}';
 
-  carEl = el('text', { 'text-anchor': 'middle', 'font-size': 36, class: 'decor', visibility: 'hidden' }, layers.car);
+  carEl = el('text', { 'text-anchor': 'middle', 'font-size': 34, class: 'decor', visibility: 'hidden' }, layers.car);
   carEl.textContent = '\u{1F697}';
-}
-
-function markerPos(n) {
-  // nudge marker emoji away from map edges
-  const dy = n.r === 0 ? -24 : -26;
-  const dx = n.c === COLS - 1 ? -34 : n.c === 0 ? 10 : 0;
-  return { x: n.x + dx, y: n.y + dy };
 }
 
 function updateMap() {
@@ -714,10 +783,9 @@ function updateMap() {
     const t = e.traffic || { currentSpeed: 1, freeFlowSpeed: 1, roadClosure: false };
     e.els.line.setAttribute('stroke', trafficColor(t));
     e.els.line.classList.toggle('closed', !!t.roadClosure);
-    e.els.pillText.textContent = e.minutes + ' min';
+    e.els.pillText.textContent = e.minutes + 'm';
     e.els.closedIcon.setAttribute('visibility', t.roadClosure ? 'visible' : 'hidden');
-    const onPath = pathHasEdge(e);
-    e.els.halo.setAttribute('visibility', onPath ? 'visible' : 'hidden');
+    e.els.halo.setAttribute('visibility', pathHasEdge(e) ? 'visible' : 'hidden');
   });
 
   const last = path[path.length - 1];
@@ -729,9 +797,9 @@ function updateMap() {
     c.classList.toggle('candidate', isCandidate);
   });
 
-  const hp = markerPos(nodes[homeId]), pp = markerPos(nodes[partyId]);
-  homeEl.setAttribute('x', hp.x); homeEl.setAttribute('y', hp.y);
-  partyEl.setAttribute('x', pp.x); partyEl.setAttribute('y', pp.y);
+  const hn = nodes[homeId], pn = nodes[partyId];
+  homeEl.setAttribute('x', hn.x + hn.mdx); homeEl.setAttribute('y', hn.y + hn.mdy);
+  partyEl.setAttribute('x', pn.x + pn.mdx); partyEl.setAttribute('y', pn.y + pn.mdy);
 }
 
 function pathHasEdge(e) {
@@ -764,7 +832,7 @@ function updateHud() {
   } else {
     etaVal.textContent = '—';
     etaCard.classList.remove('late');
-    mathBox.innerHTML = 'Tap the glowing circles to draw your route from &#127968; home to the &#127874; party!';
+    mathBox.innerHTML = 'Tap the glowing circles to pick your freeways from &#127968; UCSB to the &#127874; party in Long Beach!';
   }
 
   document.getElementById('btn-drive').disabled = !(mode === 'planning' && pathComplete());
@@ -779,7 +847,7 @@ function updateAll() { updateMap(); updateHud(); }
 /* ============================================================
  *  Drive animation
  * ============================================================ */
-const MS_PER_GAME_MIN = 400;
+const MS_PER_GAME_MIN = 120;   // a 2-hour trip animates in ~15 s
 
 function drive() {
   if (!pathComplete() || mode !== 'planning') return;
@@ -789,11 +857,17 @@ function drive() {
 
   const legs = [];
   for (let i = 0; i < path.length - 1; i++) {
-    const A = nodes[path[i]], B = nodes[path[i + 1]];
-    legs.push({ A, B, minutes: edgeBetween(path[i], path[i + 1]).minutes });
+    const e = edgeBetween(path[i], path[i + 1]);
+    legs.push({ e, rev: e.a !== path[i], minutes: e.minutes });
   }
   const totalMin = legs.reduce((s, l) => s + l.minutes, 0);
   let legIdx = 0, legStart = performance.now();
+
+  function setCar(leg, t) {
+    const p = edgePointAt(leg.e, leg.rev ? 1 - t : t);
+    carEl.setAttribute('x', p.x);
+    carEl.setAttribute('y', p.y - 6);
+  }
 
   function frame(now) {
     let elapsedMin = 0;
@@ -808,20 +882,19 @@ function drive() {
       if (legIdx >= legs.length) {
         clockMin = START_MIN + totalMin;
         updateHud();
-        carEl.setAttribute('x', leg.B.x); carEl.setAttribute('y', leg.B.y - 6);
+        setCar(leg, 1);
         setTimeout(() => finishDrive(totalMin), 500);
         return;
       }
       t = 0;
     }
     const cur = legs[legIdx];
-    carEl.setAttribute('x', cur.A.x + (cur.B.x - cur.A.x) * t);
-    carEl.setAttribute('y', cur.A.y + (cur.B.y - cur.A.y) * t - 6);
-    clockMin = START_MIN + elapsedMin + (legIdx === legs.length ? 0 : cur.minutes * Math.min(t, 1));
+    setCar(cur, Math.min(t, 1));
+    clockMin = START_MIN + elapsedMin + cur.minutes * Math.min(t, 1);
     document.getElementById('clock-now').textContent = fmtTime(Math.floor(clockMin));
     requestAnimationFrame(frame);
   }
-  carEl.setAttribute('x', legs[0].A.x); carEl.setAttribute('y', legs[0].A.y - 6);
+  setCar(legs[0], 0);
   requestAnimationFrame(frame);
 }
 
@@ -840,7 +913,7 @@ function finishDrive(totalMin) {
     '<div class="mathline">' + legs.join(' + ') + ' = ' + totalMin + ' minutes of driving</div>' +
     '<p>' + (onTime
         ? (deadlineMin - arrive >= 1 ? 'You even had ' + (deadlineMin - arrive) + ' minutes to spare! \u{1F3C6}' : 'Phew — just in time! \u{1F60C}')
-        : 'You missed it by ' + (arrive - deadlineMin) + ' minutes. Try a faster route — watch out for red roads!') + '</p>' +
+        : 'You missed it by ' + (arrive - deadlineMin) + ' minutes. Try a faster route — watch out for red freeways!') + '</p>' +
     '<button class="btn-new" id="btn-again">' + (onTime ? '\u{1F382} Play again' : '\u{1F501} Try again') + '</button>';
   document.getElementById('btn-again').addEventListener('click', () => {
     if (onTime) { newGame(); }
@@ -903,19 +976,21 @@ function renderCallLog() {
 
 function renderSegTable() {
   const t = document.getElementById('dbg-segtable');
-  let html = '<tr><th>segment</th><th>midpoint</th><th>src</th><th>cur km/h</th><th>free km/h</th>' +
-             '<th>ratio</th><th>curTT s</th><th>freeTT s</th><th>conf</th><th>closed</th><th>game min</th></tr>';
+  let html = '<tr><th>segment</th><th>road</th><th>sample point</th><th>src</th><th>frc</th><th>cur km/h</th>' +
+             '<th>free km/h</th><th>ratio</th><th>curTT s</th><th>freeTT s</th><th>conf</th><th>closed</th>' +
+             '<th>km</th><th>game min</th></tr>';
   for (const e of edges) {
     const tr = e.traffic;
     if (!tr) continue;
     const ratio = (tr.currentSpeed / Math.max(tr.freeFlowSpeed, 1)).toFixed(2);
-    html += '<tr><td>' + e.name + '</td>' +
-      '<td>' + e.mid.lat.toFixed(4) + ',' + e.mid.lon.toFixed(4) + '</td>' +
+    html += '<tr><td>' + e.name + '</td><td>' + e.road + '</td>' +
+      '<td>' + e.sample.lat.toFixed(4) + ',' + e.sample.lon.toFixed(4) + '</td>' +
       '<td class="' + (tr.live ? 'ok' : 'err') + '">' + (tr.live ? 'live' : 'sim') + '</td>' +
+      '<td>' + (tr.frc ?? '—') + '</td>' +
       '<td>' + tr.currentSpeed + '</td><td>' + tr.freeFlowSpeed + '</td><td>' + ratio + '</td>' +
       '<td>' + (tr.currentTravelTime ?? '—') + '</td><td>' + (tr.freeFlowTravelTime ?? '—') + '</td>' +
       '<td>' + (tr.confidence ?? '—') + '</td><td>' + (tr.roadClosure ? '\u{1F6A7}' : '') + '</td>' +
-      '<td><b>' + e.minutes + '</b></td></tr>';
+      '<td>' + e.km + '</td><td><b>' + e.minutes + '</b></td></tr>';
   }
   t.innerHTML = html;
 }
@@ -953,18 +1028,16 @@ function lonLatToTile(lat, lon, z) {
 function loadTiles() {
   const grid = document.getElementById('dbg-tiles');
   grid.innerHTML = '';
-  const z = 14;
-  const centerLat = LAT_TOP - (ROWS - 1) / 2 * LAT_STEP;
-  const centerLon = LON_LEFT + (COLS - 1) / 2 * LON_STEP;
-  const { x, y } = lonLatToTile(centerLat, centerLon, z);
+  const z = 9;
+  const { x, y } = lonLatToTile(34.10, -118.95, z);
   for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
     const cell = document.createElement('div');
     cell.className = 'tilecell';
     const base = document.createElement('img');
-    base.src = 'https://api.tomtom.com/map/1/tile/basic/main/' + z + '/' + (x + dx - 1) + '/' + (y + dy) + '.png?key=' + getApiKey();
+    base.src = 'https://api.tomtom.com/map/1/tile/basic/main/' + z + '/' + (x + dx) + '/' + (y + dy) + '.png?key=' + getApiKey();
     const flow = document.createElement('img');
     flow.className = 'flow';
-    flow.src = 'https://api.tomtom.com/traffic/map/4/tile/flow/relative0/' + z + '/' + (x + dx - 1) + '/' + (y + dy) + '.png?key=' + getApiKey();
+    flow.src = 'https://api.tomtom.com/traffic/map/4/tile/flow/relative0/' + z + '/' + (x + dx) + '/' + (y + dy) + '.png?key=' + getApiKey();
     const err = document.createElement('div');
     err.className = 'tile-err';
     err.style.display = 'none';
@@ -1024,10 +1097,10 @@ setupDebug();
 loadTraffic().then(newGame);
 
 // exposed for debugging / automated tests
-window.__game = { nodes, edges, get path() { return path; }, get mode() { return mode; },
+window.__game = { nodes, edges, N, get path() { return path; }, get mode() { return mode; },
                   get homeId() { return homeId; }, get partyId() { return partyId; },
                   get deadlineMin() { return deadlineMin; },
-                  onNodeClick, drive, newGame, loadTraffic };
+                  onNodeClick, drive, newGame, loadTraffic, dijkstra };
 </script>
 </body>
 </html>
