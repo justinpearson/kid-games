@@ -558,6 +558,7 @@
     <h1>&#127852; Number Flush! &#128701;</h1>
     <div class="topbar">
       <button class="say-btn pulse" id="sayBtn">&#128266; Say the Number</button>
+      <button class="reset-btn" id="skipBtn" title="Too hard? Get a new number">Skip &#9193;</button>
       <div class="stars" id="stars" title="Rounds finished"></div>
     </div>
     <div class="stage" id="stage">
@@ -762,6 +763,15 @@ sayBtn.addEventListener('click', function () {
     speakTarget();
 });
 
+// "Skip" deals a brand-new number (no star) when the current one is too
+// hard. Ignored while a ball is flying or the toilet is flushing.
+document.getElementById('skipBtn').addEventListener('click', function () {
+    if (busy) return;
+    sayBtn.classList.remove('pulse');
+    newRound();
+    speakTarget();
+});
+
 document.getElementById('resetBtn').addEventListener('click', function () {
     roundsDone = 0;
     saveStars();
@@ -914,6 +924,9 @@ function newRound() {
     targetStr = pickTarget();
     typedIdx = 0;
     busy = false;
+
+    // Clear out any treats left in the bowl (e.g. from a skipped round).
+    waterEl.querySelectorAll('.bowl-ball').forEach(function (b) { b.remove(); });
 
     // Empty slots, one per digit of the target.
     slotsEl.innerHTML = '';
