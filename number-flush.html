@@ -202,6 +202,22 @@
     color: #333;
     background: #fff;
   }
+  .sum-line span.zero {
+    border-color: #ffb300;
+    background: #fff7d6;
+    color: #b26a00;
+  }
+  .zero-note {
+    margin-top: 10px;
+    padding: 10px 14px;
+    border: 2px solid #ffb300;
+    border-radius: 12px;
+    background: #fff7d6;
+    color: #8a5a00;
+    font-size: 0.95rem;
+    text-align: center;
+  }
+  .zero-note[hidden] { display: none; }
 
   /* ---- The game stage ------------------------------------------------- */
   .stage {
@@ -597,6 +613,7 @@
     <p class="settings-note">Slide each row from 0 to 10. Bigger means that size shows up more often.</p>
     <div id="weightRows"></div>
     <p class="sum-line"><span id="sumLine"></span></p>
+    <p class="zero-note" id="zeroNote" hidden>&#129335; All the sliders are at 0 &mdash; that adds up to nothing to pick from! So for now, every size of number gets an equal chance. Slide one up to take charge again.</p>
 
     <h3>Stars</h3>
     <div class="setting-row">
@@ -889,6 +906,10 @@ function refreshWeightLabels() {
         sum += digitWeights[i];
     }
     sumLineEl.textContent = parts.join('+') + ' = ' + sum;
+    // All sliders at 0 leaves nothing to pick from; pickTarget falls back to
+    // equal chances, and here we say so instead of doing it silently.
+    sumLineEl.classList.toggle('zero', sum === 0);
+    document.getElementById('zeroNote').hidden = sum !== 0;
 }
 
 renderWeightRows();
