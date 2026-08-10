@@ -105,25 +105,103 @@
   }
   .set-box input:focus { outline: none; border-color: #667eea; }
 
-  .digits-box {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.9rem;
-    font-weight: bold;
-    color: #778;
+  /* ---- Settings card, below the game (scroll down to find it) --------- */
+  .settings {
+    margin-top: 16px;
   }
-  .digits-box select {
+  .settings h2 {
+    text-align: center;
+    color: #333;
+    font-size: 1.25rem;
+    margin-bottom: 12px;
+  }
+  .settings h3 {
+    color: #555;
+    font-size: 1rem;
+    margin: 18px 0 8px;
+  }
+  .setting-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-size: 0.95rem;
+    font-weight: bold;
+    color: #556;
+  }
+  .setting-row select {
     border: 2px solid #d8dde5;
     border-radius: 999px;
-    padding: 6px 10px;
-    font-size: 0.9rem;
+    padding: 6px 12px;
+    font-size: 0.95rem;
     font-weight: bold;
     color: #333;
     background: #f6f8fb;
     cursor: pointer;
   }
-  .digits-box select:focus { outline: none; border-color: #667eea; }
+  .setting-row select:focus { outline: none; border-color: #667eea; }
+  .settings-note {
+    color: #667;
+    font-size: 0.9rem;
+    font-weight: normal;
+    margin: 4px 0 10px;
+  }
+
+  .weight-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 10px 0;
+  }
+  .weight-row[hidden] { display: none; }
+  .mini-squares {
+    display: flex;
+    justify-content: flex-end;
+    gap: 5px;
+    width: 116px;
+    flex-shrink: 0;
+  }
+  .mini-square {
+    width: 22px;
+    height: 25px;
+    background: #e4e7ec;
+    border: 3px dashed #6b7686;
+    border-radius: 4px;
+  }
+  .weight-row input[type='range'] {
+    flex: 1;
+    min-width: 120px;
+    accent-color: #4a9df8;
+    cursor: pointer;
+  }
+  .weight-val {
+    width: 38px;
+    height: 40px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid #333;
+    border-radius: 6px;
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #333;
+    background: #fff;
+  }
+  .sum-line {
+    text-align: right;
+    margin-top: 12px;
+  }
+  .sum-line span {
+    display: inline-block;
+    border: 3px solid #333;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 1.15rem;
+    font-weight: bold;
+    color: #333;
+    background: #fff;
+  }
 
   /* ---- The game stage ------------------------------------------------- */
   .stage {
@@ -481,21 +559,6 @@
     <div class="topbar">
       <button class="say-btn pulse" id="sayBtn">&#128266; Say the Number</button>
       <div class="stars" id="stars" title="Rounds finished"></div>
-      <button class="reset-btn" id="resetBtn" title="Reset the stars to zero">Reset &#11088;</button>
-      <button class="reset-btn" id="setBtn" title="Set the star count by hand">Set &#11088;</button>
-      <span class="set-box" id="setBox" hidden>
-        <input type="number" id="setInput" min="0" max="99999" aria-label="Star count">
-        <button class="reset-btn" id="setOk" title="Apply">&#10003;</button>
-      </span>
-      <label class="digits-box" title="Biggest number of digits a number can have">
-        Digits up to
-        <select id="maxDigitsSel" aria-label="Maximum number of digits">
-          <option value="1">1</option>
-          <option value="2">2</option>
-          <option value="3">3</option>
-          <option value="4">4</option>
-        </select>
-      </label>
     </div>
     <div class="stage" id="stage">
       <div class="digit-row" id="digitRow"></div>
@@ -515,11 +578,41 @@
     </div>
     <p class="hint">Listen to the number, then press its digits in order. Swish every treat into the toilet, then&hellip; FLUSH!</p>
   </div>
+
+  <div class="container settings">
+    <h2>&#9881;&#65039; Settings</h2>
+
+    <div class="setting-row">
+      <label for="maxDigitsSel"># digits:</label>
+      <select id="maxDigitsSel" aria-label="Maximum number of digits">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+      </select>
+    </div>
+
+    <h3>How often does each size of number show up?</h3>
+    <p class="settings-note">Slide each row from 0 to 10. Bigger means that size shows up more often.</p>
+    <div id="weightRows"></div>
+    <p class="sum-line"><span id="sumLine"></span></p>
+
+    <h3>Stars</h3>
+    <div class="setting-row">
+      <button class="reset-btn" id="resetBtn" title="Reset the stars to zero">Reset &#11088;</button>
+      <button class="reset-btn" id="setBtn" title="Set the star count by hand">Set &#11088;</button>
+      <span class="set-box" id="setBox" hidden>
+        <input type="number" id="setInput" min="0" max="99999" aria-label="Star count">
+        <button class="reset-btn" id="setOk" title="Apply">&#10003;</button>
+      </span>
+    </div>
+  </div>
+
   <p style="margin-top:1rem;color:rgba(255,255,255,0.7);font-size:0.85rem;"><a href="https://github.com/justinpearson/kid-games" style="color:rgba(255,255,255,0.9);">View source on GitHub</a></p>
 <script>
 // ---------------------------------------------------------------------------
-// Number Flush!  The computer says a number (1 up to "Digits up to" digits,
-// chosen from the dropdown in the top bar). Under each digit
+// Number Flush!  The computer says a number (its size governed by the
+// "# digits" selector and sliders in Settings, below). Under each digit
 // 0-9, a claw arm holds a basketball. Press the right digit and the claw
 // drops its ball through the hoop into the toilet; press the wrong one and
 // the ball clanks off the rim and bounces away. Finish the whole number and
@@ -554,8 +647,9 @@ var claws = [];         // claw DOM info per digit 0-9
 // private browsing, so all access is guarded).
 var STARS_KEY = 'numberFlushStars';
 
-// How many digits a number may have (1-4), chosen from the "Digits up to"
-// dropdown so grown-ups can crank the difficulty up or dial it back.
+// How many digits a number may have (1-4), chosen from the "# digits"
+// selector in Settings so grown-ups can crank the difficulty up or dial it
+// back.
 var MAX_DIGITS_KEY = 'numberFlushMaxDigits';
 var maxDigits = loadMaxDigits();
 
@@ -571,6 +665,33 @@ function loadMaxDigits() {
 function saveMaxDigits() {
     try {
         localStorage.setItem(MAX_DIGITS_KEY, String(maxDigits));
+    } catch (e) { /* no storage available; the choice just won't persist */ }
+}
+
+// How often each size of number shows up: one weight (0-10) per digit count.
+// A round picks a k-digit number with probability weight[k] / (sum of the
+// weights currently in play), e.g. weights 0,2,9,4 mean a 3-digit number
+// shows up 9 times out of 15.
+var WEIGHTS_KEY = 'numberFlushDigitWeights';
+var digitWeights = loadWeights();
+
+function loadWeights() {
+    var fallback = [1, 1, 1, 1];
+    try {
+        var arr = JSON.parse(localStorage.getItem(WEIGHTS_KEY));
+        if (!Array.isArray(arr) || arr.length !== 4) return fallback;
+        return arr.map(function (w) {
+            w = parseInt(w, 10);
+            return isNaN(w) ? 1 : Math.min(10, Math.max(0, w));
+        });
+    } catch (e) {
+        return fallback;
+    }
+}
+
+function saveWeights() {
+    try {
+        localStorage.setItem(WEIGHTS_KEY, JSON.stringify(digitWeights));
     } catch (e) { /* no storage available; the choice just won't persist */ }
 }
 
@@ -682,8 +803,10 @@ setInput.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') closeSetBox();
 });
 
-// The "Digits up to" dropdown: changing it starts a fresh round at the new
-// difficulty (waiting until any in-flight ball or flush settles down).
+// ----- Settings: # digits and the per-size sliders -------------------------
+// Changes here quietly apply to the next round; the round in progress keeps
+// its number.
+
 var maxDigitsSel = document.getElementById('maxDigitsSel');
 maxDigitsSel.value = String(maxDigits);
 
@@ -691,17 +814,96 @@ maxDigitsSel.addEventListener('change', function () {
     maxDigits = parseInt(maxDigitsSel.value, 10);
     saveMaxDigits();
     maxDigitsSel.blur();  // so number keys go back to the game
-    if (!busy) {
-        newRound();
-        speakTarget();
-    }
+    renderWeightRows();
 });
+
+// Build one slider row per digit count: k little dashed squares (a k-digit
+// number), a 0-10 slider, and a box showing the slider's value.
+var weightRowsEl = document.getElementById('weightRows');
+var sumLineEl = document.getElementById('sumLine');
+var weightRows = [];  // { row, slider, valBox } per digit count 1-4
+
+for (var k = 1; k <= 4; k++) {
+    (function (kk) {
+        var row = document.createElement('div');
+        row.className = 'weight-row';
+
+        var squares = document.createElement('span');
+        squares.className = 'mini-squares';
+        for (var s = 0; s < kk; s++) {
+            var sq = document.createElement('span');
+            sq.className = 'mini-square';
+            squares.appendChild(sq);
+        }
+
+        var slider = document.createElement('input');
+        slider.type = 'range';
+        slider.min = 0;
+        slider.max = 10;
+        slider.step = 1;
+        slider.value = digitWeights[kk - 1];
+        slider.setAttribute('aria-label', 'How often ' + kk + '-digit numbers show up');
+
+        var valBox = document.createElement('span');
+        valBox.className = 'weight-val';
+
+        slider.addEventListener('input', function () {
+            digitWeights[kk - 1] = parseInt(slider.value, 10);
+            saveWeights();
+            refreshWeightLabels();
+        });
+
+        row.appendChild(squares);
+        row.appendChild(slider);
+        row.appendChild(valBox);
+        weightRowsEl.appendChild(row);
+        weightRows[kk - 1] = { row: row, slider: slider, valBox: valBox };
+    })(k);
+}
+
+// Show only the rows for sizes that are in play (1 up to maxDigits), and
+// redo the "0+2+9+4 = 15" sum line underneath.
+function renderWeightRows() {
+    weightRows.forEach(function (r, i) {
+        r.row.hidden = i >= maxDigits;
+    });
+    refreshWeightLabels();
+}
+
+function refreshWeightLabels() {
+    var parts = [];
+    var sum = 0;
+    for (var i = 0; i < maxDigits; i++) {
+        weightRows[i].valBox.textContent = digitWeights[i];
+        parts.push(digitWeights[i]);
+        sum += digitWeights[i];
+    }
+    sumLineEl.textContent = parts.join('+') + ' = ' + sum;
+}
+
+renderWeightRows();
 
 // ----- Rounds --------------------------------------------------------------
 
 function pickTarget() {
-    // 1 up to maxDigits digits, each length equally likely.
-    var len = 1 + Math.floor(Math.random() * maxDigits);
+    // How many digits? Each size k (1 up to maxDigits) is chosen with
+    // probability weight[k] / (sum of the weights in play). If every slider
+    // is at 0, fall back to all sizes equally likely.
+    var sum = 0;
+    for (var i = 0; i < maxDigits; i++) sum += digitWeights[i];
+
+    var len;
+    if (sum === 0) {
+        len = 1 + Math.floor(Math.random() * maxDigits);
+    } else {
+        var pick = Math.random() * sum;
+        len = maxDigits;  // in case of floating-point edge cases
+        for (var j = 0; j < maxDigits; j++) {
+            pick -= digitWeights[j];
+            if (pick < 0) { len = j + 1; break; }
+        }
+    }
+
     var min = len === 1 ? 0 : Math.pow(10, len - 1);
     var max = Math.pow(10, len) - 1;
     var n = min + Math.floor(Math.random() * (max - min + 1));
