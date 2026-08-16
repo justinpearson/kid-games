@@ -171,8 +171,41 @@
   .weight-row input[type='range'] {
     flex: 1;
     min-width: 120px;
-    accent-color: #4a9df8;
     cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    height: 44px;  /* generous touch target for kid fingers */
+    margin: 0;
+  }
+  .weight-row input[type='range']::-webkit-slider-runnable-track {
+    height: 10px;
+    border-radius: 999px;
+    background: #d8dde5;
+  }
+  .weight-row input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 32px;
+    height: 32px;
+    margin-top: -11px;  /* center the 32px thumb on the 10px track */
+    border-radius: 50%;
+    background: #4a9df8;
+    border: 3px solid #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  }
+  .weight-row input[type='range']::-moz-range-track {
+    height: 10px;
+    border-radius: 999px;
+    background: #d8dde5;
+  }
+  .weight-row input[type='range']::-moz-range-thumb {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #4a9df8;
+    border: 3px solid #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
   }
   .weight-val {
     width: 38px;
