@@ -168,7 +168,7 @@
     border: 3px dashed #6b7686;
     border-radius: 4px;
   }
-  .weight-row input[type='range'] {
+  .settings input[type='range'] {
     flex: 1;
     min-width: 120px;
     cursor: pointer;
@@ -178,12 +178,12 @@
     height: 44px;  /* generous touch target for kid fingers */
     margin: 0;
   }
-  .weight-row input[type='range']::-webkit-slider-runnable-track {
+  .settings input[type='range']::-webkit-slider-runnable-track {
     height: 10px;
     border-radius: 999px;
     background: #d8dde5;
   }
-  .weight-row input[type='range']::-webkit-slider-thumb {
+  .settings input[type='range']::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
     width: 32px;
@@ -194,12 +194,12 @@
     border: 3px solid #fff;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
   }
-  .weight-row input[type='range']::-moz-range-track {
+  .settings input[type='range']::-moz-range-track {
     height: 10px;
     border-radius: 999px;
     background: #d8dde5;
   }
-  .weight-row input[type='range']::-moz-range-thumb {
+  .settings input[type='range']::-moz-range-thumb {
     width: 32px;
     height: 32px;
     border-radius: 50%;
@@ -251,6 +251,29 @@
     text-align: center;
   }
   .zero-note[hidden] { display: none; }
+
+  .voice-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 10px 0;
+  }
+  .voice-label {
+    width: 56px;
+    flex-shrink: 0;
+    font-size: 0.95rem;
+    font-weight: bold;
+    color: #556;
+  }
+  .voice-emoji {
+    font-size: 1.3rem;
+    flex-shrink: 0;
+  }
+  .weight-val.voice-val {
+    width: 58px;
+    font-size: 1.05rem;
+  }
+  #voiceSel { max-width: min(100%, 340px); }
 
   /* ---- The game stage ------------------------------------------------- */
   .stage {
@@ -648,6 +671,30 @@
     <p class="sum-line"><span id="sumLine"></span></p>
     <p class="zero-note" id="zeroNote" hidden>&#129335; All the sliders are at 0 &mdash; that adds up to nothing to pick from! So for now, every size of number gets an equal chance. Slide one up to take charge again.</p>
 
+    <h3>Voice</h3>
+    <p class="settings-note">Pick who does the talking, and how fast and how squeaky they sound.</p>
+    <div class="setting-row">
+      <label for="voiceSel">Voice:</label>
+      <select id="voiceSel" aria-label="Which voice speaks the numbers">
+        <option value="">Default voice</option>
+      </select>
+      <button class="reset-btn" id="voiceTryBtn" title="Hear how the voice sounds">Try it &#128266;</button>
+    </div>
+    <div class="voice-row">
+      <span class="voice-label">Speed:</span>
+      <span class="voice-emoji" aria-hidden="true">&#128034;</span>
+      <input type="range" id="rateSlider" min="0.5" max="1.5" step="0.05" aria-label="How fast the voice talks">
+      <span class="voice-emoji" aria-hidden="true">&#128007;</span>
+      <span class="weight-val voice-val" id="rateVal"></span>
+    </div>
+    <div class="voice-row">
+      <span class="voice-label">Pitch:</span>
+      <span class="voice-emoji" aria-hidden="true">&#128059;</span>
+      <input type="range" id="pitchSlider" min="0.5" max="2" step="0.1" aria-label="How high or low the voice sounds">
+      <span class="voice-emoji" aria-hidden="true">&#128045;</span>
+      <span class="weight-val voice-val" id="pitchVal"></span>
+    </div>
+
     <h3>Stars</h3>
     <div class="setting-row">
       <button class="reset-btn" id="resetBtn" title="Reset the stars to zero">Reset &#11088;</button>
@@ -947,6 +994,131 @@ function refreshWeightLabels() {
 
 renderWeightRows();
 
+// ----- Settings: the voice -------------------------------------------------
+// Which voice speaks, how fast, and how high. The browser supplies whatever
+// voices the device has; "Default voice" leaves the choice to the browser.
+
+var VOICE_NAME_KEY = 'numberFlushVoiceName';
+var VOICE_RATE_KEY = 'numberFlushVoiceRate';
+var VOICE_PITCH_KEY = 'numberFlushVoicePitch';
+
+var voiceName = loadVoiceName();
+var voiceRate = loadVoiceNumber(VOICE_RATE_KEY, 0.85, 0.5, 1.5);
+var voicePitch = loadVoiceNumber(VOICE_PITCH_KEY, 1.1, 0.5, 2);
+
+function loadVoiceName() {
+    try {
+        return localStorage.getItem(VOICE_NAME_KEY) || '';
+    } catch (e) {
+        return '';
+    }
+}
+
+function loadVoiceNumber(key, fallback, min, max) {
+    try {
+        var n = parseFloat(localStorage.getItem(key));
+        return isNaN(n) ? fallback : Math.min(max, Math.max(min, n));
+    } catch (e) {
+        return fallback;
+    }
+}
+
+function saveVoiceSettings() {
+    try {
+        localStorage.setItem(VOICE_NAME_KEY, voiceName);
+        localStorage.setItem(VOICE_RATE_KEY, String(voiceRate));
+        localStorage.setItem(VOICE_PITCH_KEY, String(voicePitch));
+    } catch (e) { /* no storage available; the choice just won't persist */ }
+}
+
+function findVoiceByName(name) {
+    if (!name || !('speechSynthesis' in window)) return null;
+    var voices = window.speechSynthesis.getVoices();
+    for (var i = 0; i < voices.length; i++) {
+        if (voices[i].name === name) return voices[i];
+    }
+    return null;  // saved voice not on this device; browser default it is
+}
+
+var voiceSel = document.getElementById('voiceSel');
+var rateSlider = document.getElementById('rateSlider');
+var pitchSlider = document.getElementById('pitchSlider');
+
+// Fill the dropdown with this device's voices. The full list can be huge
+// (phones ship dozens), so keep just the ones matching the browser's
+// language -- unless that leaves nothing, in which case show them all.
+function populateVoiceList() {
+    if (!('speechSynthesis' in window)) return;
+    var voices = window.speechSynthesis.getVoices();
+    if (voices.length === 0) return;  // not loaded yet; voiceschanged will retry
+
+    var langPrefix = (navigator.language || 'en').split('-')[0].toLowerCase();
+    var shown = voices.filter(function (v) {
+        return v.lang.split('-')[0].toLowerCase() === langPrefix;
+    });
+    if (shown.length === 0) shown = voices;
+
+    while (voiceSel.options.length > 1) voiceSel.remove(1);
+    shown.forEach(function (v) {
+        var opt = document.createElement('option');
+        opt.value = v.name;
+        opt.textContent = v.name + ' (' + v.lang + ')';
+        voiceSel.appendChild(opt);
+    });
+    // Re-select the saved voice if this device has it.
+    voiceSel.value = findVoiceByName(voiceName) ? voiceName : '';
+}
+
+populateVoiceList();
+if ('speechSynthesis' in window) {
+    // Most browsers load voices asynchronously and announce them here.
+    window.speechSynthesis.onvoiceschanged = populateVoiceList;
+}
+
+voiceSel.addEventListener('change', function () {
+    voiceName = voiceSel.value;
+    saveVoiceSettings();
+    voiceSel.blur();  // so number keys go back to the game
+    speakVoiceSample();
+});
+
+function refreshVoiceLabels() {
+    document.getElementById('rateVal').textContent = voiceRate.toFixed(2);
+    document.getElementById('pitchVal').textContent = voicePitch.toFixed(1);
+}
+
+rateSlider.value = voiceRate;
+pitchSlider.value = voicePitch;
+refreshVoiceLabels();
+
+rateSlider.addEventListener('input', function () {
+    voiceRate = parseFloat(rateSlider.value);
+    saveVoiceSettings();
+    refreshVoiceLabels();
+});
+pitchSlider.addEventListener('input', function () {
+    voicePitch = parseFloat(pitchSlider.value);
+    saveVoiceSettings();
+    refreshVoiceLabels();
+});
+
+// Speak a sample right when a slider is let go, so tuning is hear-as-you-drag
+// without stuttering on every tick.
+rateSlider.addEventListener('change', speakVoiceSample);
+pitchSlider.addEventListener('change', speakVoiceSample);
+
+var VOICE_SAMPLES = [
+    'Hi friend! Let’s count: 1, 2, 3!',
+    'Hello! I sound like this: 4, 5, 6!',
+    'Ready to flush some numbers? 7, 8, 9!'
+];
+
+function speakVoiceSample() {
+    speak(VOICE_SAMPLES[Math.floor(Math.random() * VOICE_SAMPLES.length)]);
+}
+
+document.getElementById('voiceTryBtn').addEventListener('click', speakVoiceSample);
+
 // ----- Rounds --------------------------------------------------------------
 
 function pickTarget() {
@@ -1004,8 +1176,10 @@ function speak(text) {
     if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
         var utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 0.85;
-        utterance.pitch = 1.1;
+        var voice = findVoiceByName(voiceName);
+        if (voice) utterance.voice = voice;
+        utterance.rate = voiceRate;
+        utterance.pitch = voicePitch;
         utterance.volume = 1.0;
         window.speechSynthesis.speak(utterance);
     }
