@@ -1,0 +1,1966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smoothie Shop - Kid Games</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  [hidden] { display: none !important; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 20px 30px;
+  }
+  .back-link {
+    align-self: flex-start;
+    color: #fff;
+    text-decoration: none;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.9;
+  }
+  .back-link:hover { opacity: 1; text-decoration: underline; }
+
+  .container {
+    background: white;
+    border-radius: 20px;
+    padding: 18px 22px 22px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    width: min(96vw, 1080px);
+  }
+
+  h1 {
+    text-align: center;
+    color: #333;
+    font-size: 1.7rem;
+    margin-bottom: 10px;
+  }
+
+  /* ---- Money stats across the top ------------------------------------ */
+  .stats {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .stat {
+    background: #f6f8fb;
+    border: 2px solid #e3e7ef;
+    border-radius: 14px;
+    padding: 6px 14px;
+    text-align: center;
+    min-width: 112px;
+  }
+  .stat .label {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #889;
+    font-weight: bold;
+  }
+  .stat .value {
+    font-size: 1.35rem;
+    font-weight: bold;
+    color: #333;
+    display: inline-block;
+  }
+  .stat.cash .value { color: #2e9e5b; }
+  .stat.worth .value { color: #b8860b; }
+  .stat.total .value { color: #4a63d8; }
+  .stat.profit .value { color: #2e9e5b; }
+  .stat.profit.neg .value { color: #e0473c; }
+  .stat .value.bump { animation: bump 0.45s ease; }
+  @keyframes bump {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.35); }
+    100% { transform: scale(1); }
+  }
+  .stat-btns {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .small-btn {
+    border: 2px solid #d8dde5;
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: #778;
+    background: #f6f8fb;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
+  .small-btn:hover { background: #eceff5; transform: scale(1.05); }
+  .small-btn:active { transform: scale(0.97); }
+
+  /* ---- Two-column layout: shop on the left, market on the right -------- */
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 290px;
+    gap: 16px;
+    align-items: start;
+  }
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  /* ---- The counter where customers stand ------------------------------ */
+  .counter {
+    background: linear-gradient(#e3f2ff 0%, #fff8e1 100%);
+    border-radius: 16px;
+    padding: 12px 16px 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .counter-inner {
+    display: flex;
+    align-items: flex-end;
+    gap: 14px;
+    min-height: 160px;
+  }
+  .customer {
+    width: 120px;
+    height: 150px;
+    flex-shrink: 0;
+    transition: transform 0.7s ease, opacity 0.7s ease;
+  }
+  .customer svg { width: 100%; height: 100%; display: block; }
+  .customer.enter { animation: walk-in 0.9s ease; }
+  @keyframes walk-in {
+    0% { transform: translateX(-170px); opacity: 0; }
+    60% { transform: translateX(8px) rotate(2deg); opacity: 1; }
+    100% { transform: translateX(0); }
+  }
+  .customer.leave { transform: translateX(-190px); opacity: 0; }
+  .customer.bounce { animation: bounce 0.6s ease; }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-16px) rotate(-3deg); }
+    60% { transform: translateY(0); }
+    80% { transform: translateY(-8px) rotate(3deg); }
+  }
+  .bubble {
+    position: relative;
+    background: #fff;
+    border: 3px solid #ffb703;
+    border-radius: 18px;
+    padding: 12px 16px;
+    font-size: 1.05rem;
+    line-height: 1.4;
+    color: #333;
+    flex: 1;
+    margin-bottom: 30px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  }
+  .bubble::before {
+    content: '';
+    position: absolute;
+    left: -19px;
+    bottom: 18px;
+    border: 10px solid transparent;
+    border-right: 12px solid #ffb703;
+    border-left: 0;
+  }
+  .bubble::after {
+    content: '';
+    position: absolute;
+    left: -13px;
+    bottom: 20px;
+    border: 8px solid transparent;
+    border-right: 10px solid #fff;
+    border-left: 0;
+  }
+  .bubble .name { font-weight: bold; color: #ff8c00; }
+  .speak-btn {
+    position: absolute;
+    right: 8px;
+    top: -14px;
+    border: 2px solid #ffb703;
+    background: #fff;
+    border-radius: 999px;
+    font-size: 1rem;
+    padding: 2px 8px;
+    cursor: pointer;
+  }
+  .speak-btn:hover { transform: scale(1.1); }
+  .counter-top {
+    height: 16px;
+    background: linear-gradient(#d9a066, #b97d45);
+    border-radius: 8px 8px 0 0;
+    margin: 0 -16px;
+  }
+
+  /* ---- Order ticket ------------------------------------------------- */
+  .ticket {
+    background: #fffbe6;
+    border: 2px dashed #e0c36a;
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-top: 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 1rem;
+    color: #333;
+  }
+  .ticket .title { font-weight: bold; margin-bottom: 4px; letter-spacing: 0.05em; }
+  .ticket .line { padding: 2px 0; display: flex; gap: 8px; align-items: center; }
+  .ticket .line.done { color: #2e9e5b; text-decoration: line-through; }
+  .ticket .line.now { background: #fff1b8; border-radius: 6px; padding: 2px 6px; font-weight: bold; }
+  .ticket .mark { width: 1.4em; display: inline-block; text-align: center; }
+
+  /* ---- Kitchen: shelf + blender --------------------------------------- */
+  .kitchen {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: 1fr 210px;
+    gap: 14px;
+    align-items: start;
+  }
+  @media (max-width: 600px) {
+    .kitchen { grid-template-columns: 1fr; }
+  }
+  .recipe-card {
+    background: #fff;
+    border: 3px solid #7ab8e8;
+    border-radius: 14px;
+    padding: 10px 14px;
+    color: #333;
+  }
+  .recipe-card .step { font-size: 0.8rem; color: #789; font-weight: bold; text-transform: uppercase; letter-spacing: 0.04em; }
+  .recipe-card .what { font-size: 1.2rem; font-weight: bold; margin: 2px 0 4px; }
+  .recipe-card .need { font-size: 2rem; letter-spacing: 6px; }
+  .recipe-card .progress { font-size: 0.95rem; color: #556; margin-top: 4px; }
+  .recipe-card .progress span { margin-right: 12px; font-weight: bold; }
+  .recipe-card .progress span.ok { color: #2e9e5b; }
+  .recipe-card .progress span.over { color: #e0473c; }
+
+  .shelf-label { font-size: 0.85rem; font-weight: bold; color: #667; margin: 12px 0 6px; }
+  .shelf {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .fruit-btn {
+    position: relative;
+    background: #fff;
+    border: 3px solid #e3e7ef;
+    border-radius: 16px;
+    width: 80px;
+    height: 84px;
+    font-size: 2.3rem;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+    box-shadow: 0 4px 0 #d8dde5;
+    padding-bottom: 14px;
+  }
+  .fruit-btn:hover { transform: translateY(-3px) scale(1.05); }
+  .fruit-btn:active { transform: translateY(1px); }
+  .fruit-btn .count {
+    position: absolute;
+    top: -9px;
+    right: -9px;
+    background: #4caf50;
+    color: #fff;
+    border-radius: 999px;
+    min-width: 26px;
+    height: 26px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #fff;
+    padding: 0 5px;
+  }
+  .fruit-btn.low .count { background: #ff9800; }
+  .fruit-btn.empty { opacity: 0.55; }
+  .fruit-btn.empty .count { background: #e0473c; }
+  .fruit-btn .fname {
+    position: absolute;
+    bottom: 3px;
+    left: 0;
+    right: 0;
+    font-size: 0.62rem;
+    font-weight: bold;
+    color: #667;
+  }
+  .fruit-btn.wiggle { animation: wiggle 0.4s ease; }
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(0); }
+    25% { transform: rotate(-8deg); }
+    75% { transform: rotate(8deg); }
+  }
+
+  .blender-col { text-align: center; }
+  .blender { width: 180px; margin: 0 auto; position: relative; user-select: none; }
+  .lid {
+    width: 112px;
+    height: 16px;
+    background: #556;
+    border-radius: 8px 8px 3px 3px;
+    margin: 12px auto 0;
+    position: relative;
+    z-index: 2;
+  }
+  .lid::after {
+    content: '';
+    position: absolute;
+    left: 44px;
+    top: -10px;
+    width: 24px;
+    height: 12px;
+    background: #556;
+    border-radius: 6px;
+  }
+  .jar-wrap { position: relative; width: 132px; margin: 0 auto; }
+  .jar {
+    position: relative;
+    width: 132px;
+    height: 150px;
+    background: linear-gradient(rgba(215, 238, 255, 0.75), rgba(190, 220, 250, 0.9));
+    clip-path: polygon(0 0, 100% 0, 86% 100%, 14% 100%);
+    overflow: hidden;
+  }
+  .jar .liquid {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 0;
+    transition: height 0.9s ease;
+  }
+  .jar .contents {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 10px;
+    display: flex;
+    flex-wrap: wrap-reverse;
+    justify-content: center;
+    gap: 2px;
+    font-size: 1.75rem;
+    line-height: 1;
+    transition: opacity 0.4s ease;
+  }
+  .jar .contents span { animation: drop 0.45s ease; display: inline-block; }
+  @keyframes drop {
+    0% { transform: translateY(-120px) rotate(-30deg); opacity: 0; }
+    70% { transform: translateY(6px); opacity: 1; }
+    100% { transform: translateY(0); }
+  }
+  .jar .blades {
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    width: 34px;
+    height: 6px;
+    margin-left: -17px;
+    background: #99a;
+    border-radius: 3px;
+  }
+  .handle {
+    position: absolute;
+    right: -30px;
+    top: 22px;
+    width: 34px;
+    height: 78px;
+    border: 9px solid #9ab;
+    border-left: none;
+    border-radius: 0 26px 26px 0;
+  }
+  .base {
+    width: 150px;
+    height: 62px;
+    margin: -4px auto 0;
+    background: linear-gradient(#ff7b6b, #e5533f);
+    border-radius: 10px 10px 18px 18px;
+    position: relative;
+    box-shadow: 0 6px 0 #b7392a;
+  }
+  .base::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 22px;
+    transform: translateX(-50%);
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: inset 0 -3px 0 #ccc;
+  }
+  .blender.blending .jar-wrap, .blender.blending .lid { animation: shake 0.1s linear infinite; }
+  .blender.blending .contents span { animation: spin 0.25s linear infinite; }
+  .blender.blending .blades { animation: spin 0.1s linear infinite; }
+  @keyframes shake {
+    0% { transform: translate(1px, 0) rotate(0.5deg); }
+    50% { transform: translate(-1px, 1px) rotate(-0.5deg); }
+    100% { transform: translate(1px, -1px) rotate(0.5deg); }
+  }
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .blender.oops .jar-wrap { animation: shake 0.08s linear 6; }
+
+  .blender-btns { display: flex; gap: 8px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+  .big-btn {
+    border: none;
+    border-radius: 999px;
+    padding: 12px 26px;
+    font-size: 1.15rem;
+    font-weight: bold;
+    color: white;
+    cursor: pointer;
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    transition: transform 0.15s ease;
+  }
+  .big-btn:hover { transform: scale(1.05); }
+  .big-btn:active { transform: scale(0.97); }
+  .big-btn.green { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: #124; }
+  .big-btn.blue { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+  .big-btn.ready { animation: pulse 1.1s ease-in-out infinite; }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+  }
+  .made-label { font-size: 0.85rem; font-weight: bold; color: #667; margin: 12px 0 4px; }
+  .made {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    min-height: 96px;
+    padding: 10px;
+    background: #f3f6fb;
+    border-radius: 12px;
+  }
+  .made .empty-note { color: #99a; font-size: 0.9rem; align-self: center; }
+
+  /* ---- Smoothie cups -------------------------------------------------- */
+  .cup { position: relative; width: 60px; display: flex; flex-direction: column; align-items: center; }
+  .cup .straw {
+    width: 7px;
+    height: 28px;
+    background: repeating-linear-gradient(45deg, #ff5f7e 0 5px, #fff 5px 10px);
+    border-radius: 3px;
+    margin-bottom: -12px;
+    transform: rotate(14deg);
+    z-index: 1;
+    border: 1px solid #e88;
+  }
+  .cup .top { width: 46px; height: 9px; border-radius: 5px; background: #fff; border: 2px solid #c9cfda; margin-bottom: -2px; z-index: 1; }
+  .cup .drink {
+    width: 40px;
+    clip-path: polygon(0 0, 100% 0, 82% 100%, 18% 100%);
+    box-shadow: inset 0 -8px 0 rgba(0, 0, 0, 0.08);
+  }
+  .cup.size-s .drink { height: 42px; }
+  .cup.size-m .drink { height: 56px; }
+  .cup.size-l .drink { height: 72px; }
+  .cup.flavor-peach .drink { background: linear-gradient(#ffc38b, #ff9250); }
+  .cup.flavor-strawbanana .drink { background: linear-gradient(#ffe066 0 30%, #ff7fa5 60%); }
+  .cup.flavor-cocopine .drink { background: linear-gradient(#fffbe0, #ffe066); }
+  .cup .cap { font-size: 0.66rem; font-weight: bold; color: #556; margin-top: 4px; text-align: center; line-height: 1.15; }
+  .cup.pop { animation: pop 0.55s ease; }
+  @keyframes pop {
+    0% { transform: scale(0.3) translateY(20px); opacity: 0; }
+    70% { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(1); }
+  }
+  .cup.mini { width: 34px; }
+  .cup.mini .straw { display: none; }
+  .cup.mini .top { width: 30px; height: 6px; }
+  .cup.mini .drink { width: 26px; }
+  .cup.mini.size-s .drink { height: 22px; }
+  .cup.mini.size-m .drink { height: 30px; }
+  .cup.mini.size-l .drink { height: 38px; }
+
+  /* ---- Cash register -------------------------------------------------- */
+  .register {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: 1fr 236px;
+    gap: 14px;
+    align-items: start;
+  }
+  @media (max-width: 600px) {
+    .register { grid-template-columns: 1fr; }
+  }
+  .bill-lines {
+    background: #fff;
+    border: 2px solid #e3e7ef;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-family: 'Courier New', monospace;
+    font-size: 1.05rem;
+    color: #333;
+  }
+  .bill-lines .line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    border-bottom: 1px dotted #ccd;
+  }
+  .bill-lines .line .desc { display: flex; align-items: center; gap: 8px; }
+  .bill-lines .line .price { font-weight: bold; }
+  .bill-lines .line.total { border-bottom: none; border-top: 2px solid #333; margin-top: 4px; font-weight: bold; }
+  .question { font-weight: bold; font-size: 1.1rem; color: #333; margin: 12px 0 6px; }
+  .hint {
+    color: #667;
+    font-size: 0.95rem;
+    background: #eef3ff;
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-top: 6px;
+    line-height: 1.4;
+  }
+  .numpad {
+    background: #2d3142;
+    border-radius: 16px;
+    padding: 12px;
+    box-shadow: 0 8px 0 #1d2030;
+  }
+  .display {
+    background: #c8f5c0;
+    border-radius: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 1.9rem;
+    text-align: right;
+    padding: 6px 12px;
+    color: #1b5e20;
+    margin-bottom: 10px;
+    min-height: 52px;
+    letter-spacing: 2px;
+  }
+  .display.shake { animation: shake 0.08s linear 5; background: #ffcdd2; color: #b71c1c; }
+  .display.good { background: #b9f6ca; }
+  .keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .key {
+    border: none;
+    border-radius: 10px;
+    font-size: 1.3rem;
+    font-weight: bold;
+    padding: 12px 0;
+    background: #f6f8fb;
+    color: #333;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #b8bcc8;
+    transition: transform 0.1s ease;
+  }
+  .key:active { transform: translateY(2px); box-shadow: 0 1px 0 #b8bcc8; }
+  .key.enter { background: #4caf50; color: #fff; box-shadow: 0 3px 0 #2e7d32; }
+  .key.back { background: #ffb74d; box-shadow: 0 3px 0 #ef6c00; }
+  .numpad.dim { opacity: 0.45; pointer-events: none; }
+
+  .bills { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .bill {
+    width: 96px;
+    height: 46px;
+    border-radius: 6px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #fff;
+    border: 2px solid rgba(0, 0, 0, 0.25);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+    animation: bill-in 0.45s ease;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
+    background-image: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0 4px, transparent 4px 8px);
+  }
+  .bill::before, .bill::after {
+    position: absolute;
+    font-size: 0.6rem;
+    opacity: 0.85;
+  }
+  .bill::before { content: attr(data-amt); left: 5px; top: 2px; }
+  .bill::after { content: attr(data-amt); right: 5px; bottom: 2px; }
+  .bill .face {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+  }
+  .bill.b1 { background-color: #7fa97f; }
+  .bill.b5 { background-color: #9b7bd0; }
+  .bill.b10 { background-color: #e8a13a; }
+  .bill.b20 { background-color: #3d9d6a; }
+  @keyframes bill-in {
+    0% { transform: translateY(-30px) rotate(-8deg); opacity: 0; }
+    100% { transform: translateY(0) rotate(0); opacity: 1; }
+  }
+  .drawer { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  .drawer .bill { cursor: pointer; transition: transform 0.15s ease; }
+  .drawer .bill:hover { transform: translateY(-4px) scale(1.05); }
+  .tray {
+    min-height: 62px;
+    border: 2px dashed #ccd;
+    border-radius: 10px;
+    padding: 6px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 6px;
+    background: #fafbfd;
+  }
+  .tray .empty-note { color: #99a; font-size: 0.9rem; }
+  .tray-sum { font-weight: bold; color: #333; margin-top: 6px; }
+  .tray-sum .over { color: #e0473c; }
+
+  /* ---- Receipt after the sale ----------------------------------------- */
+  .receipt {
+    margin-top: 12px;
+    background: #fff;
+    border: 2px solid #e3e7ef;
+    border-radius: 12px;
+    padding: 14px 18px;
+    color: #333;
+  }
+  .receipt h3 { font-size: 1.1rem; margin-bottom: 8px; }
+  .receipt table { width: 100%; border-collapse: collapse; font-family: 'Courier New', monospace; font-size: 0.95rem; }
+  .receipt th { text-align: right; font-size: 0.75rem; color: #889; text-transform: uppercase; letter-spacing: 0.04em; padding: 2px 6px; }
+  .receipt th:first-child { text-align: left; }
+  .receipt td { padding: 3px 6px; text-align: right; border-top: 1px dotted #dde; }
+  .receipt td:first-child { text-align: left; }
+  .receipt tr.sum td { border-top: 2px solid #333; font-weight: bold; }
+  .neg { color: #e0473c; font-weight: bold; }
+  .pos { color: #2e9e5b; font-weight: bold; }
+  .lesson {
+    background: #fff3cd;
+    border-left: 5px solid #ffb703;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 10px;
+    line-height: 1.45;
+    font-size: 0.97rem;
+  }
+  .lesson.good { background: #e3f7e8; border-left-color: #2e9e5b; }
+  .receipt .next { text-align: center; margin-top: 14px; }
+
+  /* ---- Right column: market + chart ----------------------------------- */
+  .side { display: flex; flex-direction: column; gap: 14px; }
+  .card { background: #f6f8fb; border-radius: 16px; padding: 12px 14px; }
+  .card h2 { font-size: 1.05rem; color: #333; margin-bottom: 6px; }
+  .card .note { font-size: 0.8rem; color: #778; margin-bottom: 8px; line-height: 1.35; }
+  .market-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 4px;
+    border-bottom: 1px solid #e3e7ef;
+    border-radius: 8px;
+  }
+  .market-row:last-child { border-bottom: none; }
+  .market-row .emoji { font-size: 1.7rem; width: 34px; text-align: center; }
+  .market-row .info { flex: 1; font-size: 0.82rem; color: #556; line-height: 1.3; }
+  .market-row .have { font-weight: bold; color: #333; font-size: 0.95rem; }
+  .market-row .have.zero { color: #e0473c; }
+  .buy-btn {
+    border: none;
+    background: #667eea;
+    color: #fff;
+    border-radius: 999px;
+    padding: 7px 10px;
+    font-weight: bold;
+    font-size: 0.78rem;
+    cursor: pointer;
+    white-space: nowrap;
+    line-height: 1.2;
+    box-shadow: 0 3px 0 #4a5bb8;
+    transition: transform 0.15s ease;
+  }
+  .buy-btn:hover { transform: scale(1.05); }
+  .buy-btn:active { transform: translateY(2px); box-shadow: none; }
+  .buy-btn:disabled { background: #bbc; box-shadow: 0 3px 0 #99a; cursor: not-allowed; transform: none; }
+  .market-row.need { background: #fff3cd; }
+  .market-row.need .buy-btn { animation: pulse 1s ease-in-out infinite; }
+  .toast {
+    background: #e3f7e8;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 0.85rem;
+    color: #256d3d;
+    margin-top: 8px;
+    line-height: 1.35;
+  }
+  .toast.bad { background: #ffe0dc; color: #a32a1f; }
+
+  .chart svg { width: 100%; height: auto; display: block; }
+  .chart .legend { display: flex; gap: 14px; font-size: 0.8rem; color: #556; margin-top: 4px; justify-content: center; }
+  .chart .legend span::before {
+    content: '';
+    display: inline-block;
+    width: 14px;
+    height: 4px;
+    border-radius: 2px;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+  .chart .legend .lv::before { background: #4a63d8; }
+  .chart .legend .lc::before { background: #2e9e5b; }
+
+  /* ---- Menu & secret costs card --------------------------------------- */
+  .menu-card { margin-top: 16px; }
+  .menu-card h2 { text-align: center; font-size: 1.25rem; color: #333; margin-bottom: 4px; }
+  .menu-card .sub { text-align: center; color: #667; font-size: 0.9rem; margin-bottom: 10px; }
+  .menu-table-wrap { overflow-x: auto; }
+  .menu-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; color: #333; }
+  .menu-table th { background: #eef1f7; padding: 8px 6px; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: #667; }
+  .menu-table td { padding: 7px 6px; border-bottom: 1px solid #e3e7ef; text-align: center; }
+  .menu-table td:first-child { text-align: left; font-weight: bold; }
+  .menu-table td.fruit { font-size: 1.25rem; letter-spacing: 3px; white-space: nowrap; }
+  .menu-table tr.loss td { background: #ffe0dc; }
+  .menu-table tr.even td { background: #fff8e1; }
+  .menu-table .cost-list { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 6px 0 10px; font-size: 0.9rem; color: #556; }
+  .menu-card .explain { margin-top: 10px; line-height: 1.5; color: #444; font-size: 0.97rem; }
+
+  /* Confetti for big milestones */
+  .confetti {
+    position: fixed;
+    top: -20px;
+    width: 10px;
+    height: 16px;
+    pointer-events: none;
+    z-index: 999;
+    border-radius: 2px;
+    animation: confetti-fall 3s linear forwards;
+  }
+  @keyframes confetti-fall {
+    0% { opacity: 1; transform: translateY(0) translateX(0) rotate(0deg); }
+    100% { opacity: 0.8; transform: translateY(105vh) translateX(var(--drift)) rotate(var(--spin)); }
+  }
+
+  @media (max-width: 600px) {
+    h1 { font-size: 1.3rem; }
+    .container { padding: 14px 12px 18px; }
+    .bubble { font-size: 0.95rem; }
+    .customer { width: 96px; height: 120px; }
+  }
+</style>
+</head>
+<body>
+  <a href="index.html" class="back-link">&larr; Back to Games</a>
+  <div class="container">
+    <h1>🥤 Smoothie Shop</h1>
+
+    <div class="stats">
+      <div class="stat cash"><div class="label">Cash in register</div><div class="value" id="stat-cash">$0</div></div>
+      <div class="stat worth"><div class="label">Fruit on the shelf</div><div class="value" id="stat-worth">$0</div></div>
+      <div class="stat total"><div class="label">Shop value</div><div class="value" id="stat-total">$0</div></div>
+      <div class="stat profit" id="stat-profit-box"><div class="label">Profit so far</div><div class="value" id="stat-profit">$0</div></div>
+      <div class="stat"><div class="label">Customers served</div><div class="value" id="stat-served">0</div></div>
+      <div class="stat-btns"><button class="small-btn" id="reset-btn" title="Start the shop over">Reset shop</button></div>
+    </div>
+
+    <div class="layout">
+      <div class="main">
+        <div class="counter">
+          <div class="counter-inner">
+            <div class="customer" id="customer"></div>
+            <div class="bubble" id="bubble">
+              <button class="speak-btn" id="speak-btn" title="Read it out loud">🔊</button>
+              <span id="bubble-text">Opening the shop...</span>
+            </div>
+          </div>
+          <div class="counter-top"></div>
+        </div>
+
+        <div class="ticket" id="ticket" hidden></div>
+
+        <div class="kitchen" id="kitchen" hidden>
+          <div>
+            <div class="recipe-card" id="recipe-card"></div>
+            <div class="shelf-label">Tap a fruit to drop it in the blender:</div>
+            <div class="shelf" id="shelf"></div>
+            <div class="made-label">Smoothies made for this order:</div>
+            <div class="made" id="made"></div>
+          </div>
+          <div class="blender-col">
+            <div class="blender" id="blender">
+              <div class="lid"></div>
+              <div class="jar-wrap">
+                <div class="jar">
+                  <div class="liquid" id="liquid"></div>
+                  <div class="blades"></div>
+                  <div class="contents" id="contents"></div>
+                </div>
+                <div class="handle"></div>
+              </div>
+              <div class="base"></div>
+            </div>
+            <div class="blender-btns">
+              <button class="big-btn" id="blend-btn">Blend! 🌀</button>
+              <button class="small-btn" id="dump-btn">Dump it out</button>
+            </div>
+            <div class="blender-btns" id="ring-up-wrap" hidden>
+              <button class="big-btn green ready" id="ring-up-btn">🧾 Ring it up!</button>
+            </div>
+            <div class="blender-btns" style="margin-top:18px;">
+              <button class="small-btn" id="sold-out-btn" title="Send the customer away without a sale">😞 Sorry, we're out!</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="register" id="register" hidden>
+          <div>
+            <div class="bill-lines" id="bill-lines"></div>
+            <div class="question" id="question"></div>
+            <div class="hint" id="reg-hint" hidden></div>
+            <div id="paid-wrap" hidden>
+              <div class="question" style="margin-top:14px;">The customer hands you:</div>
+              <div class="bills" id="paid-bills"></div>
+            </div>
+            <div id="drawer-wrap" hidden>
+              <div class="question" style="margin-top:14px;">Tap bills from your drawer to hand back the change:</div>
+              <div class="drawer" id="drawer"></div>
+              <div class="tray" id="tray"></div>
+              <div class="tray-sum" id="tray-sum"></div>
+            </div>
+          </div>
+          <div class="numpad" id="numpad">
+            <div class="display" id="display">$</div>
+            <div class="keys" id="keys"></div>
+          </div>
+        </div>
+
+        <div class="receipt" id="receipt" hidden></div>
+      </div>
+
+      <aside class="side">
+        <div class="card">
+          <h2>🛒 Fruit Market</h2>
+          <div class="note">Fruit costs money! Buy boxes here with cash from the register.</div>
+          <div id="market"></div>
+          <div class="toast" id="market-toast" hidden></div>
+        </div>
+        <div class="card chart">
+          <h2>📈 Your shop is growing</h2>
+          <div id="chart"></div>
+          <div class="legend"><span class="lv">Shop value (cash + fruit)</span><span class="lc">Cash</span></div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="card menu-card">
+      <h2>📋 Menu &amp; Secret Costs</h2>
+      <div class="sub">Customers see the price. Only the shop owner knows what the fruit costs!</div>
+      <div class="cost-list" id="cost-list"></div>
+      <div class="menu-table-wrap">
+        <table class="menu-table" id="menu-table"></table>
+      </div>
+      <div class="explain" id="explain"></div>
+    </div>
+  </div>
+
+<script>
+// ===========================================================================
+// Smoothie Shop: customers order smoothies, the player builds them from fruit,
+// adds up the bill, makes change, and watches the shop's money grow (or not!)
+// ===========================================================================
+
+// ----- The menu, the fruit, and the recipes ---------------------------------
+
+var SIZES = [
+    { key: 'small',  name: 'Small',  price: 3, cls: 'size-s' },
+    { key: 'medium', name: 'Medium', price: 4, cls: 'size-m' },
+    { key: 'large',  name: 'Large',  price: 5, cls: 'size-l' }
+];
+
+var FRUITS = [
+    { key: 'peach',      name: 'Peach',      plural: 'peaches',      emoji: '🍑', cost: 1, box: 6, boxPrice: 6 },
+    { key: 'strawberry', name: 'Strawberry', plural: 'strawberries', emoji: '🍓', cost: 1, box: 6, boxPrice: 6 },
+    { key: 'banana',     name: 'Banana',     plural: 'bananas',      emoji: '🍌', cost: 1, box: 6, boxPrice: 6 },
+    { key: 'pineapple',  name: 'Pineapple',  plural: 'pineapples',   emoji: '🍍', cost: 1, box: 6, boxPrice: 6 },
+    { key: 'coconut',    name: 'Coconut',    plural: 'coconuts',     emoji: '🥥', cost: 2, box: 6, boxPrice: 12 }
+];
+
+// How many pieces of each fruit go into each size. Coconuts cost $2, so a
+// large coconut pineapple ($5) uses $6 of fruit and loses a dollar. That is
+// on purpose: it is the lesson in the "Menu & Secret Costs" card.
+var FLAVORS = [
+    { key: 'peach', name: 'Peach', cls: 'flavor-peach', liquid: 'linear-gradient(#ffc38b, #ff9250)',
+      recipes: { small: { peach: 1 }, medium: { peach: 2 }, large: { peach: 3 } } },
+    { key: 'strawbanana', name: 'Strawberry Banana', cls: 'flavor-strawbanana', liquid: 'linear-gradient(#ffe066, #ff7fa5)',
+      recipes: { small: { strawberry: 1, banana: 1 }, medium: { strawberry: 2, banana: 1 }, large: { strawberry: 2, banana: 2 } } },
+    { key: 'cocopine', name: 'Coconut Pineapple', cls: 'flavor-cocopine', liquid: 'linear-gradient(#fffbe0, #ffe066)',
+      recipes: { small: { coconut: 1, pineapple: 1 }, medium: { coconut: 1, pineapple: 2 }, large: { coconut: 2, pineapple: 2 } } }
+];
+
+var SIZE_MAP = {}, FRUIT_MAP = {}, FLAVOR_MAP = {};
+SIZES.forEach(function (s) { SIZE_MAP[s.key] = s; });
+FRUITS.forEach(function (f) { FRUIT_MAP[f.key] = f; });
+FLAVORS.forEach(function (f) { FLAVOR_MAP[f.key] = f; });
+
+function recipeCost(flavor, sizeKey) {
+    var r = flavor.recipes[sizeKey], c = 0;
+    for (var k in r) c += r[k] * FRUIT_MAP[k].cost;
+    return c;
+}
+
+function recipeEmoji(recipe) {
+    var s = '';
+    FRUITS.forEach(function (f) {
+        for (var i = 0; i < (recipe[f.key] || 0); i++) s += f.emoji;
+    });
+    return s;
+}
+
+function money(n) {
+    return (n < 0 ? '-$' : '$') + Math.abs(n);
+}
+
+function signedMoney(n) {
+    return (n < 0 ? '-$' : '+$') + Math.abs(n);
+}
+
+function rand(n) { return Math.floor(Math.random() * n); }
+function pick(arr) { return arr[rand(arr.length)]; }
+
+// ----- Shop state (saved in localStorage so the shop keeps growing) ----------
+
+var START_CASH = 20;
+var START_FRUIT = { peach: 5, strawberry: 5, banana: 5, pineapple: 5, coconut: 3 };
+var STATE_KEY = 'smoothieShopState';
+
+function fruitValue(inv) {
+    var v = 0;
+    FRUITS.forEach(function (f) { v += (inv[f.key] || 0) * f.cost; });
+    return v;
+}
+
+function freshState() {
+    var fruit = {};
+    FRUITS.forEach(function (f) { fruit[f.key] = START_FRUIT[f.key]; });
+    return {
+        cash: START_CASH,
+        fruit: fruit,
+        served: 0,
+        profit: 0,
+        lossSales: 0,
+        cashHist: [START_CASH],
+        valueHist: [START_CASH + fruitValue(fruit)]
+    };
+}
+
+function loadState() {
+    try {
+        var s = JSON.parse(localStorage.getItem(STATE_KEY));
+        if (s && typeof s.cash === 'number' && s.fruit) {
+            FRUITS.forEach(function (f) {
+                if (typeof s.fruit[f.key] !== 'number') s.fruit[f.key] = 0;
+            });
+            if (typeof s.served !== 'number') s.served = 0;
+            if (typeof s.profit !== 'number') s.profit = 0;
+            if (typeof s.lossSales !== 'number') s.lossSales = 0;
+            if (!Array.isArray(s.cashHist) || !s.cashHist.length) s.cashHist = [s.cash];
+            if (!Array.isArray(s.valueHist) || !s.valueHist.length) s.valueHist = [s.cash + fruitValue(s.fruit)];
+            return s;
+        }
+    } catch (e) { /* localStorage unavailable or corrupt: start fresh */ }
+    return freshState();
+}
+
+function save() {
+    try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ }
+}
+
+var state = loadState();
+
+function shopValue() { return state.cash + fruitValue(state.fruit); }
+
+// ----- Round state (one customer at a time) ---------------------------------
+
+var customer = null;        // the current customer's look and name
+var order = [];             // [{ flavor, size, made }]
+var madeIdx = 0;            // which smoothie in the order we're building
+var blenderContents = [];   // fruit keys currently in the jar
+var phase = 'idle';         // idle | make | ready | total | change | bills | done
+var busy = false;
+var total = 0, paidBills = [], paid = 0, change = 0, trayBills = [];
+var typed = '', attempts = 0;
+
+// ----- DOM ---------------------------------------------------------------
+
+var $ = function (id) { return document.getElementById(id); };
+var customerEl = $('customer'), bubbleTextEl = $('bubble-text');
+var ticketEl = $('ticket'), kitchenEl = $('kitchen'), recipeEl = $('recipe-card');
+var shelfEl = $('shelf'), madeEl = $('made'), blenderEl = $('blender');
+var liquidEl = $('liquid'), contentsEl = $('contents');
+var registerEl = $('register'), billLinesEl = $('bill-lines'), questionEl = $('question');
+var regHintEl = $('reg-hint'), paidWrapEl = $('paid-wrap'), paidBillsEl = $('paid-bills');
+var drawerWrapEl = $('drawer-wrap'), drawerEl = $('drawer'), trayEl = $('tray'), traySumEl = $('tray-sum');
+var numpadEl = $('numpad'), displayEl = $('display'), keysEl = $('keys');
+var receiptEl = $('receipt'), marketEl = $('market'), marketToastEl = $('market-toast');
+
+// ----- Customers -------------------------------------------------------------
+
+var NAMES = ['Milo', 'Zara', 'Otis', 'Luna', 'Pip', 'Rosa', 'Finn', 'Nia', 'Gus', 'Ivy',
+             'Theo', 'Mia', 'Ray', 'Ada', 'Leo', 'June', 'Kai', 'Bea', 'Ezra', 'Wren'];
+var SKINS = ['#f8d5b8', '#e8b897', '#c68642', '#8d5524', '#ffdbac', '#a0673f', '#f1c27d'];
+var HAIRS = ['#2b1b10', '#5a3a1a', '#d9a441', '#c0392b', '#111', '#7f5539', '#e67e22', '#6c5ce7'];
+var SHIRTS = ['#ff6b6b', '#4ecdc4', '#ffd93d', '#6c5ce7', '#00b894', '#fd79a8', '#0984e3', '#e17055'];
+
+function makeCustomer() {
+    return {
+        name: pick(NAMES),
+        skin: pick(SKINS),
+        hair: pick(HAIRS),
+        hairStyle: rand(6),
+        shirt: pick(SHIRTS),
+        glasses: Math.random() < 0.25,
+        freckles: Math.random() < 0.3
+    };
+}
+
+// A cartoon person: big round head, a few hairdos, and a mood.
+function customerSVG(c, mood) {
+    var s = '<svg viewBox="0 0 120 150" xmlns="http://www.w3.org/2000/svg">';
+    // body / shirt
+    s += '<path d="M22 150 L22 122 Q22 96 60 96 Q98 96 98 122 L98 150 Z" fill="' + c.shirt + '"/>';
+    s += '<path d="M48 98 L60 112 L72 98" fill="none" stroke="rgba(0,0,0,0.18)" stroke-width="3"/>';
+    // neck
+    s += '<rect x="50" y="78" width="20" height="22" rx="6" fill="' + c.skin + '"/>';
+    // long hair goes behind the head
+    if (c.hairStyle === 2) {
+        s += '<path d="M22 100 L22 55 Q22 18 60 18 Q98 18 98 55 L98 100 Q90 94 88 76 L88 52 L32 52 L32 76 Q30 94 22 100 Z" fill="' + c.hair + '"/>';
+    }
+    // head
+    s += '<circle cx="60" cy="55" r="34" fill="' + c.skin + '"/>';
+    // ears
+    s += '<circle cx="26" cy="57" r="6" fill="' + c.skin + '"/><circle cx="94" cy="57" r="6" fill="' + c.skin + '"/>';
+    // hair on top
+    switch (c.hairStyle) {
+        case 0: // short
+            s += '<path d="M26 50 Q28 18 60 18 Q92 18 94 50 Q80 34 60 33 Q40 34 26 50 Z" fill="' + c.hair + '"/>';
+            break;
+        case 1: // curly
+            [[30, 40], [40, 27], [52, 21], [66, 20], [79, 26], [90, 38]].forEach(function (p) {
+                s += '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="11" fill="' + c.hair + '"/>';
+            });
+            break;
+        case 2: // long (front part)
+            s += '<path d="M26 52 Q28 20 60 20 Q92 20 94 52 Q84 36 60 34 Q36 36 26 52 Z" fill="' + c.hair + '"/>';
+            break;
+        case 3: // spiky
+            s += '<path d="M27 50 L29 22 L41 34 L48 12 L58 30 L66 10 L74 30 L84 16 L86 36 L93 26 L93 50 Q76 32 60 32 Q44 32 27 50 Z" fill="' + c.hair + '"/>';
+            break;
+        case 4: // bun
+            s += '<path d="M26 50 Q28 18 60 18 Q92 18 94 50 Q80 34 60 33 Q40 34 26 50 Z" fill="' + c.hair + '"/>';
+            s += '<circle cx="60" cy="14" r="12" fill="' + c.hair + '"/>';
+            break;
+        default: // cap
+            s += '<path d="M27 46 Q30 14 60 14 Q90 14 93 46 Z" fill="' + c.hair + '"/>';
+            s += '<rect x="20" y="42" width="80" height="10" rx="5" fill="' + c.hair + '"/>';
+            s += '<rect x="86" y="42" width="30" height="8" rx="4" fill="' + c.hair + '"/>';
+    }
+    // eyes
+    if (mood === 'joy') {
+        s += '<path d="M40 54 Q47 45 54 54" stroke="#222" stroke-width="3.5" fill="none" stroke-linecap="round"/>';
+        s += '<path d="M66 54 Q73 45 80 54" stroke="#222" stroke-width="3.5" fill="none" stroke-linecap="round"/>';
+    } else {
+        s += '<circle cx="47" cy="52" r="4.5" fill="#222"/><circle cx="73" cy="52" r="4.5" fill="#222"/>';
+        s += '<circle cx="48.5" cy="50.5" r="1.5" fill="#fff"/><circle cx="74.5" cy="50.5" r="1.5" fill="#fff"/>';
+    }
+    if (mood === 'think') {
+        s += '<path d="M40 41 L54 44" stroke="#222" stroke-width="3" stroke-linecap="round"/>';
+        s += '<path d="M66 44 L80 40" stroke="#222" stroke-width="3" stroke-linecap="round"/>';
+    }
+    if (c.glasses) {
+        s += '<circle cx="47" cy="52" r="9" fill="none" stroke="#333" stroke-width="2.5"/>';
+        s += '<circle cx="73" cy="52" r="9" fill="none" stroke="#333" stroke-width="2.5"/>';
+        s += '<path d="M56 52 L64 52" stroke="#333" stroke-width="2.5"/>';
+    }
+    // cheeks
+    s += '<circle cx="38" cy="64" r="5" fill="#ff8a9a" opacity="0.55"/><circle cx="82" cy="64" r="5" fill="#ff8a9a" opacity="0.55"/>';
+    if (c.freckles) {
+        s += '<g fill="#b5764f" opacity="0.7"><circle cx="40" cy="60" r="1.3"/><circle cx="45" cy="63" r="1.3"/><circle cx="75" cy="63" r="1.3"/><circle cx="80" cy="60" r="1.3"/></g>';
+    }
+    // mouth
+    if (mood === 'joy') {
+        s += '<path d="M44 66 Q60 86 76 66 Z" fill="#a0322d"/><path d="M50 74 Q60 80 70 74 Q60 84 50 74 Z" fill="#ff7b8a"/>';
+    } else if (mood === 'think') {
+        s += '<ellipse cx="60" cy="72" rx="6" ry="5" fill="#a0322d"/>';
+    } else if (mood === 'sad') {
+        s += '<path d="M48 76 Q60 64 72 76" stroke="#a0322d" stroke-width="3.5" fill="none" stroke-linecap="round"/>';
+    } else {
+        s += '<path d="M46 67 Q60 80 74 67" stroke="#a0322d" stroke-width="3.5" fill="none" stroke-linecap="round"/>';
+    }
+    return s + '</svg>';
+}
+
+function renderCustomer(mood) {
+    customerEl.innerHTML = customer ? customerSVG(customer, mood || 'happy') : '';
+}
+
+var lastBubbleSpeech = '';
+function setBubble(html, speech) {
+    bubbleTextEl.innerHTML = html;
+    lastBubbleSpeech = speech || bubbleTextEl.textContent;
+}
+
+// ----- Orders -------------------------------------------------------------
+
+function makeOrder() {
+    var n = state.served < 2 ? 1 : state.served < 5 ? 1 + rand(2) : 1 + rand(3);
+    var items = [];
+    for (var i = 0; i < n; i++) {
+        items.push({ flavor: pick(FLAVORS), size: pick(SIZES), made: false });
+    }
+    // Put identical smoothies next to each other so the order reads nicely.
+    items.sort(function (a, b) {
+        var fa = FLAVORS.indexOf(a.flavor), fb = FLAVORS.indexOf(b.flavor);
+        if (fa !== fb) return fa - fb;
+        return SIZES.indexOf(a.size) - SIZES.indexOf(b.size);
+    });
+    return items;
+}
+
+function groupOrder(items) {
+    var lines = [];
+    items.forEach(function (it) {
+        var last = lines[lines.length - 1];
+        if (last && last.flavor === it.flavor && last.size === it.size) last.qty++;
+        else lines.push({ flavor: it.flavor, size: it.size, qty: 1 });
+    });
+    return lines;
+}
+
+function orderSentence(items) {
+    var parts = groupOrder(items).map(function (l) {
+        return l.qty + ' ' + l.size.name.toLowerCase() + ' ' + l.flavor.name.toLowerCase() +
+            (l.qty > 1 ? ' smoothies' : ' smoothie');
+    });
+    if (parts.length === 1) return parts[0];
+    return parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1];
+}
+
+function orderTotal(items) {
+    return items.reduce(function (t, it) { return t + it.size.price; }, 0);
+}
+
+function orderCost(items) {
+    return items.reduce(function (t, it) { return t + recipeCost(it.flavor, it.size.key); }, 0);
+}
+
+var GREETINGS = ['Hi! Can I please have ', 'Hello! I\'d like ', 'Good afternoon! Could I get ',
+                 'Hey there! May I have ', 'Yum, smoothies! I want '];
+
+function newCustomer() {
+    customer = makeCustomer();
+    order = makeOrder();
+    madeIdx = 0;
+    blenderContents = [];
+    phase = 'make';
+    busy = false;
+    attempts = 0;
+
+    renderCustomer('happy');
+    customerEl.classList.remove('leave');
+    customerEl.classList.add('enter');
+    setTimeout(function () { customerEl.classList.remove('enter'); }, 1000);
+
+    var sentence = orderSentence(order);
+    setBubble('<span class="name">' + customer.name + ':</span> ' + pick(GREETINGS) + sentence + '?',
+              customer.name + ' says: ' + pick(GREETINGS) + sentence + '?');
+
+    receiptEl.hidden = true;
+    registerEl.hidden = true;
+    ticketEl.hidden = false;
+    kitchenEl.hidden = false;
+    $('ring-up-wrap').hidden = true;
+    $('blend-btn').hidden = false;
+    $('dump-btn').hidden = false;
+    liquidEl.style.height = '0';
+    contentsEl.style.opacity = '1';
+    madeEl.innerHTML = '<span class="empty-note">Nothing yet. Follow the recipe card!</span>';
+    renderTicket();
+    renderRecipe();
+    renderShelf();
+    renderBlender();
+    renderMarket();
+}
+
+function renderTicket() {
+    var html = '<div class="title">🧾 ORDER for ' + customer.name + '</div>';
+    order.forEach(function (it, i) {
+        var cls = it.made ? 'done' : (i === madeIdx && phase === 'make' ? 'now' : '');
+        html += '<div class="line ' + cls + '"><span class="mark">' + (it.made ? '✅' : (cls === 'now' ? '👉' : '⬜')) + '</span>' +
+            it.size.name + ' ' + it.flavor.name + '</div>';
+    });
+    ticketEl.innerHTML = html;
+}
+
+// ----- Kitchen -----------------------------------------------------------------
+
+function countContents() {
+    var counts = {};
+    blenderContents.forEach(function (k) { counts[k] = (counts[k] || 0) + 1; });
+    return counts;
+}
+
+function contentsMatch(recipe) {
+    var counts = countContents();
+    var keys = {};
+    Object.keys(recipe).forEach(function (k) { keys[k] = true; });
+    Object.keys(counts).forEach(function (k) { keys[k] = true; });
+    return Object.keys(keys).every(function (k) { return (recipe[k] || 0) === (counts[k] || 0); });
+}
+
+function renderRecipe() {
+    if (phase !== 'make' || madeIdx >= order.length) {
+        recipeEl.innerHTML = '<div class="step">All done!</div><div class="what">Every smoothie is made. Ring it up! 🧾</div>';
+        return;
+    }
+    var it = order[madeIdx];
+    var recipe = it.flavor.recipes[it.size.key];
+    var counts = countContents();
+    var progress = '';
+    FRUITS.forEach(function (f) {
+        var need = recipe[f.key] || 0, have = counts[f.key] || 0;
+        if (!need && !have) return;
+        var cls = have === need ? 'ok' : (have > need ? 'over' : '');
+        progress += '<span class="' + cls + '">' + f.emoji + ' ' + have + ' of ' + need + '</span>';
+    });
+    recipeEl.innerHTML =
+        '<div class="step">Recipe card &middot; smoothie ' + (madeIdx + 1) + ' of ' + order.length + '</div>' +
+        '<div class="what">' + it.size.name + ' ' + it.flavor.name + ' <span style="color:#889;font-weight:normal;">(' + money(it.size.price) + ')</span></div>' +
+        '<div class="need">' + recipeEmoji(recipe) + '</div>' +
+        '<div class="progress">' + progress + '</div>';
+}
+
+function renderShelf() {
+    shelfEl.innerHTML = '';
+    FRUITS.forEach(function (f) {
+        var n = state.fruit[f.key];
+        var btn = document.createElement('button');
+        btn.className = 'fruit-btn' + (n === 0 ? ' empty' : (n <= 2 ? ' low' : ''));
+        btn.setAttribute('data-fruit', f.key);
+        btn.innerHTML = f.emoji + '<span class="count">' + n + '</span><span class="fname">' + f.name + '</span>';
+        btn.addEventListener('click', function () { addFruit(f.key, btn); });
+        shelfEl.appendChild(btn);
+    });
+}
+
+function renderBlender() {
+    contentsEl.innerHTML = blenderContents.map(function (k) {
+        return '<span>' + FRUIT_MAP[k].emoji + '</span>';
+    }).join('');
+    var it = order[madeIdx];
+    var blendBtn = $('blend-btn');
+    if (phase === 'make' && it && contentsMatch(it.flavor.recipes[it.size.key])) {
+        blendBtn.classList.add('ready');
+    } else {
+        blendBtn.classList.remove('ready');
+    }
+}
+
+function addFruit(key, btn) {
+    if (phase !== 'make' || busy) return;
+    var f = FRUIT_MAP[key];
+    if (state.fruit[key] <= 0) {
+        sound('wrong');
+        btn.classList.remove('wiggle');
+        void btn.offsetWidth;
+        btn.classList.add('wiggle');
+        setBubble('<span class="name">' + customer.name + ':</span> Uh oh, you\'re out of ' + f.plural + '! Buy a box at the Fruit Market. 🛒');
+        renderMarket(key);
+        return;
+    }
+    state.fruit[key]--;
+    blenderContents.push(key);
+    sound('plop');
+    save();
+    renderStats();
+    renderShelf();
+    renderRecipe();
+    renderBlender();
+    renderMarket();
+}
+
+function dumpBlender() {
+    if (phase !== 'make' || busy || !blenderContents.length) return;
+    blenderContents.forEach(function (k) { state.fruit[k]++; });
+    blenderContents = [];
+    sound('dump');
+    save();
+    renderStats();
+    renderShelf();
+    renderRecipe();
+    renderBlender();
+    renderMarket();
+}
+
+function blend() {
+    if (phase !== 'make' || busy) return;
+    var it = order[madeIdx];
+    var recipe = it.flavor.recipes[it.size.key];
+    if (!blenderContents.length) {
+        setBubble('<span class="name">' + customer.name + ':</span> The blender is empty! Tap some fruit first. 🍑');
+        sound('wrong');
+        return;
+    }
+    if (!contentsMatch(recipe)) {
+        sound('wrong');
+        blenderEl.classList.remove('oops');
+        void blenderEl.offsetWidth;
+        blenderEl.classList.add('oops');
+        setTimeout(function () { blenderEl.classList.remove('oops'); }, 600);
+        setBubble('<span class="name">' + customer.name + ':</span> Hmm, that\'s not the recipe for a ' +
+            it.size.name.toLowerCase() + ' ' + it.flavor.name.toLowerCase() + '. It needs ' + recipeEmoji(recipe) +
+            '. You can dump it out and try again!');
+        renderCustomer('think');
+        return;
+    }
+    busy = true;
+    blenderEl.classList.add('blending');
+    sound('blend');
+    setTimeout(function () {
+        liquidEl.style.background = it.flavor.liquid;
+        liquidEl.style.height = (it.size.key === 'small' ? 40 : it.size.key === 'medium' ? 60 : 82) + '%';
+        contentsEl.style.opacity = '0';
+    }, 800);
+    setTimeout(function () {
+        blenderEl.classList.remove('blending');
+        it.made = true;
+        blenderContents = [];
+        liquidEl.style.transition = 'none';
+        liquidEl.style.height = '0';
+        void liquidEl.offsetWidth;
+        liquidEl.style.transition = '';
+        contentsEl.style.opacity = '1';
+        if (madeIdx === 0) madeEl.innerHTML = '';
+        madeEl.appendChild(cupEl(it, true));
+        sound('pour');
+        madeIdx++;
+        busy = false;
+        if (madeIdx >= order.length) {
+            phase = 'ready';
+            $('blend-btn').hidden = true;
+            $('dump-btn').hidden = true;
+            $('ring-up-wrap').hidden = false;
+            renderCustomer('joy');
+            setBubble('<span class="name">' + customer.name + ':</span> Ooh, those look delicious! How much do I owe you?');
+        } else {
+            setBubble('<span class="name">' + customer.name + ':</span> One down! Now the ' +
+                order[madeIdx].size.name.toLowerCase() + ' ' + order[madeIdx].flavor.name.toLowerCase() + ', please.');
+        }
+        renderTicket();
+        renderRecipe();
+        renderBlender();
+    }, 1900);
+}
+
+function cupEl(it, pop, mini) {
+    var el = document.createElement('div');
+    el.className = 'cup ' + it.size.cls + ' ' + it.flavor.cls + (pop ? ' pop' : '') + (mini ? ' mini' : '');
+    el.innerHTML = '<div class="straw"></div><div class="top"></div><div class="drink"></div>' +
+        (mini ? '' : '<div class="cap">' + it.size.name + '<br>' + it.flavor.name + '</div>');
+    return el;
+}
+
+function soldOut() {
+    if (phase !== 'make' || busy) return;
+    if (!confirm('Send ' + customer.name + ' away without any smoothies?')) return;
+    blenderContents.forEach(function (k) { state.fruit[k]++; });
+    blenderContents = [];
+    save();
+    renderStats();
+    renderCustomer('sad');
+    setBubble('<span class="name">' + customer.name + ':</span> Aww, no smoothie for me today. Maybe next time!');
+    sound('wrong');
+    phase = 'done';
+    kitchenEl.hidden = true;
+    receiptEl.hidden = false;
+    receiptEl.innerHTML = '<h3>No sale 😞</h3><div class="lesson">A customer left without buying anything, so no money came in. ' +
+        'Keep enough fruit on the shelf so this doesn\'t happen!</div>' +
+        '<div class="next"><button class="big-btn blue" id="next-btn">Next customer ➜</button></div>';
+    $('next-btn').addEventListener('click', nextCustomer);
+}
+
+// ----- Cash register ----------------------------------------------------------
+
+function ringUp() {
+    if (phase !== 'ready') return;
+    phase = 'total';
+    total = orderTotal(order);
+    typed = '';
+    attempts = 0;
+    kitchenEl.hidden = true;
+    registerEl.hidden = false;
+    paidWrapEl.hidden = true;
+    drawerWrapEl.hidden = true;
+    regHintEl.hidden = true;
+    numpadEl.classList.remove('dim');
+    renderBillLines(false);
+    questionEl.textContent = 'Add up the prices. What is the total?';
+    renderDisplay();
+    renderCustomer('happy');
+    setBubble('<span class="name">' + customer.name + ':</span> Let me get my money out. What\'s the total?');
+    sound('click');
+}
+
+function renderBillLines(showTotal) {
+    var html = '';
+    order.forEach(function (it) {
+        html += '<div class="line"><span class="desc"></span><span class="price">' + money(it.size.price) + '</span></div>';
+    });
+    if (showTotal) html += '<div class="line total"><span class="desc">TOTAL</span><span class="price">' + money(total) + '</span></div>';
+    billLinesEl.innerHTML = html;
+    var descs = billLinesEl.querySelectorAll('.line .desc');
+    order.forEach(function (it, i) {
+        if (i >= descs.length) return;
+        descs[i].appendChild(cupEl(it, false, true));
+        var t = document.createElement('span');
+        t.textContent = it.size.name + ' ' + it.flavor.name;
+        descs[i].appendChild(t);
+    });
+}
+
+function renderDisplay(cls) {
+    displayEl.textContent = '$' + typed;
+    displayEl.className = 'display' + (cls ? ' ' + cls : '');
+}
+
+function pressKey(k) {
+    if (phase !== 'total' && phase !== 'change') return;
+    if (k === 'back') {
+        typed = typed.slice(0, -1);
+        sound('click');
+    } else if (k === 'enter') {
+        checkAnswer();
+        return;
+    } else {
+        if (typed.length >= 3) return;
+        if (typed === '0') typed = '';
+        typed += k;
+        sound('click');
+    }
+    renderDisplay();
+}
+
+function checkAnswer() {
+    if (typed === '') return;
+    var n = parseInt(typed, 10);
+    var want = phase === 'total' ? total : change;
+    if (n === want) {
+        sound('right');
+        renderDisplay('good');
+        regHintEl.hidden = true;
+        if (phase === 'total') showPayment();
+        else afterChange();
+    } else {
+        attempts++;
+        sound('wrong');
+        renderDisplay('shake');
+        renderCustomer('think');
+        setTimeout(function () { renderDisplay(); }, 500);
+        var msg;
+        if (phase === 'total') {
+            msg = n < want ? 'That\'s too little. ' : 'That\'s too much. ';
+            if (attempts >= 2) {
+                var parts = order.map(function (it) { return money(it.size.price); });
+                msg += 'Try adding them one at a time: ' + parts.join(' + ') + ' = ?';
+            } else {
+                msg += 'Small is $3, medium is $4 and large is $5. Try again!';
+            }
+        } else {
+            msg = n < want ? 'That\'s not enough change. ' : 'That\'s too much change. ';
+            if (attempts >= 2) {
+                msg += 'Start at ' + money(total) + ' and count up to ' + money(paid) + '. How many dollars is that? Or take ' + money(paid) + ' − ' + money(total) + '.';
+            } else {
+                msg += 'They gave you ' + money(paid) + ' and the total is ' + money(total) + '. Try again!';
+            }
+        }
+        regHintEl.textContent = msg;
+        regHintEl.hidden = false;
+        typed = '';
+    }
+}
+
+// Pick how the customer pays: sometimes exact, usually with bigger bills so
+// there is change to figure out.
+function choosePayment(t) {
+    var options = [];
+    var up5 = Math.ceil(t / 5) * 5, up10 = Math.ceil(t / 10) * 10;
+    if (up5 > t) options.push(up5);
+    if (up10 > t && up10 !== up5) options.push(up10);
+    if (t < 20 && options.indexOf(20) === -1) options.push(20);
+    if (t < 15 && options.indexOf(15) === -1 && Math.random() < 0.3) options.push(15);
+    var amount = Math.random() < 0.25 || !options.length ? t : pick(options);
+    return { amount: amount, bills: breakIntoBills(amount) };
+}
+
+function breakIntoBills(amount) {
+    var bills = [], left = amount;
+    [20, 10, 5, 1].forEach(function (d) {
+        while (left >= d) { bills.push(d); left -= d; }
+    });
+    return bills;
+}
+
+var BILL_FACES = { 1: '🙂', 5: '🧐', 10: '😊', 20: '😎' };
+function billEl(d, clickable) {
+    var el = document.createElement('div');
+    el.className = 'bill b' + d;
+    el.setAttribute('data-amt', '$' + d);
+    el.innerHTML = '<span class="face">' + BILL_FACES[d] + '</span>$' + d;
+    if (clickable) el.addEventListener('click', function () { handBack(d); });
+    return el;
+}
+
+function showPayment() {
+    var pay = choosePayment(total);
+    paid = pay.amount;
+    paidBills = pay.bills;
+    change = paid - total;
+    phase = 'change';
+    typed = '';
+    attempts = 0;
+    renderBillLines(true);
+    paidBillsEl.innerHTML = '';
+    paidBills.forEach(function (d, i) {
+        var el = billEl(d, false);
+        el.style.animationDelay = (i * 0.12) + 's';
+        paidBillsEl.appendChild(el);
+    });
+    paidWrapEl.hidden = false;
+    renderCustomer('happy');
+    var billWords = groupBills(paidBills);
+    setBubble('<span class="name">' + customer.name + ':</span> ' + money(total) + '? Here you go: ' + billWords + '. That\'s ' + money(paid) + '.');
+    questionEl.textContent = 'They paid ' + money(paid) + ' for a ' + money(total) + ' order. How much change do you give back?';
+    setTimeout(function () { renderDisplay(); }, 500);
+    sound('bills');
+}
+
+function groupBills(bills) {
+    var counts = {};
+    bills.forEach(function (d) { counts[d] = (counts[d] || 0) + 1; });
+    var parts = Object.keys(counts).sort(function (a, b) { return b - a; }).map(function (d) {
+        var n = counts[d];
+        return (n === 1 ? 'a' : n) + ' $' + d + (n === 1 ? ' bill' : ' bills');
+    });
+    if (parts.length === 1) return parts[0];
+    return parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1];
+}
+
+function afterChange() {
+    if (change === 0) {
+        questionEl.textContent = 'Exact change! Nothing to hand back. 🎉';
+        finishSale();
+        return;
+    }
+    phase = 'bills';
+    trayBills = [];
+    numpadEl.classList.add('dim');
+    questionEl.textContent = 'Right! The change is ' + money(change) + '. Now hand it back.';
+    drawerEl.innerHTML = '';
+    [1, 5, 10].forEach(function (d) { drawerEl.appendChild(billEl(d, true)); });
+    drawerWrapEl.hidden = false;
+    renderTray();
+    setBubble('<span class="name">' + customer.name + ':</span> Great, ' + money(change) + ' back to me, please!');
+}
+
+function renderTray() {
+    trayEl.innerHTML = '';
+    if (!trayBills.length) trayEl.innerHTML = '<span class="empty-note">Nothing handed back yet.</span>';
+    trayBills.forEach(function (d) { trayEl.appendChild(billEl(d, false)); });
+    var sum = trayBills.reduce(function (a, b) { return a + b; }, 0);
+    traySumEl.innerHTML = 'Handed back so far: <span' + (sum > change ? ' class="over"' : '') + '>' + money(sum) + '</span> of ' + money(change);
+}
+
+function handBack(d) {
+    if (phase !== 'bills') return;
+    trayBills.push(d);
+    var sum = trayBills.reduce(function (a, b) { return a + b; }, 0);
+    sound('click');
+    renderTray();
+    if (sum === change) {
+        sound('right');
+        setTimeout(finishSale, 400);
+    } else if (sum > change) {
+        sound('wrong');
+        renderCustomer('think');
+        setBubble('<span class="name">' + customer.name + ':</span> Whoa, ' + money(sum) + ' is too much! I only get ' + money(change) + ' back. Try again.');
+        setTimeout(function () { trayBills = []; renderTray(); }, 900);
+    }
+}
+
+// ----- Finishing the sale: money in, receipt, lesson -------------------------
+
+function finishSale() {
+    phase = 'done';
+    var cost = orderCost(order);
+    var profit = total - cost;
+    state.cash += total;
+    state.served++;
+    state.profit += profit;
+    var lossItems = order.filter(function (it) { return it.size.price < recipeCost(it.flavor, it.size.key); });
+    state.lossSales += lossItems.length;
+    state.cashHist.push(state.cash);
+    state.valueHist.push(shopValue());
+    if (state.cashHist.length > 40) { state.cashHist.shift(); state.valueHist.shift(); }
+    save();
+
+    sound('chaching');
+    renderStats(true);
+    renderMarket();
+    drawChart();
+    renderCustomer('joy');
+    customerEl.classList.add('bounce');
+    setTimeout(function () { customerEl.classList.remove('bounce'); }, 700);
+    setBubble('<span class="name">' + customer.name + ':</span> ' + pick(['Thank you! Slurp slurp!', 'Yum! See you tomorrow!', 'Perfect, thanks so much!', 'Mmm, delicious. Bye!']));
+
+    registerEl.hidden = true;
+    receiptEl.hidden = false;
+    var html = '<h3>🧾 Receipt for the shop owner</h3><table>' +
+        '<tr><th>Smoothie</th><th>Fruit inside</th><th>Fruit cost</th><th>Sold for</th><th>Profit</th></tr>';
+    order.forEach(function (it) {
+        var c = recipeCost(it.flavor, it.size.key), p = it.size.price - c;
+        html += '<tr><td>' + it.size.name + ' ' + it.flavor.name + '</td><td>' + recipeEmoji(it.flavor.recipes[it.size.key]) + '</td>' +
+            '<td>' + money(c) + '</td><td>' + money(it.size.price) + '</td><td class="' + (p < 0 ? 'neg' : (p > 0 ? 'pos' : '')) + '">' + signedMoney(p) + '</td></tr>';
+    });
+    html += '<tr class="sum"><td>Whole order</td><td></td><td>' + money(cost) + '</td><td>' + money(total) + '</td><td class="' + (profit < 0 ? 'neg' : 'pos') + '">' + signedMoney(profit) + '</td></tr></table>';
+
+    if (lossItems.length && profit < 0) {
+        html += '<div class="lesson">😮 We <b>lost ' + money(-profit) + '</b> on this order! A large coconut pineapple uses two $2 coconuts, so its fruit costs $6 but it only sells for $5. ' +
+            'Don\'t worry: most orders make money, so the shop still grows. Look at the "Profit so far" number up top.</div>';
+    } else if (lossItems.length) {
+        html += '<div class="lesson">🤔 The large coconut pineapple <b>lost $1</b> (fruit cost $6, sold for $5), but the other smoothies made enough that the whole order still earned <b>' + money(profit) + '</b>.</div>';
+    } else if (profit === 0) {
+        html += '<div class="lesson">😐 We broke even: the fruit cost exactly what the customer paid. Coconuts are expensive! No profit this time, but no loss either.</div>';
+    } else {
+        html += '<div class="lesson good">💰 The customer paid <b>' + money(total) + '</b>. The fruit cost <b>' + money(cost) + '</b>. The rest, <b>' + money(profit) + '</b>, is profit that stays in the shop!</div>';
+    }
+    html += '<div class="next"><button class="big-btn blue" id="next-btn">Next customer ➜</button></div>';
+    receiptEl.innerHTML = html;
+    $('next-btn').addEventListener('click', nextCustomer);
+
+    if (state.served % 10 === 0) confettiBurst();
+}
+
+function nextCustomer() {
+    if (phase !== 'done' || busy) return;
+    busy = true;
+    customerEl.classList.add('leave');
+    receiptEl.hidden = true;
+    setBubble('...');
+    sound('click');
+    setTimeout(function () {
+        newCustomer();
+    }, 750);
+}
+
+// ----- Stats, market, chart --------------------------------------------------
+
+function setStat(id, text, bump) {
+    var el = $(id);
+    if (el.textContent === text) return;
+    el.textContent = text;
+    if (bump) {
+        el.classList.remove('bump');
+        void el.offsetWidth;
+        el.classList.add('bump');
+    }
+}
+
+function renderStats(bump) {
+    setStat('stat-cash', money(state.cash), bump);
+    setStat('stat-worth', money(fruitValue(state.fruit)), bump);
+    setStat('stat-total', money(shopValue()), bump);
+    setStat('stat-profit', signedMoney(state.profit), bump);
+    setStat('stat-served', String(state.served), bump);
+    $('stat-profit-box').classList.toggle('neg', state.profit < 0);
+}
+
+function renderMarket(needKey) {
+    marketEl.innerHTML = '';
+    FRUITS.forEach(function (f) {
+        var n = state.fruit[f.key];
+        var row = document.createElement('div');
+        row.className = 'market-row' + (f.key === needKey || n === 0 ? ' need' : '');
+        row.innerHTML = '<span class="emoji">' + f.emoji + '</span>' +
+            '<div class="info"><span class="have' + (n === 0 ? ' zero' : '') + '">' + n + ' ' + (n === 1 ? f.name.toLowerCase() : f.plural) + '</span><br>' +
+            money(f.cost) + ' each</div>';
+        var btn = document.createElement('button');
+        btn.className = 'buy-btn';
+        btn.innerHTML = 'Buy box of ' + f.box + '<br>' + money(f.boxPrice);
+        btn.disabled = state.cash < f.boxPrice;
+        btn.title = btn.disabled ? 'Not enough cash yet' : 'Pay ' + money(f.boxPrice) + ' for ' + f.box + ' ' + f.plural;
+        btn.addEventListener('click', function () { buyBox(f.key); });
+        row.appendChild(btn);
+        marketEl.appendChild(row);
+    });
+}
+
+function buyBox(key) {
+    var f = FRUIT_MAP[key];
+    if (state.cash < f.boxPrice) {
+        showToast('Not enough cash for a box of ' + f.plural + ' (' + money(f.boxPrice) + '). Sell some smoothies first!', true);
+        sound('wrong');
+        return;
+    }
+    state.cash -= f.boxPrice;
+    state.fruit[key] += f.box;
+    save();
+    sound('buy');
+    renderStats(true);
+    renderShelf();
+    renderMarket();
+    showToast('You paid ' + money(f.boxPrice) + ' for ' + f.box + ' ' + f.plural + '. Your cash went down, but your fruit went up, so your shop value stayed the same!');
+    if (phase === 'make') {
+        setBubble('<span class="name">' + customer.name + ':</span> Fresh ' + f.plural + '! Now you can make my smoothie.');
+        renderCustomer('happy');
+    }
+}
+
+var toastTimer = null;
+function showToast(msg, bad) {
+    marketToastEl.textContent = msg;
+    marketToastEl.className = 'toast' + (bad ? ' bad' : '');
+    marketToastEl.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { marketToastEl.hidden = true; }, 6000);
+}
+
+function drawChart() {
+    var W = 300, H = 130, padL = 36, padR = 10, padT = 10, padB = 22;
+    var vals = state.valueHist, cash = state.cashHist, n = vals.length;
+    var maxV = 10;
+    vals.concat(cash).forEach(function (v) { if (v > maxV) maxV = v; });
+    maxV = Math.ceil(maxV / 10) * 10;
+    var x = function (i) { return n === 1 ? padL : padL + (W - padL - padR) * i / (n - 1); };
+    var y = function (v) { return padT + (H - padT - padB) * (1 - v / maxV); };
+    var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg">';
+    // grid lines
+    for (var g = 0; g <= 4; g++) {
+        var gv = maxV * g / 4;
+        svg += '<line x1="' + padL + '" y1="' + y(gv) + '" x2="' + (W - padR) + '" y2="' + y(gv) + '" stroke="#e3e7ef" stroke-width="1"/>';
+        svg += '<text x="' + (padL - 4) + '" y="' + (y(gv) + 3) + '" text-anchor="end" font-size="9" fill="#889">$' + gv + '</text>';
+    }
+    var line = function (arr, color) {
+        var pts = arr.map(function (v, i) { return x(i).toFixed(1) + ',' + y(v).toFixed(1); }).join(' ');
+        var s = '<polyline points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>';
+        var lastI = arr.length - 1;
+        s += '<circle cx="' + x(lastI) + '" cy="' + y(arr[lastI]) + '" r="4" fill="' + color + '"/>';
+        s += '<text x="' + Math.min(x(lastI) + 6, W - 24) + '" y="' + (y(arr[lastI]) - 6) + '" font-size="10" font-weight="bold" fill="' + color + '">$' + arr[lastI] + '</text>';
+        return s;
+    };
+    svg += line(cash, '#2e9e5b');
+    svg += line(vals, '#4a63d8');
+    svg += '<text x="' + ((padL + W - padR) / 2) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="9" fill="#889">customers served ➜</text>';
+    svg += '</svg>';
+    $('chart').innerHTML = svg;
+}
+
+function renderMenu() {
+    $('cost-list').innerHTML = FRUITS.map(function (f) {
+        return '<span>' + f.emoji + ' ' + f.name + ' ' + money(f.cost) + '</span>';
+    }).join('');
+    var html = '<tr><th>Flavor</th><th>Size</th><th>Fruit inside</th><th>Fruit cost</th><th>Price</th><th>Profit</th></tr>';
+    FLAVORS.forEach(function (fl) {
+        SIZES.forEach(function (sz) {
+            var c = recipeCost(fl, sz.key), p = sz.price - c;
+            var cls = p < 0 ? 'loss' : (p === 0 ? 'even' : '');
+            html += '<tr class="' + cls + '"><td>' + fl.name + '</td><td>' + sz.name + '</td><td class="fruit">' + recipeEmoji(fl.recipes[sz.key]) + '</td>' +
+                '<td>' + money(c) + '</td><td>' + money(sz.price) + '</td><td class="' + (p < 0 ? 'neg' : (p > 0 ? 'pos' : '')) + '">' + signedMoney(p) + (p < 0 ? ' 😮' : '') + '</td></tr>';
+        });
+    });
+    $('menu-table').innerHTML = html;
+    $('explain').innerHTML =
+        '<p><b>Why keep selling the large coconut pineapple if it loses a dollar?</b> Coconuts cost $2 each, and a large one uses two of them, ' +
+        'so the fruit adds up to $6 while the smoothie sells for $5. We could charge more for that one smoothie, but then every size of every flavor ' +
+        'would need its own price, and customers (and the cashier!) would have to remember nine different numbers. Three simple prices, $3, $4 and $5, ' +
+        'are easier for everyone.</p>' +
+        '<p style="margin-top:8px;">Peach smoothies make $2 each and strawberry banana smoothies make $1 each, and lots of customers order those. ' +
+        'Their profit covers the dollar we lose now and then, so the shop still gets richer over the whole day. Watch the <b>Profit so far</b> number!</p>';
+}
+
+// ----- Confetti ---------------------------------------------------------------
+
+function confettiBurst() {
+    var colors = ['#ff6b6b', '#ffd93d', '#4ecdc4', '#6c5ce7', '#00b894', '#fd79a8'];
+    var pieces = [];
+    for (var i = 0; i < 70; i++) {
+        var p = document.createElement('div');
+        p.className = 'confetti';
+        p.style.left = Math.random() * 100 + 'vw';
+        p.style.background = pick(colors);
+        p.style.setProperty('--drift', (Math.random() * 200 - 100) + 'px');
+        p.style.setProperty('--spin', (Math.random() * 720 - 360) + 'deg');
+        p.style.animationDelay = (Math.random() * 0.8) + 's';
+        document.body.appendChild(p);
+        pieces.push(p);
+    }
+    setTimeout(function () { pieces.forEach(function (p) { p.remove(); }); }, 4200);
+}
+
+// ----- Sound effects (Web Audio, no audio files needed) --------------------
+
+var audioCtx = null;
+function getCtx() {
+    if (!('AudioContext' in window || 'webkitAudioContext' in window)) return null;
+    if (!audioCtx) {
+        var AudioCtx = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioCtx();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+}
+
+function tone(ctx, type, freq, start, dur, vol, endFreq) {
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, start);
+    if (endFreq) osc.frequency.exponentialRampToValueAtTime(endFreq, start + dur);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(vol, start + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(start);
+    osc.stop(start + dur + 0.05);
+}
+
+function noiseBurst(ctx, start, dur, vol, filterFrom, filterTo) {
+    var buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
+    var data = buffer.getChannelData(0);
+    for (var i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    var src = ctx.createBufferSource();
+    src.buffer = buffer;
+    var filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(filterFrom, start);
+    filter.frequency.exponentialRampToValueAtTime(filterTo, start + dur);
+    var gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(vol, start + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    src.start(start);
+    src.stop(start + dur + 0.05);
+}
+
+function sound(name) {
+    var ctx = getCtx();
+    if (!ctx) return;
+    var t = ctx.currentTime;
+    try {
+        switch (name) {
+            case 'click':
+                tone(ctx, 'square', 700, t, 0.06, 0.08);
+                break;
+            case 'plop':
+                tone(ctx, 'sine', 520, t, 0.14, 0.25, 180);
+                break;
+            case 'dump':
+                noiseBurst(ctx, t, 0.4, 0.2, 1800, 300);
+                break;
+            case 'blend':
+                noiseBurst(ctx, t, 1.7, 0.25, 900, 2500);
+                tone(ctx, 'sawtooth', 90, t, 1.7, 0.12, 160);
+                break;
+            case 'pour':
+                tone(ctx, 'sine', 400, t, 0.3, 0.2, 700);
+                break;
+            case 'right':
+                tone(ctx, 'sine', 523, t, 0.15, 0.25);
+                tone(ctx, 'sine', 659, t + 0.12, 0.15, 0.25);
+                tone(ctx, 'sine', 784, t + 0.24, 0.25, 0.25);
+                break;
+            case 'wrong':
+                tone(ctx, 'square', 220, t, 0.18, 0.15, 150);
+                break;
+            case 'bills':
+                noiseBurst(ctx, t, 0.25, 0.15, 3000, 800);
+                noiseBurst(ctx, t + 0.2, 0.25, 0.15, 3000, 800);
+                break;
+            case 'chaching':
+                tone(ctx, 'triangle', 1200, t, 0.1, 0.25);
+                tone(ctx, 'triangle', 1600, t + 0.1, 0.35, 0.3);
+                noiseBurst(ctx, t + 0.1, 0.3, 0.1, 6000, 2000);
+                break;
+            case 'buy':
+                tone(ctx, 'triangle', 440, t, 0.1, 0.2);
+                tone(ctx, 'triangle', 660, t + 0.1, 0.2, 0.2);
+                break;
+        }
+    } catch (e) { /* audio is decoration only */ }
+}
+
+// ----- Speech: read the bubble aloud for pre-readers ------------------------
+
+function speakBubble() {
+    if (!('speechSynthesis' in window) || !lastBubbleSpeech) return;
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(lastBubbleSpeech.replace(/\$(\d+)/g, '$1 dollars'));
+    u.rate = 0.95;
+    window.speechSynthesis.speak(u);
+}
+
+// ----- Wiring up -------------------------------------------------------------
+
+function buildKeys() {
+    var order = ['7', '8', '9', '4', '5', '6', '1', '2', '3', 'back', '0', 'enter'];
+    keysEl.innerHTML = '';
+    order.forEach(function (k) {
+        var b = document.createElement('button');
+        b.className = 'key' + (k === 'back' ? ' back' : (k === 'enter' ? ' enter' : ''));
+        b.textContent = k === 'back' ? '⌫' : (k === 'enter' ? '✓' : k);
+        b.addEventListener('click', function () { pressKey(k); });
+        keysEl.appendChild(b);
+    });
+}
+
+document.addEventListener('keydown', function (e) {
+    if (registerEl.hidden) return;
+    if (e.key >= '0' && e.key <= '9') { pressKey(e.key); e.preventDefault(); }
+    else if (e.key === 'Backspace') { pressKey('back'); e.preventDefault(); }
+    else if (e.key === 'Enter') { pressKey('enter'); e.preventDefault(); }
+});
+
+$('blend-btn').addEventListener('click', blend);
+$('dump-btn').addEventListener('click', dumpBlender);
+$('ring-up-btn').addEventListener('click', ringUp);
+$('sold-out-btn').addEventListener('click', soldOut);
+$('speak-btn').addEventListener('click', speakBubble);
+$('reset-btn').addEventListener('click', function () {
+    if (!confirm('Start the shop over with $' + START_CASH + ' and a fresh shelf of fruit?')) return;
+    state = freshState();
+    save();
+    renderStats(true);
+    drawChart();
+    customerEl.classList.add('leave');
+    setTimeout(newCustomer, 400);
+});
+
+buildKeys();
+renderMenu();
+renderStats();
+renderMarket();
+drawChart();
+newCustomer();
+</script>
+</body>
+</html>
