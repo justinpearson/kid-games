@@ -42,7 +42,7 @@
   h1 {
     text-align: center;
     color: #333;
-    font-size: 1.5rem;
+    font-size: clamp(1.25rem, 6vw, 1.5rem);
     margin-bottom: 4px;
   }
   .tagline {
@@ -369,7 +369,8 @@
 
   <h3>Quick picks</h3>
   <div class="preset-row">
-    <button class="small-btn" data-preset="sheet">Orange sheet (pairs with 5)</button>
+    <button class="small-btn" data-preset="sheet">Goal 2 sheet (pairs with 5)</button>
+    <button class="small-btn" data-preset="goal3">Goal 3 sheet (make 10)</button>
     <button class="small-btn" data-preset="little">Little kid (+/&minus; 0, 1, 2)</button>
     <button class="small-btn" data-preset="all10">All facts up to 10</button>
     <button class="small-btn" data-preset="all20">All facts up to 20</button>
@@ -378,14 +379,16 @@
   <h3>Kinds of problems</h3>
   <label class="check"><input type="checkbox" id="optAdd"> Adding (+)</label>
   <label class="check"><input type="checkbox" id="optSub"> Taking away (&minus;)</label>
+  <label class="check"><input type="checkbox" id="optMissing"> <span>Missing number<small>like 10 = 4 + ?</small></span></label>
   <label class="check"><input type="checkbox" id="optNeg"> <span>Negative answers<small>like 2 &minus; 5 = &minus;3 (adds a &minus; key)</small></span></label>
 
   <h3>Practice pairs with&hellip;</h3>
-  <p class="settings-note">Every problem uses at least one of the picked numbers. The orange sheet is &ldquo;pairs with 5&rdquo;: 2&nbsp;+&nbsp;5, 9&nbsp;&minus;&nbsp;5, 6&nbsp;&minus;&nbsp;1, and so on.</p>
+  <p class="settings-note">Every problem uses at least one of the picked numbers. The Goal&nbsp;2 sheet is &ldquo;pairs with 5&rdquo;: 2&nbsp;+&nbsp;5, 9&nbsp;&minus;&nbsp;5, 6&nbsp;&minus;&nbsp;1, and so on. The Goal&nbsp;3 sheet uses 1&ndash;10 with &ldquo;Always make 10&rdquo; on.</p>
   <div class="pair-grid" id="pairGrid"></div>
 
   <h3>How big</h3>
   <label class="check"><input type="checkbox" id="opt20"> <span>Go up to 20<small>(otherwise up to 10)</small></span></label>
+  <label class="check"><input type="checkbox" id="optMakeTop"> <span>Always make 10<small>the two parts add up to exactly 10 (or 20), like 10 = 3 + 7</small></span></label>
   <div class="setting-row">
     Problems per round:
     <select id="optCount">
@@ -414,6 +417,8 @@ var BEST_KEY = 'pairsPracticeBest';
 var DEFAULTS = {
   add: true,
   sub: true,
+  missing: false,
+  makeTop: false,
   neg: false,
   pairs: [5],
   upTo20: false,
@@ -424,10 +429,12 @@ var DEFAULTS = {
 };
 
 var PRESETS = {
-  sheet:  { add: true, sub: true, neg: false, pairs: [5], upTo20: false, count: 20 },
-  little: { add: true, sub: true, neg: false, pairs: [0, 1, 2], upTo20: false, count: 10 },
-  all10:  { add: true, sub: true, pairs: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], upTo20: false },
-  all20:  { add: true, sub: true, pairs: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], upTo20: true }
+  sheet:  { add: true, sub: true, missing: false, makeTop: false, neg: false, pairs: [5], upTo20: false, count: 20 },
+  // Goal 3: "10 = 4 + ?" and "10 - 7", every pair making exactly 10.
+  goal3:  { add: false, sub: true, missing: true, makeTop: true, neg: false, pairs: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], upTo20: false, count: 20 },
+  little: { add: true, sub: true, missing: false, makeTop: false, neg: false, pairs: [0, 1, 2], upTo20: false, count: 10 },
+  all10:  { add: true, sub: true, missing: false, makeTop: false, pairs: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], upTo20: false },
+  all20:  { add: true, sub: true, missing: false, makeTop: false, pairs: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], upTo20: true }
 };
 
 function loadSettings() {
@@ -449,7 +456,8 @@ var settings = loadSettings();
 // 0/1/2 record doesn't compete with the big kid's pairs-with-5 record.
 function settingsSignature() {
   return [
-    settings.add ? '+' : '', settings.sub ? '-' : '', settings.neg ? 'n' : '',
+    settings.add ? '+' : '', settings.sub ? '-' : '', settings.missing ? '?' : '',
+    settings.makeTop ? 'm' : '', settings.neg ? 'n' : '',
     settings.pairs.slice().sort(function (a, b) { return a - b; }).join('.'),
     settings.upTo20 ? 20 : 10, settings.count
   ].join('|');
@@ -466,23 +474,30 @@ function saveBest(all) {
 //
 // A "pair with f" is a fact family built from f and another number n:
 //   f + n,  n + f,  (f+n) - f,  (f+n) - n
+// plus the missing-number form (f+n) = f + ?  (answer n).
+// With "Always make 10" on, n is chosen so f + n is exactly 10 (or 20).
 // With negatives on, a subtraction can be flipped to small - big, e.g.
 // 5 - 9 = -4.
 // ---------------------------------------------------------------------------
 function makeProblem() {
   var max = settings.upTo20 ? 20 : 10;
   var f = settings.pairs[Math.floor(Math.random() * settings.pairs.length)];
-  var n = Math.floor(Math.random() * (max - f + 1));
+  var n = settings.makeTop ? max - f : Math.floor(Math.random() * (max - f + 1));
   var total = f + n;
 
   var ops = [];
   if (settings.add) ops.push('+');
   if (settings.sub) ops.push('-');
+  if (settings.missing) ops.push('?');
   var op = ops[Math.floor(Math.random() * ops.length)];
 
   var a, b;
   if (op === '+') {
     if (Math.random() < 0.5) { a = f; b = n; } else { a = n; b = f; }
+  } else if (op === '?') {
+    // a = b + ?   e.g. 10 = 4 + ?
+    a = total;
+    b = Math.random() < 0.5 ? f : n;
   } else {
     a = total;
     b = Math.random() < 0.5 ? f : n;
@@ -494,9 +509,15 @@ function makeProblem() {
   return { a: a, b: b, op: op, answer: op === '+' ? a + b : a - b };
 }
 
-function problemText(p) {
-  return p.a + ' ' + (p.op === '+' ? '+' : '−') + ' ' + p.b;
+function showNum(n) { return n < 0 ? '\u2212' + (-n) : String(n); }
+
+// The text shown before the answer box, e.g. "9 − 5 =" or "10 = 4 +".
+function problemPrompt(p) {
+  if (p.op === '?') return p.a + ' = ' + p.b + ' +';
+  return p.a + ' ' + (p.op === '+' ? '+' : '\u2212') + ' ' + p.b + ' =';
 }
+// The whole fact with its answer filled in, e.g. "10 = 4 + 6".
+function problemSolved(p) { return problemPrompt(p) + ' ' + showNum(p.answer); }
 function problemKey(p) { return p.a + p.op + p.b; }
 
 // Build a round, avoiding repeats where the settings allow enough variety.
@@ -559,7 +580,8 @@ function speak(text) {
   } catch (e) {}
 }
 function speakProblem(p) {
-  speak(speakNumber(p.a) + (p.op === '+' ? ' plus ' : ' minus ') + speakNumber(p.b));
+  if (p.op === '?') speak(p.a + ' equals ' + p.b + ' plus what?');
+  else speak(speakNumber(p.a) + (p.op === '+' ? ' plus ' : ' minus ') + speakNumber(p.b));
 }
 
 // ---------------------------------------------------------------------------
@@ -657,9 +679,29 @@ function showProblem() {
   negative = false;
   triesOnThis = 0;
   el.feedback.textContent = '';
+  fitProblem();
   renderProblem('');
   updateStatus();
   if (settings.speak) speakProblem(current);
+}
+
+// Shrink the problem's font so it fits the card even with the widest answer
+// typed in (e.g. "13 − 20 = −17" on a small phone). Measured once per
+// problem so the text doesn't jump around while the kid is typing.
+function fitProblem() {
+  el.problem.style.fontSize = '';
+  var widest = String(Math.max(Math.abs(current.answer), 10));
+  typed = widest;
+  negative = settings.neg;
+  renderProblem('');
+  var room = el.problemCard.clientWidth - 16;
+  var need = el.problem.scrollWidth;
+  if (need > room) {
+    var size = parseFloat(getComputedStyle(el.problem).fontSize);
+    el.problem.style.fontSize = Math.floor(size * room / need) + 'px';
+  }
+  typed = '';
+  negative = false;
 }
 
 function answerText() {
@@ -671,7 +713,7 @@ function renderProblem(mark) {
   var ans = answerText();
   el.problem.innerHTML = '';
   var q = document.createElement('span');
-  q.textContent = problemText(current) + ' =';
+  q.textContent = problemPrompt(current);
   var box = document.createElement('span');
   box.className = 'answer-box' + (ans ? '' : ' empty') + (mark ? ' ' + mark : '');
   box.textContent = ans;
@@ -736,8 +778,7 @@ function check() {
     }, 600);
   } else {
     // Second miss: show the answer, then put this problem back later in the round.
-    var shown = current.answer < 0 ? '−' + (-current.answer) : String(current.answer);
-    el.feedback.textContent = problemText(current) + ' = ' + shown + '. We’ll see it again!';
+    el.feedback.textContent = problemSolved(current) + '. We\u2019ll see it again!';
     state = 'pause';
     var again = { a: current.a, b: current.b, op: current.op, answer: current.answer, repeat: true };
     var spot = Math.min(deck.length, index + 3 + Math.floor(Math.random() * 3));
@@ -795,8 +836,7 @@ function finish() {
       var k = problemKey(p);
       if (seen[k]) return;
       seen[k] = true;
-      var ans = p.answer < 0 ? '−' + (-p.answer) : p.answer;
-      html += '<span>' + problemText(p) + ' = ' + ans + '</span>';
+      html += '<span>' + problemSolved(p) + '</span>';
     });
     html += '</div>';
   }
@@ -810,11 +850,14 @@ function finish() {
 
 function updateTagline() {
   var parts = [];
-  if (settings.add && settings.sub) parts.push('Adding and taking away');
-  else if (settings.add) parts.push('Adding');
-  else parts.push('Taking away');
+  var kinds = [];
+  if (settings.add) kinds.push('adding');
+  if (settings.sub) kinds.push('taking away');
+  if (settings.missing) kinds.push('missing numbers');
+  var k = kinds.length > 1 ? kinds.slice(0, -1).join(', ') + ' and ' + kinds[kinds.length - 1] : kinds[0];
+  parts.push(k.charAt(0).toUpperCase() + k.slice(1));
   parts.push('pairs with ' + listWords(settings.pairs));
-  parts.push('up to ' + (settings.upTo20 ? 20 : 10));
+  parts.push((settings.makeTop ? 'making ' : 'up to ') + (settings.upTo20 ? 20 : 10));
   if (settings.neg) parts.push('with negatives');
   el.tagline.textContent = parts.join(', ');
 }
@@ -822,6 +865,7 @@ function listWords(nums) {
   var s = nums.slice().sort(function (a, b) { return a - b; });
   if (s.length === 11) return 'any number';
   if (s.length === 1) return String(s[0]);
+  if (s.length >= 3 && s[s.length - 1] - s[0] === s.length - 1) return s[0] + '\u2013' + s[s.length - 1];
   return s.slice(0, -1).join(', ') + ' & ' + s[s.length - 1];
 }
 
@@ -872,6 +916,8 @@ var opt = {
   sub: document.getElementById('optSub'),
   neg: document.getElementById('optNeg'),
   upTo20: document.getElementById('opt20'),
+  missing: document.getElementById('optMissing'),
+  makeTop: document.getElementById('optMakeTop'),
   count: document.getElementById('optCount'),
   timer: document.getElementById('optTimer'),
   speak: document.getElementById('optSpeak'),
@@ -884,6 +930,9 @@ function settingsToForm() {
   opt.neg.checked = settings.neg;
   opt.neg.disabled = !settings.sub;
   opt.upTo20.checked = settings.upTo20;
+  opt.missing.checked = settings.missing;
+  opt.makeTop.checked = settings.makeTop;
+  opt.makeTop.parentNode.querySelector('span').firstChild.textContent = 'Always make ' + (settings.upTo20 ? 20 : 10);
   opt.count.value = String(settings.count);
   opt.timer.checked = settings.timer;
   opt.speak.checked = settings.speak;
@@ -897,11 +946,13 @@ function formToSettings(changed) {
   var warn = '';
   settings.add = opt.add.checked;
   settings.sub = opt.sub.checked;
-  // Keep at least one operation on.
-  if (!settings.add && !settings.sub) {
+  settings.missing = opt.missing.checked;
+  // Keep at least one kind of problem on.
+  if (!settings.add && !settings.sub && !settings.missing) {
     if (changed === opt.add) settings.sub = true; else settings.add = true;
-    warn = 'Need at least one of adding or taking away.';
+    warn = 'Need at least one kind of problem.';
   }
+  settings.makeTop = opt.makeTop.checked;
   settings.neg = opt.neg.checked && settings.sub;
   settings.upTo20 = opt.upTo20.checked;
   settings.count = parseInt(opt.count.value, 10) || 20;
@@ -922,7 +973,7 @@ function formToSettings(changed) {
   settingsToForm();
 }
 
-[opt.add, opt.sub, opt.neg, opt.upTo20, opt.count, opt.timer, opt.speak, opt.sound].forEach(function (input) {
+[opt.add, opt.sub, opt.missing, opt.makeTop, opt.neg, opt.upTo20, opt.count, opt.timer, opt.speak, opt.sound].forEach(function (input) {
   input.addEventListener('change', function () {
     formToSettings(input);
     // Sound/speech toggles don't need a new round; everything else does.
