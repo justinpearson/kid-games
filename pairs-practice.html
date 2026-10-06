@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Plus &amp; Minus Pairs - Kid Games</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 16px 24px;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .back-link {
+    align-self: flex-start;
+    color: #fff;
+    text-decoration: none;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.9;
+  }
+  .back-link:hover { opacity: 1; text-decoration: underline; }
+
+  .container {
+    background: #fff;
+    border-radius: 20px;
+    padding: 16px 18px 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    width: min(100%, 520px);
+  }
+  .container + .container { margin-top: 16px; }
+
+  h1 {
+    text-align: center;
+    color: #333;
+    font-size: 1.5rem;
+    margin-bottom: 4px;
+  }
+  .tagline {
+    text-align: center;
+    color: #778;
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+  }
+
+  /* ---- Status bar: problems left + timer ---------------------------- */
+  .status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    font-weight: bold;
+    color: #556;
+    font-size: 1rem;
+    margin-bottom: 8px;
+  }
+  .progress-track {
+    flex: 1;
+    height: 12px;
+    background: #e4e7ec;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #43e97b 0%, #38f9d7 100%);
+    transition: width 0.25s ease;
+  }
+  .timer { min-width: 4.2em; text-align: right; font-variant-numeric: tabular-nums; }
+  .timer.over { color: #e05561; }
+
+  /* ---- Problem card (yellow, like the paper practice sheet) --------- */
+  .problem-card {
+    background: #fbbf24;
+    background: linear-gradient(160deg, #fcd34d 0%, #fbbf24 100%);
+    border-radius: 16px;
+    padding: 18px 12px;
+    text-align: center;
+    box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.08);
+    margin-bottom: 14px;
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .problem {
+    font-family: 'Comic Sans MS', 'Chalkboard SE', 'Segoe UI', system-ui, sans-serif;
+    font-size: clamp(2.6rem, 13vw, 4rem);
+    font-weight: bold;
+    color: #2b2b2b;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25em;
+    font-variant-numeric: tabular-nums;
+  }
+  .answer-box {
+    display: inline-block;
+    min-width: 1.9em;
+    padding: 0 0.15em;
+    border-bottom: 5px solid #2b2b2b;
+    background: rgba(255, 255, 255, 0.55);
+    border-radius: 10px 10px 0 0;
+    color: #1d4ed8;
+  }
+  .answer-box.empty::after { content: '?'; color: rgba(0, 0, 0, 0.25); }
+  .answer-box.right { color: #15803d; background: rgba(220, 252, 231, 0.9); }
+  .answer-box.wrong { color: #b91c1c; background: rgba(254, 226, 226, 0.9); }
+  .shake { animation: shake 0.4s ease; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-10px); }
+    40% { transform: translateX(10px); }
+    60% { transform: translateX(-6px); }
+    80% { transform: translateX(6px); }
+  }
+  .feedback {
+    min-height: 1.6em;
+    margin-top: 6px;
+    font-size: 1.15rem;
+    font-weight: bold;
+    color: #5b3a00;
+  }
+
+  .start-msg {
+    font-size: 1.15rem;
+    color: #5b3a00;
+    font-weight: bold;
+    line-height: 1.45;
+  }
+
+  /* ---- On-screen keypad ---------------------------------------------- */
+  .keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .key {
+    border: none;
+    border-radius: 14px;
+    font-size: 2rem;
+    font-weight: bold;
+    color: #333;
+    background: #eef1f6;
+    box-shadow: 0 4px 0 #c9d0dc;
+    height: clamp(56px, 11vh, 74px);
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: transform 0.06s ease, box-shadow 0.06s ease;
+    font-family: inherit;
+  }
+  .key:active, .key.pressed { transform: translateY(4px); box-shadow: 0 0 0 #c9d0dc; }
+  .key.minus { background: #fde2e4; box-shadow: 0 4px 0 #f0b4ba; color: #b4232f; }
+  .key.minus.on { background: #e05561; color: #fff; }
+  .key.minus[hidden] { display: block; visibility: hidden; }
+  .key.back { background: #fff1d6; box-shadow: 0 4px 0 #f1d29a; font-size: 1.7rem; }
+  .key.go {
+    grid-column: 1 / -1;
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    box-shadow: 0 4px 0 #22a66a;
+    color: #0f5132;
+    font-size: 1.7rem;
+  }
+  .key.go:active, .key.go.pressed { box-shadow: 0 0 0 #22a66a; }
+  .key:disabled { opacity: 0.45; cursor: default; }
+
+  .big-btn {
+    display: block;
+    width: 100%;
+    border: none;
+    border-radius: 999px;
+    padding: 16px;
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #fff;
+    cursor: pointer;
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    margin-top: 12px;
+    touch-action: manipulation;
+    font-family: inherit;
+  }
+  .big-btn:active { transform: scale(0.98); }
+  .small-row {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .small-btn {
+    border: 2px solid #d8dde5;
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #667;
+    background: #f6f8fb;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  /* ---- Results ------------------------------------------------------- */
+  .results { text-align: center; color: #333; }
+  .results .big { font-size: 3rem; line-height: 1.1; }
+  .results h2 { font-size: 1.5rem; margin: 6px 0; }
+  .results p { font-size: 1.05rem; color: #556; margin: 4px 0; }
+  .missed-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin: 10px 0 4px;
+  }
+  .missed-list span {
+    background: #fde68a;
+    border-radius: 10px;
+    padding: 4px 10px;
+    font-weight: bold;
+    color: #5b3a00;
+    font-size: 1.05rem;
+  }
+
+  /* ---- Settings card -------------------------------------------------- */
+  .settings h2 {
+    text-align: center;
+    color: #333;
+    font-size: 1.25rem;
+    margin-bottom: 4px;
+  }
+  .settings h3 {
+    color: #555;
+    font-size: 1rem;
+    margin: 16px 0 6px;
+  }
+  .settings-note {
+    color: #667;
+    font-size: 0.88rem;
+    margin: 2px 0 8px;
+    line-height: 1.35;
+  }
+  .check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 4px;
+    font-size: 1rem;
+    font-weight: bold;
+    color: #445;
+    cursor: pointer;
+  }
+  .check input { width: 24px; height: 24px; accent-color: #667eea; cursor: pointer; flex-shrink: 0; }
+  .check small { display: block; font-weight: normal; font-size: 0.85rem; color: #778; }
+  .pair-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+  }
+  .pair-grid label {
+    position: relative;
+    cursor: pointer;
+  }
+  .pair-grid input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .pair-grid span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 44px;
+    border-radius: 10px;
+    border: 2px solid #d8dde5;
+    background: #f6f8fb;
+    font-weight: bold;
+    font-size: 1.15rem;
+    color: #667;
+  }
+  .pair-grid input:checked + span {
+    background: #667eea;
+    border-color: #4f5fd6;
+    color: #fff;
+  }
+  .pair-grid input:focus-visible + span { outline: 3px solid #fbbf24; }
+  .setting-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-weight: bold;
+    color: #445;
+    padding: 6px 4px;
+  }
+  .setting-row select {
+    border: 2px solid #d8dde5;
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 1rem;
+    font-weight: bold;
+    color: #333;
+    background: #f6f8fb;
+    font-family: inherit;
+  }
+  .warn { color: #c2410c; font-weight: bold; font-size: 0.9rem; min-height: 1.2em; margin-top: 6px; }
+  .preset-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+</style>
+</head>
+<body>
+<a class="back-link" href="index.html">&larr; All games</a>
+
+<div class="container">
+  <h1>&#10133;&#10134; Plus &amp; Minus Pairs</h1>
+  <p class="tagline" id="tagline"></p>
+
+  <div class="status">
+    <span id="countLabel">0 / 20</span>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <span class="timer" id="timer">0.0s</span>
+  </div>
+
+  <div id="playArea">
+    <div class="problem-card" id="problemCard">
+      <div class="start-msg" id="startMsg"></div>
+      <div class="problem" id="problem" hidden></div>
+      <div class="feedback" id="feedback"></div>
+    </div>
+
+    <div class="keypad" id="keypad">
+      <button class="key" data-key="7">7</button>
+      <button class="key" data-key="8">8</button>
+      <button class="key" data-key="9">9</button>
+      <button class="key" data-key="4">4</button>
+      <button class="key" data-key="5">5</button>
+      <button class="key" data-key="6">6</button>
+      <button class="key" data-key="1">1</button>
+      <button class="key" data-key="2">2</button>
+      <button class="key" data-key="3">3</button>
+      <button class="key minus" data-key="-" id="minusKey" aria-label="negative">&minus;</button>
+      <button class="key" data-key="0">0</button>
+      <button class="key back" data-key="back" aria-label="backspace">&#9003;</button>
+      <button class="key go" data-key="go" id="goKey">&#10004; Check</button>
+    </div>
+  </div>
+
+  <div id="resultsArea" class="results" hidden></div>
+
+  <div class="small-row">
+    <button class="small-btn" id="restartBtn">&#8635; New round</button>
+    <button class="small-btn" id="speakBtn">&#128264; Read it to me</button>
+  </div>
+</div>
+
+<div class="container settings">
+  <h2>&#9881;&#65039; Settings</h2>
+  <p class="settings-note" style="text-align:center">Changes start a new round.</p>
+
+  <h3>Quick picks</h3>
+  <div class="preset-row">
+    <button class="small-btn" data-preset="sheet">Orange sheet (pairs with 5)</button>
+    <button class="small-btn" data-preset="little">Little kid (+/&minus; 0, 1, 2)</button>
+    <button class="small-btn" data-preset="all10">All facts up to 10</button>
+    <button class="small-btn" data-preset="all20">All facts up to 20</button>
+  </div>
+
+  <h3>Kinds of problems</h3>
+  <label class="check"><input type="checkbox" id="optAdd"> Adding (+)</label>
+  <label class="check"><input type="checkbox" id="optSub"> Taking away (&minus;)</label>
+  <label class="check"><input type="checkbox" id="optNeg"> <span>Negative answers<small>like 2 &minus; 5 = &minus;3 (adds a &minus; key)</small></span></label>
+
+  <h3>Practice pairs with&hellip;</h3>
+  <p class="settings-note">Every problem uses at least one of the picked numbers. The orange sheet is &ldquo;pairs with 5&rdquo;: 2&nbsp;+&nbsp;5, 9&nbsp;&minus;&nbsp;5, 6&nbsp;&minus;&nbsp;1, and so on.</p>
+  <div class="pair-grid" id="pairGrid"></div>
+
+  <h3>How big</h3>
+  <label class="check"><input type="checkbox" id="opt20"> <span>Go up to 20<small>(otherwise up to 10)</small></span></label>
+  <div class="setting-row">
+    Problems per round:
+    <select id="optCount">
+      <option value="5">5</option>
+      <option value="10">10</option>
+      <option value="20">20</option>
+      <option value="30">30</option>
+    </select>
+  </div>
+
+  <h3>Extras</h3>
+  <label class="check"><input type="checkbox" id="optTimer"> <span>Race the clock<small>(3 seconds per problem to beat)</small></span></label>
+  <label class="check"><input type="checkbox" id="optSpeak"> Read each problem out loud</label>
+  <label class="check"><input type="checkbox" id="optSound"> Sound effects</label>
+
+  <div class="warn" id="warn"></div>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Settings (saved in localStorage, which may be unavailable in private mode)
+// ---------------------------------------------------------------------------
+var SETTINGS_KEY = 'pairsPracticeSettings';
+var BEST_KEY = 'pairsPracticeBest';
+
+var DEFAULTS = {
+  add: true,
+  sub: true,
+  neg: false,
+  pairs: [5],
+  upTo20: false,
+  count: 20,
+  timer: true,
+  speak: false,
+  sound: true
+};
+
+var PRESETS = {
+  sheet:  { add: true, sub: true, neg: false, pairs: [5], upTo20: false, count: 20 },
+  little: { add: true, sub: true, neg: false, pairs: [0, 1, 2], upTo20: false, count: 10 },
+  all10:  { add: true, sub: true, pairs: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], upTo20: false },
+  all20:  { add: true, sub: true, pairs: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], upTo20: true }
+};
+
+function loadSettings() {
+  var s = Object.assign({}, DEFAULTS);
+  try {
+    var stored = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+    if (stored && typeof stored === 'object') Object.assign(s, stored);
+  } catch (e) {}
+  if (!Array.isArray(s.pairs)) s.pairs = DEFAULTS.pairs.slice();
+  return s;
+}
+function saveSettings() {
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) {}
+}
+
+var settings = loadSettings();
+
+// Best times are kept per combination of settings, so the little kid's
+// 0/1/2 record doesn't compete with the big kid's pairs-with-5 record.
+function settingsSignature() {
+  return [
+    settings.add ? '+' : '', settings.sub ? '-' : '', settings.neg ? 'n' : '',
+    settings.pairs.slice().sort(function (a, b) { return a - b; }).join('.'),
+    settings.upTo20 ? 20 : 10, settings.count
+  ].join('|');
+}
+function loadBest() {
+  try { return JSON.parse(localStorage.getItem(BEST_KEY)) || {}; } catch (e) { return {}; }
+}
+function saveBest(all) {
+  try { localStorage.setItem(BEST_KEY, JSON.stringify(all)); } catch (e) {}
+}
+
+// ---------------------------------------------------------------------------
+// Problem generation
+//
+// A "pair with f" is a fact family built from f and another number n:
+//   f + n,  n + f,  (f+n) - f,  (f+n) - n
+// With negatives on, a subtraction can be flipped to small - big, e.g.
+// 5 - 9 = -4.
+// ---------------------------------------------------------------------------
+function makeProblem() {
+  var max = settings.upTo20 ? 20 : 10;
+  var f = settings.pairs[Math.floor(Math.random() * settings.pairs.length)];
+  var n = Math.floor(Math.random() * (max - f + 1));
+  var total = f + n;
+
+  var ops = [];
+  if (settings.add) ops.push('+');
+  if (settings.sub) ops.push('-');
+  var op = ops[Math.floor(Math.random() * ops.length)];
+
+  var a, b;
+  if (op === '+') {
+    if (Math.random() < 0.5) { a = f; b = n; } else { a = n; b = f; }
+  } else {
+    a = total;
+    b = Math.random() < 0.5 ? f : n;
+    // Flip to small - big about 40% of the time (only when it changes the answer).
+    if (settings.neg && a !== b && Math.random() < 0.4) {
+      var t = a; a = b; b = t;
+    }
+  }
+  return { a: a, b: b, op: op, answer: op === '+' ? a + b : a - b };
+}
+
+function problemText(p) {
+  return p.a + ' ' + (p.op === '+' ? '+' : '−') + ' ' + p.b;
+}
+function problemKey(p) { return p.a + p.op + p.b; }
+
+// Build a round, avoiding repeats where the settings allow enough variety.
+function makeDeck(count) {
+  var deck = [];
+  var seen = {};
+  var last = null;
+  for (var i = 0; i < count; i++) {
+    var p = null;
+    for (var tries = 0; tries < 60; tries++) {
+      var cand = makeProblem();
+      var key = problemKey(cand);
+      if (last && key === last) continue;
+      p = cand;
+      if (!seen[key]) break;
+    }
+    if (!p) p = makeProblem();
+    seen[problemKey(p)] = true;
+    last = problemKey(p);
+    deck.push(p);
+  }
+  return deck;
+}
+
+// ---------------------------------------------------------------------------
+// Sounds (tiny WebAudio beeps) and speech
+// ---------------------------------------------------------------------------
+var audioCtx = null;
+function tone(freq, start, dur, type, vol) {
+  if (!settings.sound) return;
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    var t0 = audioCtx.currentTime + start;
+    var osc = audioCtx.createOscillator();
+    var gain = audioCtx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(vol || 0.2, t0 + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.05);
+  } catch (e) {}
+}
+function soundRight() { tone(660, 0, 0.12); tone(990, 0.09, 0.18); }
+function soundWrong() { tone(200, 0, 0.25, 'square', 0.08); }
+function soundTap() { tone(520, 0, 0.05, 'triangle', 0.06); }
+function soundDone() { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, i * 0.12, 0.25); }); }
+
+function speakNumber(n) { return n < 0 ? 'negative ' + (-n) : String(n); }
+function speak(text) {
+  if (!('speechSynthesis' in window)) return;
+  try {
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    u.rate = 0.95;
+    window.speechSynthesis.speak(u);
+  } catch (e) {}
+}
+function speakProblem(p) {
+  speak(speakNumber(p.a) + (p.op === '+' ? ' plus ' : ' minus ') + speakNumber(p.b));
+}
+
+// ---------------------------------------------------------------------------
+// Game state
+// ---------------------------------------------------------------------------
+var deck = [];
+var index = 0;
+var current = null;
+var typed = '';
+var negative = false;
+var triesOnThis = 0;
+var missed = [];          // problems not right on the first try
+var firstTryRight = 0;
+var startTime = 0;
+var elapsed = 0;
+var timerHandle = null;
+var state = 'ready';      // 'ready' | 'playing' | 'pause' | 'done'
+
+var el = {
+  tagline: document.getElementById('tagline'),
+  countLabel: document.getElementById('countLabel'),
+  progressFill: document.getElementById('progressFill'),
+  timer: document.getElementById('timer'),
+  playArea: document.getElementById('playArea'),
+  problemCard: document.getElementById('problemCard'),
+  startMsg: document.getElementById('startMsg'),
+  problem: document.getElementById('problem'),
+  feedback: document.getElementById('feedback'),
+  minusKey: document.getElementById('minusKey'),
+  goKey: document.getElementById('goKey'),
+  resultsArea: document.getElementById('resultsArea'),
+  warn: document.getElementById('warn')
+};
+
+function timeToBeat() { return settings.count * 3; }
+
+function updateStatus() {
+  var done = Math.min(index, deck.length);
+  el.countLabel.textContent = done + ' / ' + deck.length;
+  el.progressFill.style.width = (deck.length ? (100 * done / deck.length) : 0) + '%';
+}
+
+function showTimer() {
+  if (!settings.timer) { el.timer.textContent = ''; return; }
+  el.timer.textContent = elapsed.toFixed(1) + 's';
+  el.timer.classList.toggle('over', elapsed > timeToBeat());
+}
+function tick() {
+  elapsed = (performance.now() - startTime) / 1000;
+  showTimer();
+}
+
+function newRound() {
+  clearInterval(timerHandle);
+  deck = makeDeck(settings.count);
+  index = 0;
+  missed = [];
+  firstTryRight = 0;
+  elapsed = 0;
+  state = 'ready';
+  el.resultsArea.hidden = true;
+  el.playArea.hidden = false;
+  el.problem.hidden = true;
+  el.feedback.textContent = '';
+  el.goKey.innerHTML = '&#9654; Start';
+  el.minusKey.hidden = !settings.neg;
+
+  var best = loadBest()[settingsSignature()];
+  var lines = [deck.length + ' problems.'];
+  if (settings.timer) {
+    lines.push('Time to beat: ' + timeToBeat() + ' seconds!');
+    if (best) lines.push('Your best: ' + best.toFixed(1) + 's');
+  }
+  lines.push('Press Start when you’re ready.');
+  el.startMsg.innerHTML = lines.join('<br>');
+  el.startMsg.hidden = false;
+  updateStatus();
+  showTimer();
+  updateTagline();
+}
+
+function startRound() {
+  state = 'playing';
+  el.startMsg.hidden = true;
+  el.problem.hidden = false;
+  el.goKey.innerHTML = '&#10004; Check';
+  startTime = performance.now();
+  if (settings.timer) timerHandle = setInterval(tick, 100);
+  showProblem();
+}
+
+function showProblem() {
+  current = deck[index];
+  typed = '';
+  negative = false;
+  triesOnThis = 0;
+  el.feedback.textContent = '';
+  renderProblem('');
+  updateStatus();
+  if (settings.speak) speakProblem(current);
+}
+
+function answerText() {
+  if (!typed) return negative ? '−' : '';
+  return (negative ? '−' : '') + typed;
+}
+
+function renderProblem(mark) {
+  var ans = answerText();
+  el.problem.innerHTML = '';
+  var q = document.createElement('span');
+  q.textContent = problemText(current) + ' =';
+  var box = document.createElement('span');
+  box.className = 'answer-box' + (ans ? '' : ' empty') + (mark ? ' ' + mark : '');
+  box.textContent = ans;
+  el.problem.appendChild(q);
+  el.problem.appendChild(box);
+  el.minusKey.classList.toggle('on', negative);
+}
+
+function press(key) {
+  if (state === 'ready') {
+    if (key === 'go') { soundTap(); startRound(); }
+    return;
+  }
+  if (state === 'done') {
+    if (key === 'go') newRound();
+    return;
+  }
+  if (state !== 'playing') return;
+
+  if (key === 'go') { check(); return; }
+  if (key === 'back') {
+    if (typed) typed = typed.slice(0, -1);
+    else negative = false;
+  } else if (key === '-') {
+    if (!settings.neg) return;
+    negative = !negative;
+  } else if (/^[0-9]$/.test(key)) {
+    if (typed.length >= 2) return;           // answers never exceed 2 digits
+    typed = (typed === '0') ? key : typed + key;
+  }
+  soundTap();
+  renderProblem('');
+}
+
+function check() {
+  if (!typed) return;
+  var value = parseInt(typed, 10) * (negative ? -1 : 1);
+  if (value === current.answer) {
+    if (triesOnThis === 0 && !current.repeat) firstTryRight++;
+    soundRight();
+    renderProblem('right');
+    el.feedback.textContent = pick(['Yes!', 'Great!', 'Nice!', 'You got it!', 'Super!']);
+    state = 'pause';
+    setTimeout(next, 450);
+    return;
+  }
+
+  triesOnThis++;
+  if (triesOnThis === 1 && !current.repeat) missed.push(current);
+  soundWrong();
+  renderProblem('wrong');
+  var box = el.problem.querySelector('.answer-box');
+  box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake');
+
+  if (triesOnThis === 1) {
+    el.feedback.textContent = 'Not quite — try again!';
+    state = 'pause';
+    setTimeout(function () {
+      typed = ''; negative = false;
+      state = 'playing';
+      renderProblem('');
+    }, 600);
+  } else {
+    // Second miss: show the answer, then put this problem back later in the round.
+    var shown = current.answer < 0 ? '−' + (-current.answer) : String(current.answer);
+    el.feedback.textContent = problemText(current) + ' = ' + shown + '. We’ll see it again!';
+    state = 'pause';
+    var again = { a: current.a, b: current.b, op: current.op, answer: current.answer, repeat: true };
+    var spot = Math.min(deck.length, index + 3 + Math.floor(Math.random() * 3));
+    deck.splice(spot, 0, again);
+    setTimeout(function () {
+      typed = String(Math.abs(current.answer));
+      negative = current.answer < 0;
+      renderProblem('right');
+      setTimeout(next, 1500);
+    }, 400);
+  }
+}
+
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function next() {
+  index++;
+  if (index >= deck.length) { finish(); return; }
+  state = 'playing';
+  showProblem();
+}
+
+function finish() {
+  clearInterval(timerHandle);
+  if (settings.timer) tick();
+  state = 'done';
+  updateStatus();
+  soundDone();
+
+  var html = '';
+  var newBest = false;
+  var beat = settings.timer && elapsed <= timeToBeat();
+  if (settings.timer) {
+    var all = loadBest();
+    var sig = settingsSignature();
+    if (!all[sig] || elapsed < all[sig]) {
+      newBest = !!all[sig];
+      all[sig] = elapsed;
+      saveBest(all);
+    }
+  }
+
+  var perfect = missed.length === 0 && firstTryRight === settings.count;
+  html += '<div class="big">' + (beat ? '&#127942;' : perfect ? '&#11088;' : '&#127881;') + '</div>';
+  html += '<h2>' + (beat ? 'You beat the clock!' : 'All done!') + '</h2>';
+  if (settings.timer) {
+    html += '<p>Time: <b>' + elapsed.toFixed(1) + ' seconds</b> (time to beat: ' + timeToBeat() + 's)</p>';
+    if (newBest) html += '<p>&#127775; New best time!</p>';
+  }
+  html += '<p>Right on the first try: <b>' + firstTryRight + ' of ' + settings.count + '</b></p>';
+  if (missed.length) {
+    html += '<p>Keep practicing these:</p><div class="missed-list">';
+    var seen = {};
+    missed.forEach(function (p) {
+      var k = problemKey(p);
+      if (seen[k]) return;
+      seen[k] = true;
+      var ans = p.answer < 0 ? '−' + (-p.answer) : p.answer;
+      html += '<span>' + problemText(p) + ' = ' + ans + '</span>';
+    });
+    html += '</div>';
+  }
+  html += '<button class="big-btn" id="againBtn">Play again</button>';
+  el.resultsArea.innerHTML = html;
+  el.resultsArea.hidden = false;
+  el.playArea.hidden = true;
+  document.getElementById('againBtn').addEventListener('click', newRound);
+  if (settings.speak) speak(beat ? 'You beat the clock!' : 'All done!');
+}
+
+function updateTagline() {
+  var parts = [];
+  if (settings.add && settings.sub) parts.push('Adding and taking away');
+  else if (settings.add) parts.push('Adding');
+  else parts.push('Taking away');
+  parts.push('pairs with ' + listWords(settings.pairs));
+  parts.push('up to ' + (settings.upTo20 ? 20 : 10));
+  if (settings.neg) parts.push('with negatives');
+  el.tagline.textContent = parts.join(', ');
+}
+function listWords(nums) {
+  var s = nums.slice().sort(function (a, b) { return a - b; });
+  if (s.length === 11) return 'any number';
+  if (s.length === 1) return String(s[0]);
+  return s.slice(0, -1).join(', ') + ' & ' + s[s.length - 1];
+}
+
+// ---------------------------------------------------------------------------
+// Wiring: keypad, physical keyboard, settings
+// ---------------------------------------------------------------------------
+// pointerdown makes the keypad feel instant on tablets (no 300ms click delay)
+// and lets fast tappers hit the same key twice in a row.
+document.querySelectorAll('#keypad .key').forEach(function (btn) {
+  btn.addEventListener('pointerdown', function (e) {
+    e.preventDefault();
+    press(btn.dataset.key);
+  });
+  btn.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); press(btn.dataset.key); }
+  });
+});
+
+document.addEventListener('keydown', function (e) {
+  if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+  var k = null;
+  if (/^[0-9]$/.test(e.key)) k = e.key;
+  else if (e.key === '-' || e.key === '_') k = '-';
+  else if (e.key === 'Backspace') k = 'back';
+  else if (e.key === 'Enter') k = 'go';
+  if (!k) return;
+  e.preventDefault();
+  var btn = document.querySelector('#keypad .key[data-key="' + k + '"]');
+  if (btn) { btn.classList.add('pressed'); setTimeout(function () { btn.classList.remove('pressed'); }, 100); }
+  press(k);
+});
+
+document.getElementById('restartBtn').addEventListener('click', newRound);
+document.getElementById('speakBtn').addEventListener('click', function () {
+  if (current && (state === 'playing' || state === 'pause')) speakProblem(current);
+});
+
+// Build the 0-10 "pairs with" toggles.
+var pairGrid = document.getElementById('pairGrid');
+for (var i = 0; i <= 10; i++) {
+  var lab = document.createElement('label');
+  lab.innerHTML = '<input type="checkbox" value="' + i + '"><span>' + i + '</span>';
+  pairGrid.appendChild(lab);
+}
+
+var opt = {
+  add: document.getElementById('optAdd'),
+  sub: document.getElementById('optSub'),
+  neg: document.getElementById('optNeg'),
+  upTo20: document.getElementById('opt20'),
+  count: document.getElementById('optCount'),
+  timer: document.getElementById('optTimer'),
+  speak: document.getElementById('optSpeak'),
+  sound: document.getElementById('optSound')
+};
+
+function settingsToForm() {
+  opt.add.checked = settings.add;
+  opt.sub.checked = settings.sub;
+  opt.neg.checked = settings.neg;
+  opt.neg.disabled = !settings.sub;
+  opt.upTo20.checked = settings.upTo20;
+  opt.count.value = String(settings.count);
+  opt.timer.checked = settings.timer;
+  opt.speak.checked = settings.speak;
+  opt.sound.checked = settings.sound;
+  pairGrid.querySelectorAll('input').forEach(function (cb) {
+    cb.checked = settings.pairs.indexOf(Number(cb.value)) !== -1;
+  });
+}
+
+function formToSettings(changed) {
+  var warn = '';
+  settings.add = opt.add.checked;
+  settings.sub = opt.sub.checked;
+  // Keep at least one operation on.
+  if (!settings.add && !settings.sub) {
+    if (changed === opt.add) settings.sub = true; else settings.add = true;
+    warn = 'Need at least one of adding or taking away.';
+  }
+  settings.neg = opt.neg.checked && settings.sub;
+  settings.upTo20 = opt.upTo20.checked;
+  settings.count = parseInt(opt.count.value, 10) || 20;
+  settings.timer = opt.timer.checked;
+  settings.speak = opt.speak.checked;
+  settings.sound = opt.sound.checked;
+
+  var pairs = [];
+  pairGrid.querySelectorAll('input').forEach(function (cb) { if (cb.checked) pairs.push(Number(cb.value)); });
+  if (pairs.length === 0) {
+    pairs = settings.pairs.length ? settings.pairs : [5];
+    warn = 'Pick at least one number to practice.';
+  }
+  settings.pairs = pairs;
+
+  el.warn.textContent = warn;
+  saveSettings();
+  settingsToForm();
+}
+
+[opt.add, opt.sub, opt.neg, opt.upTo20, opt.count, opt.timer, opt.speak, opt.sound].forEach(function (input) {
+  input.addEventListener('change', function () {
+    formToSettings(input);
+    // Sound/speech toggles don't need a new round; everything else does.
+    if (input === opt.speak || input === opt.sound) return;
+    newRound();
+  });
+});
+pairGrid.addEventListener('change', function () { formToSettings(null); newRound(); });
+
+document.querySelectorAll('[data-preset]').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    Object.assign(settings, PRESETS[btn.dataset.preset]);
+    el.warn.textContent = '';
+    saveSettings();
+    settingsToForm();
+    newRound();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+});
+
+settingsToForm();
+newRound();
+</script>
+</body>
+</html>
