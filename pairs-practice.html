@@ -872,10 +872,27 @@ function listWords(nums) {
 // ---------------------------------------------------------------------------
 // Wiring: keypad, physical keyboard, settings
 // ---------------------------------------------------------------------------
-// pointerdown makes the keypad feel instant on tablets (no 300ms click delay)
-// and lets fast tappers hit the same key twice in a row.
+// Keys fire on touchstart so they feel instant on phones and tablets (no
+// 300ms click delay) and let fast tappers hit the same key twice in a row.
+// Touch events work on every mobile browser, including iOS Safari versions
+// without Pointer Events. Calling preventDefault on touchstart stops the
+// browser from also sending mouse events, and mousedown covers desktop
+// mice. The .pressed class supplies the pushed-in look, because iOS doesn't
+// apply :active once touchstart is cancelled.
+var lastTouchTime = 0;
+function flashKey(btn) {
+  btn.classList.add('pressed');
+  setTimeout(function () { btn.classList.remove('pressed'); }, 120);
+}
 document.querySelectorAll('#keypad .key').forEach(function (btn) {
-  btn.addEventListener('pointerdown', function (e) {
+  btn.addEventListener('touchstart', function (e) {
+    e.preventDefault();
+    lastTouchTime = Date.now();
+    flashKey(btn);
+    press(btn.dataset.key);
+  }, { passive: false });
+  btn.addEventListener('mousedown', function (e) {
+    if (Date.now() - lastTouchTime < 1000) return;  // already handled as a touch
     e.preventDefault();
     press(btn.dataset.key);
   });
