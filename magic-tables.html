@@ -36,6 +36,7 @@
     --row: #ff4f9a;  --row-soft: #ffe0ef;
     --col: #3a8dff;  --col-soft: #dcebff;
     --left: #ffb703; --left-soft: #fff1c2;
+    --neg: #6b5bd6; --neg-soft: #ece8ff;
     --accent: #b25cff; --accent-dark: #8a35d6;
     --btn: #fff; --btn-shadow: #e9bfe0;
     --panel: rgba(255, 255, 255, 0.92);
@@ -53,6 +54,7 @@
     --row: #ff8a00;  --row-soft: #ffe8cc;
     --col: #10a8e8;  --col-soft: #d4f1ff;
     --left: #4cc94c; --left-soft: #ddf8d6;
+    --neg: #6b5bd6; --neg-soft: #e6e2ff;
     --accent: #ffb703; --accent-dark: #cf8f00;
     --btn: #eef3f9; --btn-shadow: #8a9bb5;
     --panel: rgba(240, 245, 252, 0.95);
@@ -383,6 +385,9 @@
     content: '✕'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
     color: var(--col); font-size: 1.1em; font-weight: 700;
   }
+  .it.below { background: var(--neg-soft); box-shadow: 0 0 0 3px var(--neg); }
+  .it.hopper { transition: left var(--mv) linear, top var(--mv) linear; z-index: 8; }
+  .nl { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
   .it.dot { font-size: 0 !important; }
   .it.dot.r { background: var(--row); }
   .it.dot.c { background: var(--col); }
@@ -433,6 +438,8 @@
     background: #fff; box-shadow: 0 4px 0 var(--btn-shadow);
   }
   .key.pressed, .key:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--btn-shadow); }
+  .key.minus { color: var(--neg); }
+  .key.minus.on { background: var(--neg); color: #fff; }
   .key.go { background: var(--left); color: #fff; box-shadow: 0 4px 0 #2e9a2e; }
   .theme-unicorn .key.go { box-shadow: 0 4px 0 #d18f00; }
   .big-go {
@@ -604,7 +611,8 @@
     </div>
     <label>Rows go from 1 to <select id="setRows"></select></label>
     <label>Columns go from 1 to <select id="setCols"></select></label>
-    <p class="note">Subtraction and division tables leave out the boxes where the column number is bigger than the row number, so there are no negative numbers. Division answers show the leftovers (remainder) in a small gold circle.</p>
+    <label><input type="checkbox" id="setNeg"> Negative answers in subtraction (like 2 &minus; 5 = &minus;3)</label>
+    <p class="note">With negative answers on, the subtraction boxes where the column number is bigger than the row number show negative numbers, and &ldquo;show me&rdquo; explains them by hopping back past zero on a number line. With it off, those boxes are left out. Division tables always leave out the boxes where the column number is bigger than the row number. Division answers show the leftovers (remainder) in a small gold circle.</p>
 
     <h3>Play</h3>
     <label>Answer by
@@ -801,6 +809,7 @@ const THEMES = {
     star: '⭐',
     parade: ['pegasus', 'pegasus', 'fox'],
     sky: ['✦', '✧', '♡', '✦'],
+    hopper: '🦄',
   },
   robot: {
     items: ['🍕', '🍪', '🍔', '🍎', '🌽', '🔩', '🍩', '🥕', '🧇'],
@@ -814,6 +823,7 @@ const THEMES = {
     star: '⭐',
     parade: ['truck', 'excavator', 'combine', 'rocket'],
     sky: ['✦', '·', '✧', '·', '·'],
+    hopper: '🤖',
   },
 };
 
@@ -828,16 +838,19 @@ const TAKERS = {
 // ===========================================================================
 const OPS = {
   add: { sym: '+', word: 'plus',       f: (r, c) => r + c,                                  ok: () => true },
-  sub: { sym: '−', word: 'minus',      f: (r, c) => r - c,                                  ok: (r, c) => c <= r },
+  sub: { sym: '−', word: 'minus',      f: (r, c) => r - c,                                  ok: (r, c) => CFG().neg || c <= r },
   mul: { sym: '×', word: 'times',      f: (r, c) => r * c,                                  ok: () => true },
   div: { sym: '÷', word: 'divided by', f: (r, c) => ({ q: Math.floor(r / c), m: r % c }), ok: (r, c) => c <= r },
 };
 const OP_ORDER = ['add', 'sub', 'mul', 'div'];
 const val = (r, c) => OPS[S.op].f(r, c);
 const vkey = v => (typeof v === 'object' ? v.q + 'r' + v.m : String(v));
+// Negative numbers get a real minus sign (−3), not a hyphen.
+const fmtNum = n => (n < 0 ? '−' + -n : String(n));
+const sayNum = n => (n < 0 ? 'negative ' + -n : String(n));
 function valHTML(v) {
   if (typeof v === 'object') return `<span class="q">${v.q}</span>` + (v.m ? `<span class="rem">${v.m}</span>` : '');
-  return `<span class="q">${v}</span>`;
+  return `<span class="q">${fmtNum(v)}</span>`;
 }
 
 // ===========================================================================
@@ -845,8 +858,8 @@ function valHTML(v) {
 // ===========================================================================
 const STORE_KEY = 'magicTables.v1';
 const PLAYER_DEFAULTS = {
-  unicorn: { ops: ['add', 'sub', 'mul', 'div'], rows: 6, cols: 6, answer: '3', round: 8, pictures: false, speed: 'normal' },
-  robot:   { ops: ['add', 'sub'],               rows: 5, cols: 5, answer: '3', round: 6, pictures: true,  speed: 'slow' },
+  unicorn: { ops: ['add', 'sub', 'mul', 'div'], rows: 6, cols: 6, answer: '3', round: 8, pictures: false, speed: 'normal', neg: true },
+  robot:   { ops: ['add', 'sub'],               rows: 5, cols: 5, answer: '3', round: 6, pictures: true,  speed: 'slow',   neg: true },
 };
 const PRESETS = {
   tiny:  { ops: ['add'],                      rows: 5,  cols: 5 },
@@ -1469,6 +1482,7 @@ async function demoAdd(r, c, id) {
 // SUBTRACTION: r things fly in from the row; the column says how many the
 // fox (or the trash truck) takes away; we count what's left.
 async function demoSub(r, c, id) {
+  if (c > r) return demoSubNeg(r, c, id);
   clearArea(); setMv();
   const A = areaBox(), ch = itemFor(), pad = 10, T = TAKERS[TH().taker];
   const tw = T.width(A), th = tw * T.aspect;
@@ -1520,6 +1534,83 @@ async function demoSub(r, c, id) {
   }
   burstAt($('eqAns'), 12);
   await sleep(450, id);
+}
+
+// NEGATIVE SUBTRACTION (column bigger than row): there aren't enough things
+// to take away, so we use a number line. Start at r and hop back c times;
+// the hops go past zero into the negative numbers.
+const SVGNS = 'http://www.w3.org/2000/svg';
+function svgEl(tag, attrs, parent) {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function numberLine(lo, hi, A) {
+  const pad = 22, step = (A.w - 2 * pad) / (hi - lo), y = Math.round(A.h * 0.6);
+  const xOf = v => pad + (v - lo) * step;
+  const svg = svgEl('svg', { class: 'nl', width: A.w, height: A.h, viewBox: `0 0 ${A.w} ${A.h}` });
+  // Shade the part of the line below zero.
+  svgEl('rect', { x: 4, y: y - 26, width: Math.max(0, xOf(0) - step / 2 - 4), height: 64, rx: 12, style: 'fill: var(--neg-soft)' }, svg);
+  svgEl('line', { x1: 6, y1: y, x2: A.w - 6, y2: y, 'stroke-width': 4, 'stroke-linecap': 'round', style: 'stroke: var(--ink)' }, svg);
+  const fs = clamp(Math.min(step * 0.55, A.h * 0.07), 11, 24), texts = {};
+  for (let v = lo; v <= hi; v++) {
+    svgEl('line', { x1: xOf(v), y1: y - (v === 0 ? 11 : 7), x2: xOf(v), y2: y + (v === 0 ? 11 : 7), 'stroke-width': v === 0 ? 4 : 3, style: 'stroke: var(--ink)' }, svg);
+    const t = svgEl('text', { x: xOf(v), y: y + 18 + fs, 'text-anchor': 'middle', 'font-size': fs, 'font-weight': 700,
+      style: `fill: ${v < 0 ? 'var(--neg)' : 'var(--ink)'}; font-family: var(--font)` }, svg);
+    t.textContent = fmtNum(v);
+    texts[v] = t;
+  }
+  AREA.appendChild(svg);
+  return { xOf, y, step, svg, texts, hop: clamp(step * 0.75, 16, 42) };
+}
+function hopArc(NL, from, to, k, dashed) {
+  const x1 = NL.xOf(from), x2 = NL.xOf(to), y = NL.y - 2, h = NL.hop;
+  svgEl('path', { d: `M${x1} ${y} Q${(x1 + x2) / 2} ${y - h * 2} ${x2} ${y}`, fill: 'none', 'stroke-width': 3,
+    'stroke-linecap': 'round', 'stroke-dasharray': dashed ? '5 5' : 'none', style: 'stroke: var(--col)' }, NL.svg);
+  const t = svgEl('text', { x: (x1 + x2) / 2, y: y - h - 6, 'text-anchor': 'middle', 'font-size': clamp(NL.step * 0.45, 10, 16),
+    'font-weight': 700, style: 'fill: var(--col); font-family: var(--font)' }, NL.svg);
+  t.textContent = k;
+}
+function lineRange(r, c, A) {
+  let lo = r - c - 1, hi = r + 1;
+  if ((A.w - 44) / (hi - lo) < 24) { lo = r - c; hi = r; }
+  return [lo, hi];
+}
+async function demoSubNeg(r, c, id) {
+  clearArea(); setMv();
+  const A = areaBox(), [lo, hi] = lineRange(r, c, A);
+  const NL = numberLine(lo, hi, A);
+  const s = Math.floor(clamp(NL.step * 0.8, 20, maxItem(A) * 0.75));
+  const tok = mkItem(TH().hopper, s, 'r hopper');
+  const place = v => put(tok, NL.xOf(v) - s / 2, NL.y - s / 2);
+  place(r);
+  RH[r].classList.add('glow'); SFX.whoosh();
+  flyIn(tok, RH[r], 650);
+  await sleep(750, id);
+  NL.texts[r].style.fill = 'var(--row)';
+  bump(tok); SFX.tick(r); eqAns(fmtNum(r));
+  await sleep(500, id);
+  CH[c].classList.add('glow'); pulseEq('c');
+  await sleep(350, id);
+  AREA.style.setProperty('--mv', Math.round(300 * spd()) + 'ms');
+  const gap = clamp(3600 / c, 330, 560);
+  for (let k = 1; k <= c; k++) {
+    const v = r - k;
+    hopArc(NL, v + 1, v, k);
+    place(v);
+    tok.animate([{ transform: 'translateY(0)' }, { transform: `translateY(${-NL.hop * 1.6}px)` }, { transform: 'translateY(0)' }],
+      { duration: 300 * spd(), easing: 'ease-out' });
+    tok.classList.toggle('below', v < 0);
+    tok.classList.toggle('r', v >= 0);
+    SFX.down(k - 1); eqAns(fmtNum(v));
+    if (v === 0) burst(AREA.getBoundingClientRect().left + NL.xOf(0), AREA.getBoundingClientRect().top + NL.y, 8, 0.6);
+    await sleep(gap, id);
+  }
+  NL.texts[r - c].style.fill = 'var(--accent-dark)';
+  bump(tok, 1.3); SFX.sparkle();
+  burstAt($('eqAns'), 12);
+  await sleep(700, id);
 }
 
 // MULTIPLICATION: one row of c from the column, copied down r times from the
@@ -1653,6 +1744,15 @@ function drawPicture(r, c) {
     gridPos(r, 5, s, { x: pad, y: pad, w: half.w, h: half.h }).forEach(p => put(mkItem(ch, s, 'r'), p.x, p.y));
     gridPos(c, 5, s, { x: pad + half.w + mid, y: pad, w: half.w, h: half.h }).forEach(p => put(mkItem(ch, s, 'c'), p.x, p.y));
     label('+', A.w / 2, A.h / 2, 'big');
+  } else if (S.op === 'sub' && c > r) {
+    const [lo, hi] = lineRange(r, c, A);
+    const NL = numberLine(lo, hi, A);
+    const s = Math.floor(clamp(NL.step * 0.8, 20, MX * 0.75));
+    put(mkItem(TH().hopper, s, 'r hopper'), NL.xOf(r) - s / 2, NL.y - s / 2);
+    NL.texts[r].style.fill = 'var(--row)';
+    for (let k = 1; k <= c; k++) hopArc(NL, r - k + 1, r - k, k, true);
+    NL.texts[r - c].textContent = '?';
+    NL.texts[r - c].style.fill = 'var(--accent-dark)';
   } else if (S.op === 'sub') {
     const box = { x: pad, y: pad, w: A.w - 2 * pad, h: A.h - 2 * pad };
     const per = r <= 5 ? r : 5, s = fitSize(r, per, box, false, MX);
@@ -1679,7 +1779,9 @@ function explain(r, c) {
   const are = n => (n === 1 ? 'is' : 'are');
   switch (S.op) {
     case 'add': return `${r} plus ${c}. Start with ${r}, and add ${c} more. That makes ${v}!`;
-    case 'sub': return `${r} minus ${c}. Start with ${r}. The ${t.takerName} takes away ${c}. ${v} ${are(v)} left!`;
+    case 'sub':
+      if (v < 0) return `${r} minus ${c}. Start at ${r}, and count back ${c}. We go past zero, all the way to negative ${-v}!`;
+      return `${r} minus ${c}. Start with ${r}. The ${t.takerName} takes away ${c}. ${v} ${are(v)} left!`;
     case 'mul': return `${r} times ${c}. ${r} ${r === 1 ? 'row' : 'rows'} of ${c}. That makes ${v}! ` +
       `On the table, count the boxes from the corner to the answer. There are ${v}!`;
     default: return `${r} divided by ${c}. Share ${r} with ${c} ${c === 1 ? 'friend' : 'friends'}. ` +
@@ -1787,11 +1889,12 @@ function learnHeader(kind, n) {
   }
 }
 function learnBlocked(r, c) {
-  // A subtraction or division box where the column is bigger than the row.
+  // A box left out of the table (division with the column bigger than the
+  // row, or subtraction with negatives turned off). Nothing to show.
   newRun(); clearTableFx(); clearArea();
   const cell = CELLS[r][c];
   cell.classList.add('shake'); setTimeout(() => cell.classList.remove('shake'), 450);
-  eqSet(r, c, '🚫');
+  S.cur = null; eqTemplate();
   SFX.hmm(); mascotReact('think');
 }
 
@@ -1845,7 +1948,7 @@ function pickCell() {
 }
 async function nextQuestion() {
   const id = newRun();
-  FILL.tries = 0; FILL.typed = ''; FILL.locked = false;
+  FILL.tries = 0; FILL.typed = ''; FILL.neg = false; FILL.locked = false;
   const [r, c] = pickCell();
   FILL.cur = { r, c }; FILL.last = [r, c];
   S.item = pick(TH().items); S.friend = pick(TH().friends);
@@ -1869,9 +1972,17 @@ function makeChoices(r, c, k) {
   } else {
     const near = [v + 1, v - 1, v + 2, v - 2, v + 3];
     if (S.op === 'mul') near.push(v + r, v - r, v + c, v - c, (r + 1) * c, r * (c + 1), r + c);
-    near.forEach(x => { if (x >= 0) add(x); });
+    // In subtraction, the same number with the other sign is the classic
+    // mix-up (2 − 5 = 3?), so it is always one of the choices.
+    if (S.op === 'sub' && v !== 0 && CFG().neg) add(-v);
+    near.forEach(x => { if (x >= 0 || (S.op === 'sub' && CFG().neg)) add(x); });
   }
-  const list = shuffle([...cand.values()]).slice(0, k - 1);
+  const list = [...cand.values()];
+  const first = list.slice(0, S.op === 'sub' && v !== 0 && CFG().neg ? 1 : 0);
+  list.splice(0, first.length);
+  shuffle(list);
+  list.unshift(...first);
+  list.splice(k - 1);
   list.push(v);
   const num = x => (typeof x === 'object' ? x.q * 100 + x.m : x);
   return list.sort((a, b) => num(a) - num(b));
@@ -1888,8 +1999,13 @@ function renderAnswers(r, c) {
   bottom.innerHTML = '';
   if (usePad()) {
     const pad = mkDiv('pad', bottom);
-    ['1', '2', '3', '4', '5', '⌫', '6', '7', '8', '9', '0', '✓'].forEach(k => {
-      const b = mkBtn('key' + (k === '✓' ? ' go' : ''), k, pad);
+    const minus = S.op === 'sub' && CFG().neg;
+    const keys = minus ? ['1', '2', '3', '4', '5', '−', '⌫', '6', '7', '8', '9', '0', '✓']
+                       : ['1', '2', '3', '4', '5', '⌫', '6', '7', '8', '9', '0', '✓'];
+    if (minus) pad.style.gridTemplateColumns = 'repeat(7, 1fr)';
+    keys.forEach(k => {
+      const b = mkBtn('key' + (k === '✓' ? ' go' : '') + (k === '−' ? ' minus' : ''), k, pad);
+      if (minus && k === '✓') b.style.gridColumn = 'span 2';
       b.dataset.key = k;
       onTap(b, () => padPress(k));
     });
@@ -1916,18 +2032,25 @@ function onTap(btn, fn) {
 }
 function padPress(k) {
   if (FILL.locked || !FILL.cur) return;
-  if (k === '⌫') { FILL.typed = FILL.typed.slice(0, -1); SFX.soft(); }
-  else if (k === '✓') { if (FILL.typed) checkTyped(); return; }
+  if (k === '⌫') {
+    if (FILL.typed) FILL.typed = FILL.typed.slice(0, -1); else FILL.neg = false;
+    SFX.soft();
+  } else if (k === '−') {
+    if (S.op !== 'sub' || !CFG().neg) return;
+    FILL.neg = !FILL.neg; SFX.soft();
+  } else if (k === '✓') { if (FILL.typed) checkTyped(); return; }
   else if (FILL.typed.length < 3) { FILL.typed = (FILL.typed === '0' ? '' : FILL.typed) + k; SFX.tick(+k); }
-  eqAns(FILL.typed || '?', false);
+  document.querySelectorAll('.key.minus').forEach(b => b.classList.toggle('on', FILL.neg));
+  eqAns((FILL.neg ? '−' : '') + (FILL.typed || (FILL.neg ? '' : '?')), false);
 }
 function checkTyped() {
   const { r, c } = FILL.cur;
-  const ok = +FILL.typed === val(r, c);
+  const ok = (FILL.neg ? -1 : 1) * +FILL.typed === val(r, c);
   if (ok) answerRight($('eqAns'));
   else {
     answerWrong($('eqAns'));
-    FILL.typed = '';
+    FILL.typed = ''; FILL.neg = false;
+    document.querySelectorAll('.key.minus').forEach(b => b.classList.remove('on'));
     setTimeout(() => { if (!FILL.locked) eqAns('?', false); }, 450);
   }
 }
@@ -1985,8 +2108,10 @@ function addStars(n) {
   sc.textContent = '⭐ ' + P().stars;
   sc.classList.remove('bump'); reflow(sc); sc.classList.add('bump');
 }
+// A subtraction table with negatives has more boxes, so it earns its own trophy.
+const trophyKey = () => sizeKey() + (S.op === 'sub' && CFG().neg ? '±' : '');
 function checkTrophy() {
-  const k = sizeKey();
+  const k = trophyKey();
   if (P().trophies[k]) return false;
   const done = doneSet();
   if (!validCells().every(([r, c]) => done.has(r + ',' + c))) return false;
@@ -2237,11 +2362,12 @@ function fillSettings() {
   $('setRows').value = st.rows; $('setCols').value = st.cols;
   $('setAnswer').value = st.answer; $('setRound').value = String(st.round);
   $('setPictures').checked = !!st.pictures; $('setSpeed').value = st.speed;
+  $('setNeg').checked = !!st.neg;
   $('setSound').checked = !!DB.global.sound; $('setRate').value = DB.global.rate;
   const pl = DB.players[setFor];
   const tables = Object.keys(pl.done).filter(k => pl.done[k].length).map(k => {
     const [op, size] = k.split('-');
-    return `${OPS[op] ? OPS[op].sym : op} ${size.replace('x', '×')}: ${pl.done[k].length} boxes` + (pl.trophies[k] ? ' 🏆' : '');
+    return `${OPS[op] ? OPS[op].sym : op} ${size.replace('x', '×')}: ${pl.done[k].length} boxes` + (pl.trophies[k] || pl.trophies[k + '±'] ? ' 🏆' : '');
   });
   $('setProgress').textContent = `⭐ ${pl.stars} stars. ` + (tables.length ? 'Filled in: ' + tables.join(', ') + '.' : 'No boxes filled in yet.');
 }
@@ -2252,6 +2378,7 @@ function readSettings() {
   st.rows = +$('setRows').value; st.cols = +$('setCols').value;
   st.answer = $('setAnswer').value; st.round = +$('setRound').value;
   st.pictures = $('setPictures').checked; st.speed = $('setSpeed').value;
+  st.neg = $('setNeg').checked;
   DB.global.sound = $('setSound').checked;
   DB.global.rate = +$('setRate').value;
   saveDB();
@@ -2311,7 +2438,7 @@ $('sayBtn').addEventListener('click', () => {
   const t = TH();
   if (S.mode === 'find' && FIND.target) {
     const v = FIND.target.v;
-    speak(typeof v === 'object' ? `Find ${v.q}, with ${v.m} left over. There are ${FIND.target.cells.length}.` : `Find all the ${v}s! There are ${FIND.target.cells.length}.`);
+    speak(typeof v === 'object' ? `Find ${v.q}, with ${v.m} left over. There are ${FIND.target.cells.length}.` : `Find all the ${sayNum(v)}s! There are ${FIND.target.cells.length}.`);
   } else if (S.mode === 'fill' && FILL.cur) {
     speak(question(FILL.cur.r, FILL.cur.c));
   } else if (S.mode === 'learn' && S.cur) {
@@ -2327,6 +2454,7 @@ document.addEventListener('keydown', e => {
   // preventDefault so Enter doesn't also "click" whichever button has focus.
   if (/^[0-9]$/.test(e.key)) { e.preventDefault(); padPress(e.key); }
   else if (e.key === 'Backspace') { e.preventDefault(); padPress('⌫'); }
+  else if (e.key === '-') { e.preventDefault(); padPress('−'); }
   else if (e.key === 'Enter') { e.preventDefault(); padPress('✓'); }
 });
 
